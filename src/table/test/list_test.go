@@ -1,4 +1,4 @@
-package table
+package test
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/table"
 )
 
 func setupListTestDir(t *testing.T) string {
@@ -39,7 +40,7 @@ func TestHandleListTables_Empty(t *testing.T) {
 	req.Header.Set("X-DB-Name", "testdb")
 	w := httptest.NewRecorder()
 
-	h := &ListTablesHandler{
+	h := &table.ListTablesHandler{
 		DataDir:        testDir,
 		Logger:         &logger.NoopLogger{},
 	}
@@ -69,7 +70,7 @@ func TestHandleListTables_WithTables(t *testing.T) {
 	req.Header.Set("X-DB-Name", "testdb")
 	w := httptest.NewRecorder()
 
-	h := &ListTablesHandler{
+	h := &table.ListTablesHandler{
 		DataDir:        testDir,
 		Logger:         &logger.NoopLogger{},
 	}
