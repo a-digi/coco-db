@@ -32,3 +32,18 @@ check-port:
 	else \
 		echo "Port 2022 ist FREI."; \
 	fi
+
+stop-dev:
+	@echo "Beende dev-Server (run-dev) über coco-db.pid falls vorhanden..."
+	@if [ -f coco-db.pid ]; then \
+		PID=$$(cat coco-db.pid); \
+		if kill $$PID 2>/dev/null; then \
+			echo "Dev-Server (PID: $$PID) gestoppt."; \
+			rm -f coco-db.pid; \
+		else \
+			echo "Prozess mit PID $$PID konnte nicht beendet werden oder läuft nicht."; \
+			rm -f coco-db.pid; \
+		fi \
+	else \
+		echo "Keine coco-db.pid gefunden. Kein laufender dev-Server."; \
+	fi
