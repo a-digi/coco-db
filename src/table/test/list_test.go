@@ -3,6 +3,7 @@ package test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/a-digi/coco-db/src/logger"
@@ -140,5 +141,33 @@ func TestHandleListTables_ErrorCases(t *testing.T) {
 	}
 	if resp.Error.Message == "" {
 		t.Errorf("Fehlermeldung fehlt")
+	}
+}
+
+func TestHandleCreateTable_DuplicateFieldNames(t *testing.T) {
+	testDir := setupListTestDir(t)
+	defer teardownListTestDir(testDir)
+
+	tc := &table.TableCreator{
+		DataDir: testDir,
+		Logger:  &logger.NoopLogger{},
+	}
+
+	meta := table.TableMeta{
+		TableName: "duptest",
+		Fields: []table.FieldMeta{
+			{Name: "id", Type: "string"},
+			{Name: "id", Type: "string"}, // Duplicate
+		},
+	}
+	resp := tc.HandleCreateTable("testdb", meta)
+	if resp == nil || resp.Success || resp.Error == nil {
+		t.Fatalf("Duplikate Feldnamen nicht korrekt erkannt")
+	}
+	if resp.Error.Code != "ERR_FIELD_DUPLICATE" {
+		t.Errorf("Falscher Fehlercode für Duplikat: %v", resp.Error.Code)
+	}
+	if !strings.Contains(resp.Error.Message, "Feldname kommt mehrfach vor") {
+		t.Errorf("Fehlermeldung für Duplikat nicht korrekt: %v", resp.Error.Message)
 	}
 }
