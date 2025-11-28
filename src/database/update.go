@@ -1,6 +1,8 @@
 package database
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -55,6 +57,37 @@ func (du *DatabaseUpdate) HandleUpdateDatabase(oldName, newName string) *respons
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
+
+	// tables.json aktualisieren
+	tablesPath := filepath.Join(du.SataDir, "tables.json")
+	var dbs []DatabaseMeta
+	if _, err := os.Stat(tablesPath); err == nil {
+		content, err := ioutil.ReadFile(tablesPath)
+		if err == nil {
+			_ = json.Unmarshal(content, &dbs)
+		}
+	}
+	updated := false
+	for i, entry := range dbs {
+		if entry.Name == oldName {
+			dbs[i].Name = newName
+			updated = true
+		}
+		if entry.Name == newName {
+			// Sollte nicht vorkommen, aber zur Sicherheit
+			return response.WriteErrorInternal(http.StatusConflict, "ERR_DB_EXISTS", "Ziel-Datenbankname existiert bereits", "")
+		}
+	}
+	if updated {
+		f, err := os.Create(tablesPath)
+		if err == nil {
+			enc := json.NewEncoder(f)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(dbs)
+			f.Close()
+		}
+	}
+
 	execTime := time.Since(start).String()
 	return response.WriteSuccess(map[string]string{"oldName": oldName, "newName": newName}, execTime)
 }

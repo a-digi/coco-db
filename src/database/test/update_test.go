@@ -1,8 +1,10 @@
 package test
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
+
 	"github.com/a-digi/coco-db/src/database"
 )
 
@@ -24,6 +26,16 @@ func TestHandleUpdateDatabase_Success(t *testing.T) {
 	oldName := "olddb"
 	newName := "newdb"
 	os.MkdirAll(testDir+"/"+oldName, 0755)
+	// Simuliere tables.json mit olddb und einer weiteren DB
+	dbs := []database.DatabaseMeta{{Name: oldName}, {Name: "otherdb"}}
+	tablesPath := testDir + "/tables.json"
+	f, err := os.Create(tablesPath)
+	if err != nil {
+		t.Fatalf("Fehler beim Anlegen von tables.json: %v", err)
+	}
+	defer f.Close()
+	_ = json.NewEncoder(f).Encode(dbs)
+
 	du := &database.DatabaseUpdate{SataDir: testDir}
 	resp := du.HandleUpdateDatabase(oldName, newName)
 	if resp == nil || !resp.Success || resp.HttpCode != 200 {
@@ -37,6 +49,31 @@ func TestHandleUpdateDatabase_Success(t *testing.T) {
 	}
 	if _, err := os.Stat(testDir + "/" + oldName); err == nil {
 		t.Errorf("Alter Datenbankordner existiert noch")
+	}
+	// Prüfe, ob olddb in tables.json zu newdb geändert wurde
+	content, err := os.ReadFile(tablesPath)
+	if err != nil {
+		t.Fatalf("tables.json nicht lesbar: %v", err)
+	}
+	var newDbs []database.DatabaseMeta
+	if err := json.Unmarshal(content, &newDbs); err != nil {
+		t.Fatalf("tables.json nicht parsebar: %v", err)
+	}
+	foundOld := false
+	foundNew := false
+	for _, entry := range newDbs {
+		if entry.Name == oldName {
+			foundOld = true
+		}
+		if entry.Name == newName {
+			foundNew = true
+		}
+	}
+	if foundOld {
+		t.Errorf("olddb wurde nicht aus tables.json entfernt")
+	}
+	if !foundNew {
+		t.Errorf("newdb wurde nicht in tables.json eingetragen")
 	}
 }
 
