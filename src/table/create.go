@@ -3,10 +3,12 @@ package table
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
@@ -60,49 +62,60 @@ var TableNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
 
 // HandleCreateTable verarbeitet das Anlegen einer neuen Tabelle (POST /api/databases/{dbname}/tables)
 func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *response.APIResponse {
+	start := time.Now()
 	if dbname == "" {
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_NAME_MISSING", Message: "Datenbankname fehlt"}}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_DB_NAME_MISSING", "Datenbankname fehlt", execTime)
 	}
 	if !TableNamePattern.MatchString(dbname) {
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_INVALID_NAME", Message: "Ungültiger Datenbankname"}}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", execTime)
 	}
 
 	if !TableNamePattern.MatchString(meta.TableName) {
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_INVALID_NAME", Message: "Ungültiger Tabellenname"}}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_TABLE_INVALID_NAME", "Ungültiger Tabellenname", execTime)
 	}
 	if strings.ToLower(meta.TableName) == "meta" || strings.ToLower(meta.TableName) == "entries" || strings.ToLower(meta.TableName) == "indexes" {
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_RESERVED_NAME", Message: "Tabellenname ist reserviert"}}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_TABLE_RESERVED_NAME", "Tabellenname ist reserviert", execTime)
 	}
 
 	// Felder-Validierung: Mindestens ein Feld, alle Pflichtfelder müssen Namen und Typ haben
 	if len(meta.Fields) == 0 {
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELDS_MISSING", Message: "Mindestens ein Feld muss definiert sein"}}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELDS_MISSING", "Mindestens ein Feld muss definiert sein", execTime)
 	}
 	for _, f := range meta.Fields {
 		if f.Name == "" || f.Type == "" {
-			return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELD_INVALID", Message: "Jedes Feld muss einen Namen und Typ haben"}}
+			execTime := time.Since(start).String()
+			return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELD_INVALID", "Jedes Feld muss einen Namen und Typ haben", execTime)
 		}
 	}
 
 	dbDir := filepath.Join(tc.DataDir, dbname)
 	if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dbDir, 0755); err != nil {
+			execTime := time.Since(start).String()
 			tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen DB-Verzeichnis: %v", err))
-			return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des Datenbankverzeichnisses: "+err.Error()}}
+			return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des Datenbankverzeichnisses: "+err.Error(), execTime)
 		}
 	}
 	tableDir := filepath.Join(dbDir, meta.TableName)
 	if _, err := os.Stat(tableDir); err == nil {
+		execTime := time.Since(start).String()
 		tc.Logger.Warning(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s existiert bereits", dbname, meta.TableName))
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_EXISTS", Message: "Tabelle existiert bereits"}}
+		return response.WriteErrorInternal(http.StatusConflict, "ERR_TABLE_EXISTS", "Tabelle existiert bereits", execTime)
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "entries"), 0755); err != nil {
+		execTime := time.Since(start).String()
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen entries: %v", err))
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des entries-Verzeichnisses: "+err.Error()}}
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des entries-Verzeichnisses: "+err.Error(), execTime)
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "indexes"), 0755); err != nil {
+		execTime := time.Since(start).String()
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen indexes: %v", err))
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error()}}
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error(), execTime)
 	}
 
 	metaPath := filepath.Join(tableDir, "meta.json")
@@ -111,15 +124,17 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 	}
 	f, err := os.Create(metaPath)
 	if err != nil {
+		execTime := time.Since(start).String()
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen meta.json: %v", err))
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen der meta.json: "+err.Error()}}
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen der meta.json: "+err.Error(), execTime)
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(meta); err != nil {
+		execTime := time.Since(start).String()
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Schreiben meta.json: %v", err))
-		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Schreiben der meta.json: "+err.Error()}}
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben der meta.json: "+err.Error(), execTime)
 	}
 
 	tc.Logger.Info(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s erfolgreich angelegt", dbname, meta.TableName))
@@ -127,5 +142,6 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		tc.Logger.Info("[TABLE_CREATE] meta.json: " + string(metaBytes))
 	}
 
-	return &response.APIResponse{Success: true, Data: meta}
+	execTime := time.Since(start).String()
+	return response.WriteSuccess(meta, execTime)
 }

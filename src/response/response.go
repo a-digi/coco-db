@@ -26,10 +26,15 @@ type APIError struct {
 func WriteSuccess(data interface{}, execTime string) *APIResponse {
 	if execTime != "" && strings.HasSuffix(execTime, "µs") {
 		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "µs"), 64); err == nil {
-			execTime = strconv.FormatInt(int64(dur/1000), 10) + "ms"
+			execTime = strconv.FormatFloat(dur/1000.0, 'f', -1, 64) + "ms"
+		}
+	} else if execTime != "" && strings.HasSuffix(execTime, "ms") {
+		// already ms, do nothing
+	} else if execTime != "" && strings.HasSuffix(execTime, "s") {
+		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "s"), 64); err == nil {
+			execTime = strconv.FormatFloat(dur*1000.0, 'f', -1, 64) + "ms"
 		}
 	}
-
 	resp := &APIResponse{
 		Success:       true,
 		Data:          data,
@@ -44,7 +49,13 @@ func WriteSuccess(data interface{}, execTime string) *APIResponse {
 func WriteError(w http.ResponseWriter, status int, code, message, execTime string) *APIResponse {
 	if execTime != "" && strings.HasSuffix(execTime, "µs") {
 		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "µs"), 64); err == nil {
-			execTime = strconv.FormatInt(int64(dur/1000), 10) + "ms"
+			execTime = strconv.FormatFloat(dur/1000.0, 'f', -1, 64) + "ms"
+		}
+	} else if execTime != "" && strings.HasSuffix(execTime, "ms") {
+		// already ms, do nothing
+	} else if execTime != "" && strings.HasSuffix(execTime, "s") {
+		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "s"), 64); err == nil {
+			execTime = strconv.FormatFloat(dur*1000.0, 'f', -1, 64) + "ms"
 		}
 	}
 	resp := WriteErrorInternal(status, code, message, execTime)
@@ -58,11 +69,17 @@ func WriteError(w http.ResponseWriter, status int, code, message, execTime strin
 
 func WriteErrorInternal(status int, code, message, execTime string) *APIResponse {
 	if execTime == "" {
-		execTime = "0s"
+		execTime = "0ms"
 	}
 	if execTime != "" && strings.HasSuffix(execTime, "µs") {
 		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "µs"), 64); err == nil {
-			execTime = strconv.FormatInt(int64(dur/1000), 10) + "ms"
+			execTime = strconv.FormatFloat(dur/1000.0, 'f', -1, 64) + "ms"
+		}
+	} else if execTime != "" && strings.HasSuffix(execTime, "ms") {
+		// already ms, do nothing
+	} else if execTime != "" && strings.HasSuffix(execTime, "s") {
+		if dur, err := strconv.ParseFloat(strings.TrimSuffix(execTime, "s"), 64); err == nil {
+			execTime = strconv.FormatFloat(dur*1000.0, 'f', -1, 64) + "ms"
 		}
 	}
 	resp := &APIResponse{
