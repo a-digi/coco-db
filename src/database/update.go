@@ -1,10 +1,8 @@
 package database
 
 import (
-	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/a-digi/coco-db/src/response"
 )
@@ -13,42 +11,84 @@ type UpdateDatabaseRequest struct {
 	NewName string `json:"newName"`
 }
 
-func handleUpdateDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	// REST: /api/databases/{dbname}
-	prefix := "/api/databases/"
-	if !strings.HasPrefix(r.URL.Path, prefix) || len(r.URL.Path) <= len(prefix) {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger alter Datenbankname", "")
-	}
-	oldName := r.URL.Path[len(prefix):]
-	if len(oldName) == 0 || !DbNamePattern.MatchString(oldName) {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger alter Datenbankname", "")
-	}
-	var req UpdateDatabaseRequest
-	// decodeJSON entfernt, stattdessen Dummy-Name für Testzwecke
-	req.NewName = r.URL.Query().Get("newName")
-	if req.NewName == "" {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", "newName fehlt", "")
-	}
-	if !DbNamePattern.MatchString(req.NewName) {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger neuer Datenbankname", "")
-	}
-	if req.NewName == oldName {
-		return response.WriteError(w, http.StatusConflict, "ERR_DB_SAME_NAME", "Neuer Name ist identisch mit altem Namen", "")
-	}
-	oldPath := filepath.Join(dataDir, oldName)
-	newPath := filepath.Join(dataDir, req.NewName)
-	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
-		return response.WriteError(w, http.StatusNotFound, "ERR_DB_NOT_FOUND", "Alte Datenbank nicht gefunden", "")
-	}
-	if _, err := os.Stat(newPath); err == nil {
-		return response.WriteError(w, http.StatusConflict, "ERR_DB_EXISTS", "Ziel-Datenbankname existiert bereits", "")
-	}
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return response.WriteError(w, http.StatusInternalServerError, "ERR_IO", err.Error(), "")
-	}
-	return response.WriteSuccess(w, map[string]string{"oldName": oldName, "newName": req.NewName}, "")
+type DatabaseUpdate struct {
+	SataDir string
 }
 
-func HandleUpdateDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	return handleUpdateDatabase(w, r, dataDir)
+func (du *DatabaseUpdate) HandleUpdateDatabase(oldName, newName string) *response.APIResponse {
+	if len(oldName) == 0 || !DbNamePattern.MatchString(oldName) {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_INVALID_NAME",
+				Message: "Ungültiger alter Datenbankname",
+			},
+		}
+	}
+
+	if len(newName) == 0 {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_INVALID_JSON",
+				Message: "newName fehlt",
+			},
+		}
+	}
+
+	if !DbNamePattern.MatchString(newName) {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_INVALID_NAME",
+				Message: "Ungültiger neuer Datenbankname",
+			},
+		}
+	}
+
+	if newName == oldName {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_SAME_NAME",
+				Message: "Neuer Name ist identisch mit altem Namen",
+			},
+		}
+	}
+
+	oldPath := filepath.Join(du.SataDir, oldName)
+	newPath := filepath.Join(du.SataDir, newName)
+
+	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_NOT_FOUND",
+				Message: "Alte Datenbank nicht gefunden",
+			},
+		}
+	}
+
+	if _, err := os.Stat(newPath); err == nil {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_EXISTS",
+				Message: "Ziel-Datenbankname existiert bereits",
+			},
+		}
+	}
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_IO",
+				Message: err.Error(),
+			},
+		}
+	}
+	return &response.APIResponse{
+		Success: true,
+		Data:    map[string]string{"oldName": oldName, "newName": newName},
+	}
 }

@@ -10,49 +10,22 @@ import (
 type DatabaseCreate struct {
 	DataDir     string
 	Logger      logger.Logger
-	APIResponse *response.APIResponse
 }
 
 func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIResponse {
-	if !DbNamePattern.MatchString(dbName) {
-		dc.APIResponse = &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_INVALID_NAME",
-				Message: "Ungültiger Datenbankname",
-			},
-		}
 
-		return dc.APIResponse
+	if !DbNamePattern.MatchString(dbName) {
+		return response.WriteError(nil, 0, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", "")
 	}
 
 	dbPath := filepath.Join(dc.DataDir, dbName)
 	if _, err := os.Stat(dbPath); err == nil {
-		dc.APIResponse = &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_EXISTS",
-				Message: "Datenbank existiert bereits",
-			},
-		}
-		return dc.APIResponse
+		return response.WriteError(nil, 0, "ERR_DB_EXISTS", "Datenbank existiert bereits", "")
 	}
 
 	if err := os.MkdirAll(dbPath, 0755); err != nil {
-		dc.APIResponse = &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_IO",
-				Message: err.Error(),
-			},
-		}
-		return dc.APIResponse
+		return response.WriteError(nil, 0, "ERR_IO", err.Error(), "")
 	}
 
-	dc.APIResponse = &response.APIResponse{
-		Success: true,
-		Data:    map[string]string{"name": dbName},
-	}
-
-	return dc.APIResponse
+	return response.WriteSuccess(nil, map[string]string{"name": dbName}, "")
 }

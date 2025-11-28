@@ -26,7 +26,7 @@ func WriteSuccess(w http.ResponseWriter, data interface{}, execTime string) *API
 		Data:          data,
 		ExecutionTime: execTime,
 	}
-	resp.writeJSON(w, http.StatusOK)
+
 	return resp
 }
 
@@ -40,12 +40,12 @@ func WriteError(w http.ResponseWriter, status int, code, message, execTime strin
 		},
 		ExecutionTime: execTime,
 	}
-	resp.writeJSON(w, status)
+
 	return resp
 }
 
 // writeJSON serialisiert die Antwort als JSON und setzt die Header.
-func (resp *APIResponse) writeJSON(w http.ResponseWriter, status int) {
+func (resp *APIResponse) ToJSON(w http.ResponseWriter, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(resp)
