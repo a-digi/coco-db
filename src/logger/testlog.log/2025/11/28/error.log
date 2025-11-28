@@ -1,0 +1,4 @@
+ERROR: 2025/11/28 21:05:24 file_logger_test.go:24: Dies ist eine Error-Nachricht.
+CRITICAL: 2025/11/28 21:05:24 file_logger_test.go:25: Dies ist eine Critical-Nachricht.
+ALERT: 2025/11/28 21:05:24 file_logger_test.go:26: Dies ist eine Alert-Nachricht.
+EMERGENCY: 2025/11/28 21:05:24 file_logger_test.go:27: Dies ist eine Emergency-Nachricht.

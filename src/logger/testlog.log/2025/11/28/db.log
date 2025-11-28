@@ -1,0 +1,5 @@
+LOG: 2025/11/28 21:05:24 file_logger_test.go:19: Dies ist eine Log-Nachricht.
+DEBUG: 2025/11/28 21:05:24 file_logger_test.go:20: Dies ist eine Debug-Nachricht.
+INFO: 2025/11/28 21:05:24 file_logger_test.go:21: Dies ist eine Info-Nachricht.
+NOTICE: 2025/11/28 21:05:24 file_logger_test.go:22: Dies ist eine Notice-Nachricht.
+WARNING: 2025/11/28 21:05:24 file_logger_test.go:23: Dies ist eine Warning-Nachricht.

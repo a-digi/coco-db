@@ -4,104 +4,104 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
+	"time"
 )
 
-// FileLogger ist ein thread-sicherer Logger, der in eine Datei schreibt
-// und das Standard-Log-Interface von Go nutzt.
+// FileLogger ist ein thread-sicherer Logger, der Fehler und normale Logs trennt
+// Fehler gehen in error.log, alles andere in db.log (jeweils nach Jahr/Monat/Tag)
 type FileLogger struct {
-	file   *os.File
-	logger *log.Logger
-	mu     sync.Mutex
+	baseDir    string
+	dbLogger   *log.Logger
+	dbFile     *os.File
+	errorLogger *log.Logger
+	errorFile   *os.File
+	mu         sync.Mutex
 }
 
-// NewFileLogger öffnet (oder erstellt) die Logdatei und gibt einen FileLogger zurück
-func NewFileLogger(path string) (*FileLogger, error) {
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
+// NewFileLogger nimmt das Basisverzeichnis (z.B. logs/) und erzeugt Logger für db.log und error.log
+func NewFileLogger(baseDir string) (*FileLogger, error) {
+	logger := &FileLogger{baseDir: baseDir}
+	if err := logger.rotate(); err != nil {
 		return nil, err
 	}
-	return &FileLogger{
-		file:   file,
-		logger: log.New(file, "", log.LstdFlags|log.Lshortfile),
-	}, nil
+	return logger, nil
 }
 
-// Log schreibt eine Log-Nachricht ins Log
-func (f *FileLogger) Log(v ...interface{}) {
+// rotate öffnet die aktuellen Logdateien für das heutige Datum
+func (f *FileLogger) rotate() error {
+	f.closeFiles()
+	now := time.Now()
+	dir := filepath.Join(f.baseDir,
+		fmt.Sprintf("%04d", now.Year()),
+		fmt.Sprintf("%02d", int(now.Month())),
+		fmt.Sprintf("%02d", now.Day()),
+	)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	dbPath := filepath.Join(dir, "db.log")
+	errorPath := filepath.Join(dir, "error.log")
+	dbFile, err := os.OpenFile(dbPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	errorFile, err := os.OpenFile(errorPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		dbFile.Close()
+		return err
+	}
+	f.dbFile = dbFile
+	f.errorFile = errorFile
+	f.dbLogger = log.New(dbFile, "", log.LstdFlags|log.Lshortfile)
+	f.errorLogger = log.New(errorFile, "", log.LstdFlags|log.Lshortfile)
+	return nil
+}
+
+// closeFiles schließt die Logdateien, falls offen
+func (f *FileLogger) closeFiles() {
+	if f.dbFile != nil {
+		f.dbFile.Close()
+		f.dbFile = nil
+	}
+	if f.errorFile != nil {
+		f.errorFile.Close()
+		f.errorFile = nil
+	}
+}
+
+// logToFile schreibt je nach Level in die richtige Datei
+func (f *FileLogger) logToFile(level string, v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.logger.SetPrefix("LOG: ")
-	f.logger.Output(2, fmt.Sprint(v...))
+	f.rotate() // Optional: Bei jedem Log-Aufruf prüfen, ob ein neuer Tag ist
+	msg := fmt.Sprint(v...)
+	var logger *log.Logger
+	switch level {
+	case "ERROR", "CRITICAL", "ALERT", "EMERGENCY":
+		logger = f.errorLogger
+	default:
+		logger = f.dbLogger
+	}
+	logger.SetPrefix(level + ": ")
+	logger.Output(3, msg)
 }
 
-// Debug schreibt eine Debug-Nachricht ins Log
-func (f *FileLogger) Debug(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("DEBUG: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
+func (f *FileLogger) Log(v ...interface{})      { f.logToFile("LOG", v...) }
+func (f *FileLogger) Debug(v ...interface{})    { f.logToFile("DEBUG", v...) }
+func (f *FileLogger) Info(v ...interface{})     { f.logToFile("INFO", v...) }
+func (f *FileLogger) Notice(v ...interface{})   { f.logToFile("NOTICE", v...) }
+func (f *FileLogger) Warning(v ...interface{})  { f.logToFile("WARNING", v...) }
+func (f *FileLogger) Error(v ...interface{})    { f.logToFile("ERROR", v...) }
+func (f *FileLogger) Critical(v ...interface{}) { f.logToFile("CRITICAL", v...) }
+func (f *FileLogger) Alert(v ...interface{})    { f.logToFile("ALERT", v...) }
+func (f *FileLogger) Emergency(v ...interface{}) { f.logToFile("EMERGENCY", v...) }
 
-// Info schreibt eine Info-Nachricht ins Log
-func (f *FileLogger) Info(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("INFO: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Notice schreibt eine Notice-Nachricht ins Log
-func (f *FileLogger) Notice(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("NOTICE: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Warning schreibt eine Warnung ins Log
-func (f *FileLogger) Warning(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("WARNING: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Error schreibt eine Fehler-Nachricht ins Log
-func (f *FileLogger) Error(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("ERROR: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Critical schreibt eine kritische Nachricht ins Log
-func (f *FileLogger) Critical(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("CRITICAL: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Alert schreibt einen Alarm ins Log
-func (f *FileLogger) Alert(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("ALERT: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Emergency schreibt eine Notfall-Nachricht ins Log
-func (f *FileLogger) Emergency(v ...interface{}) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.logger.SetPrefix("EMERGENCY: ")
-	f.logger.Output(2, fmt.Sprint(v...))
-}
-
-// Close schließt die Logdatei
+// Close schließt die Logdateien
 func (f *FileLogger) Close() error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Close()
+	f.closeFiles()
+	return nil
 }
