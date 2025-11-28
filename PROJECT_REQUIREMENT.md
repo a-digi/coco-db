@@ -259,6 +259,28 @@ Für häufig abgefragte Felder innerhalb einer Tabelle werden zusätzliche Indiz
 ## 9. Server
 Ein Server stellt eine API zum Anlegen, Löschen und Verwalten von Datenbanken und Tabellen sowie zum Speichern und Abrufen der JSON-Dokumente bereit.
 
+## 10. Installation & Setup
+
+**Initialisierung der Datenbank:**
+- Vor dem ersten Start des Servers sollte das Datenverzeichnis initialisiert werden. Dies kann über ein Terminal-Kommando erfolgen:
+  ```sh
+  ./coco-db init --data-dir=/pfad/zum/datenverzeichnis
+  ```
+- Der Befehl legt die notwendige Verzeichnisstruktur an und prüft, ob das Verzeichnis beschreibbar ist.
+- Optional kann beim Initialisieren auch direkt eine erste Datenbank angelegt werden (z. B. mit `--database=meinedb`).
+- Die Initialisierung ist Voraussetzung, bevor der Server im Produktivbetrieb gestartet werden kann.
+
+**Starten des Servers (Beispiel):**
+  ```sh
+  ./coco-db --data-dir=/pfad/zum/datenverzeichnis
+  ```
+  - Das Datenverzeichnis MUSS explizit angegeben werden (siehe Speicherstruktur).
+
+**Hinweise:**
+- Die Konfiguration kann auch über Umgebungsvariablen oder eine Konfigurationsdatei erfolgen (siehe Dokumentation).
+- Für den Produktivbetrieb wird empfohlen, das Datenverzeichnis auf einem persistenten und gesicherten Laufwerk zu betreiben.
+- Weitere Startparameter und Konfigurationsoptionen werden in der technischen Dokumentation beschrieben.
+
 ---
 
 **Hinweis:** Es wird kein Code geschrieben, bevor der Projektplan und die Roadmap final abgestimmt sind.
