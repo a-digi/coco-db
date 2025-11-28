@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,6 +41,25 @@ func TestHandleCreateTable_Success(t *testing.T) {
 	metaPath := filepath.Join(testDir, "testdb", "users", "meta.json")
 	if _, err := os.Stat(metaPath); err != nil {
 		t.Errorf("meta.json wurde nicht angelegt: %v", err)
+	}
+	// Prüfe, ob tables.json existiert und die Tabelle eingetragen ist
+	tablesJsonPath := filepath.Join(testDir, "testdb", "tables.json")
+	content, err := os.ReadFile(tablesJsonPath)
+	if err != nil {
+		t.Fatalf("tables.json wurde nicht angelegt: %v", err)
+	}
+	var tablesMeta []table.TableMeta
+	if err := json.Unmarshal(content, &tablesMeta); err != nil {
+		t.Fatalf("tables.json nicht parsebar: %v", err)
+	}
+	found := false
+	for _, entry := range tablesMeta {
+		if entry.TableName == "users" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("users nicht in tables.json gefunden")
 	}
 }
 

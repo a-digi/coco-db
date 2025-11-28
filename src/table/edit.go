@@ -70,6 +70,7 @@ func (tu *TableUpdate) HandleEditTable(w http.ResponseWriter, r *http.Request, d
 		return
 	}
 	defer f.Close()
+	// ...meta.json schreiben...
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(meta); err != nil {
@@ -80,6 +81,36 @@ func (tu *TableUpdate) HandleEditTable(w http.ResponseWriter, r *http.Request, d
 		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
+
+	// tables.json der Datenbank aktualisieren
+	tablesJsonPath := filepath.Join(dbDir, "tables.json")
+	var tablesMeta []TableMeta
+	if _, err := os.Stat(tablesJsonPath); err == nil {
+		content, err := os.ReadFile(tablesJsonPath)
+		if err == nil {
+			_ = json.Unmarshal(content, &tablesMeta)
+		}
+	}
+	// Ersetze die Metadaten der bearbeiteten Tabelle
+	tableUpdated := false
+	for i, t := range tablesMeta {
+		if t.TableName == meta.TableName {
+			tablesMeta[i] = meta
+			tableUpdated = true
+			break
+		}
+	}
+	if !tableUpdated {
+		tablesMeta = append(tablesMeta, meta)
+	}
+	f2, err := os.Create(tablesJsonPath)
+	if err == nil {
+		enc2 := json.NewEncoder(f2)
+		enc2.SetIndent("", "  ")
+		_ = enc2.Encode(tablesMeta)
+		f2.Close()
+	}
+
 	tu.Logger.Info(fmt.Sprintf("[TABLE_EDIT] Tabelle %s/%s erfolgreich bearbeitet", dbname, tableName))
 	execTime := time.Since(start).String()
 	resp := response.WriteSuccess(meta, execTime)

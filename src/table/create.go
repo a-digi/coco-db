@@ -164,6 +164,7 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error(), execTime)
 	}
 
+	// meta.json schreiben
 	metaPath := filepath.Join(tableDir, "meta.json")
 	if meta.SchemaVersion == 0 {
 		meta.SchemaVersion = 1
@@ -181,6 +182,35 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		execTime := time.Since(start).String()
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Schreiben meta.json: %v", err))
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben der meta.json: "+err.Error(), execTime)
+	}
+
+	// tables.json der Datenbank aktualisieren
+	tablesJsonPath := filepath.Join(dbDir, "tables.json")
+	var tablesMeta []TableMeta
+	if _, err := os.Stat(tablesJsonPath); err == nil {
+		content, err := os.ReadFile(tablesJsonPath)
+		if err == nil {
+			_ = json.Unmarshal(content, &tablesMeta)
+		}
+	}
+	// Füge die neue Tabelle hinzu (ersetzt ggf. vorhandene mit gleichem Namen)
+	tableReplaced := false
+	for i, t := range tablesMeta {
+		if t.TableName == meta.TableName {
+			tablesMeta[i] = meta
+			tableReplaced = true
+			break
+		}
+	}
+	if !tableReplaced {
+		tablesMeta = append(tablesMeta, meta)
+	}
+	f2, err := os.Create(tablesJsonPath)
+	if err == nil {
+		enc2 := json.NewEncoder(f2)
+		enc2.SetIndent("", "  ")
+		_ = enc2.Encode(tablesMeta)
+		f2.Close()
 	}
 
 	tc.Logger.Info(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s erfolgreich angelegt", dbname, meta.TableName))

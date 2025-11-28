@@ -1,0 +1,94 @@
+ package test
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/table"
+)
+
+func setupEditTestDir(t *testing.T) string {
+	dir, err := os.MkdirTemp("", "cocodb_edit_test_")
+	if err != nil {
+		t.Fatalf("TempDir Fehler: %v", err)
+	}
+	return dir
+}
+
+func teardownEditTestDir(dir string) {
+	os.RemoveAll(dir)
+}
+
+func TestHandleEditTable_Success(t *testing.T) {
+	testDir := setupEditTestDir(t)
+	defer teardownEditTestDir(testDir)
+	dbName := "testdb"
+	tableName := "users"
+	dbDir := filepath.Join(testDir, dbName)
+	tableDir := filepath.Join(dbDir, tableName)
+	os.MkdirAll(tableDir, 0755)
+	// Lege initiale meta.json an
+	initMeta := table.TableMeta{
+		TableName: tableName,
+		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+	}
+	metaPath := filepath.Join(tableDir, "meta.json")
+	f, err := os.Create(metaPath)
+	if err != nil {
+		t.Fatalf("Fehler beim Anlegen von meta.json: %v", err)
+	}
+	_ = json.NewEncoder(f).Encode(initMeta)
+	f.Close()
+
+	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	newMeta := table.TableMeta{
+		TableName: tableName,
+		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}, {Name: "email", Type: "string"}},
+	}
+	body, _ := json.Marshal(newMeta)
+	r := httptest.NewRequest("PUT", "/", strings.NewReader(string(body)))
+	w := httptest.NewRecorder()
+	tu.HandleEditTable(w, r, dbName, tableName)
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("Erwartet: Status 200, erhalten: %d", resp.StatusCode)
+	}
+	// Prüfe, ob meta.json aktualisiert wurde
+	content, err := ioutil.ReadFile(metaPath)
+	if err != nil {
+		t.Fatalf("meta.json nicht lesbar: %v", err)
+	}
+	var gotMeta table.TableMeta
+	if err := json.Unmarshal(content, &gotMeta); err != nil {
+		t.Fatalf("meta.json nicht parsebar: %v", err)
+	}
+	if len(gotMeta.Fields) != 2 {
+		t.Errorf("meta.json nicht aktualisiert: %+v", gotMeta)
+	}
+	// Prüfe, ob tables.json aktualisiert wurde
+	tablesJsonPath := filepath.Join(dbDir, "tables.json")
+	tablesContent, err := ioutil.ReadFile(tablesJsonPath)
+	if err != nil {
+		t.Fatalf("tables.json nicht lesbar: %v", err)
+	}
+	var tablesMeta []table.TableMeta
+	if err := json.Unmarshal(tablesContent, &tablesMeta); err != nil {
+		t.Fatalf("tables.json nicht parsebar: %v", err)
+	}
+	found := false
+	for _, entry := range tablesMeta {
+		if entry.TableName == tableName && len(entry.Fields) == 2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Tabelle nicht korrekt in tables.json aktualisiert")
+	}
+}
+
