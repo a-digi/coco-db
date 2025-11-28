@@ -26,7 +26,7 @@ type ServerConfig struct {
 func LoadConfig(path string) ServerConfig {
 	config := ServerConfig{
 		DataDir:   "./data",
-		Port:      "8080",
+		Port:      "2022",
 		LogFolder: "./logs",
 		ServerLog: "coco-db.log",
 		PidFile:   "coco-db.pid",
@@ -42,11 +42,35 @@ func LoadConfig(path string) ServerConfig {
 func InitLogging(logFile string) {
 	logDir := filepath.Dir(logFile)
 	if logDir != "." && logDir != "" {
-		_ = os.MkdirAll(logDir, 0755)
+		err := os.MkdirAll(logDir, 0755)
+		if err != nil {
+			log.Fatalf("Fehler beim Anlegen des Logverzeichnisses: %v", err)
+		}
 	}
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("Fehler beim Öffnen der Logdatei: %v", err)
 	}
 	log.SetOutput(file)
+}
+
+// DefaultConfig gibt die Standardkonfiguration zurück
+func DefaultConfig() ServerConfig {
+	return ServerConfig{
+		DataDir:   "./data",
+		Port:      "2022",
+		LogFolder: "./logs",
+		ServerLog: "coco-db.log",
+		PidFile:   "coco-db.pid",
+	}
+}
+
+// WriteDefaultConfig schreibt die Default-Konfiguration als config.json an den angegebenen Pfad
+func WriteDefaultConfig(path string) error {
+	cfg := DefaultConfig()
+	b, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, b, 0644)
 }

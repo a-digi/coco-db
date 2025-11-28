@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/a-digi/coco-db/src/server"
 	"os"
@@ -13,8 +14,28 @@ import (
 
 var config server.ServerConfig
 
+func ensureConfigFileExists(configPath string) error {
+	if _, err := os.Stat(configPath); errors.Is(err, os.ErrNotExist) {
+		fmt.Println("[INFO] config.json nicht gefunden, lege Default-Konfiguration an:", configPath)
+		return server.WriteDefaultConfig(configPath)
+	}
+	return nil
+}
+
 func main() {
-	config = server.LoadConfig(filepath.Join(filepath.Dir(os.Args[0]), "../config.json"))
+	execPath, err := os.Executable()
+	if err != nil {
+		fmt.Println("[FATAL] Kann Pfad zum Executable nicht bestimmen:", err)
+		os.Exit(1)
+	}
+	configPath := filepath.Join(filepath.Dir(execPath), "config.json")
+	if err := ensureConfigFileExists(configPath); err != nil {
+		fmt.Println("[FATAL] Konnte config.json nicht anlegen:", err)
+		os.Exit(1)
+	}
+	fmt.Println("[DEBUG] Lade Konfiguration aus:", configPath)
+	config = server.LoadConfig(configPath)
+	fmt.Printf("[DEBUG] Geladene Konfiguration: %+v\n", config)
 	if len(os.Args) < 2 {
 		fmt.Println("Verwendung: coco-db <start|stop>")
 		os.Exit(1)
@@ -112,6 +133,19 @@ func processExists(pid int) bool {
 // _run: interner Modus für den eigentlichen Serverprozess
 func init() {
 	if len(os.Args) > 1 && os.Args[1] == "_run" {
+		execPath, err := os.Executable()
+		if err != nil {
+			fmt.Println("[FATAL] (_run) Kann Pfad zum Executable nicht bestimmen:", err)
+			os.Exit(1)
+		}
+		configPath := filepath.Join(filepath.Dir(execPath), "config.json")
+		if err := ensureConfigFileExists(configPath); err != nil {
+			fmt.Println("[FATAL] (_run) Konnte config.json nicht anlegen:", err)
+			os.Exit(1)
+		}
+		fmt.Println("[DEBUG] (_run) Lade Konfiguration aus:", configPath)
+		config = server.LoadConfig(configPath)
+		fmt.Printf("[DEBUG] (_run) Geladene Konfiguration: %+v\n", config)
 		server.StartServerWithConfig(config)
 		os.Exit(0)
 	}

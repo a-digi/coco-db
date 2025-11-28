@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/a-digi/coco-db/src/server"
 )
 
 // InitDatabase initialisiert das Datenverzeichnis für coco-db.
@@ -36,11 +39,40 @@ func InitDatabase(dataDir string) error {
 	return nil
 }
 
+func getConfigPath() string {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "./config.json"
+	}
+	// Wenn im go run-Temp-Verzeichnis, nimm das aktuelle Arbeitsverzeichnis
+	if filepath.HasPrefix(execPath, os.TempDir()) {
+		return "./config.json"
+	}
+	return filepath.Join(filepath.Dir(execPath), "config.json")
+}
+
 // RunInitCommand parst die Flags und führt die Initialisierung aus.
 func RunInitCommand() {
 	dataDir := flag.String("data-dir", "", "Pfad zum Datenverzeichnis")
 	flag.Parse()
-	if err := InitDatabase(*dataDir); err != nil {
+
+	configPath := getConfigPath()
+	// Lege config.json an, falls sie nicht existiert
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		err := server.WriteDefaultConfig(configPath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "[FATAL] Konnte config.json nicht anlegen:", err)
+			os.Exit(1)
+		}
+		fmt.Println("config.json mit Defaultwerten angelegt:", configPath)
+	}
+
+	cfg := server.LoadConfig(configPath)
+	finalDataDir := *dataDir
+	if finalDataDir == "" {
+		finalDataDir = cfg.DataDir
+	}
+	if err := InitDatabase(finalDataDir); err != nil {
 		fmt.Fprintln(os.Stderr, "Fehler bei der Initialisierung:", err)
 		os.Exit(1)
 	}
