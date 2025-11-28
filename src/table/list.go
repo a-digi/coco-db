@@ -1,8 +1,10 @@
 package table
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/logger"
 )
@@ -14,26 +16,17 @@ type ListTablesHandler struct {
 
 // HandleListTables verarbeitet das Auflisten aller Tabellen (GET /api/databases/{dbname}/tables)
 func (lh *ListTablesHandler) HandleListTables(dbname string) *response.APIResponse {
+	start := time.Now()
 	if dbname == "" {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_NAME_MISSING",
-				Message: "Datenbankname fehlt",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_DB_NAME_MISSING", http.StatusText(http.StatusBadRequest)+": Datenbankname fehlt", execTime)
 	}
 	dbDir := filepath.Join(lh.DataDir, dbname)
 	dirs, err := os.ReadDir(dbDir)
 	if err != nil {
 		lh.Logger.Error("[TABLE_LIST] Datenbank nicht gefunden:", dbDir)
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_NOT_FOUND",
-				Message: "Datenbank nicht gefunden",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusNotFound, "ERR_DB_NOT_FOUND", http.StatusText(http.StatusNotFound)+": Datenbank nicht gefunden", execTime)
 	}
 	tables := []string{}
 	for _, entry := range dirs {
@@ -45,8 +38,6 @@ func (lh *ListTablesHandler) HandleListTables(dbname string) *response.APIRespon
 		}
 	}
 	lh.Logger.Info("[TABLE_LIST] Tabellen aufgelistet für DB:", dbname, tables)
-	return &response.APIResponse{
-		Success: true,
-		Data: map[string]interface{}{ "tables": tables },
-	}
+	execTime := time.Since(start).String()
+	return response.WriteSuccess(map[string]interface{}{ "tables": tables }, execTime)
 }
