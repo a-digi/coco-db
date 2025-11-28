@@ -72,7 +72,27 @@ func SetupRouter() http.Handler {
 	})
 
 	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.HandleUpdateDatabase(w, r, "./data")
+		oldName := params["dbname"]
+		var req struct{ NewName string `json:"newName"` }
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			return
+		}
+		du := &database.DatabaseUpdate{SataDir: "./data"}
+		resp := du.HandleUpdateDatabase(oldName, req.NewName)
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich umbenannt")
+			} else {
+				code := http.StatusBadRequest
+				if resp.Error != nil && resp.Error.Code == "ERR_DB_EXISTS" {
+					code = http.StatusConflict
+				} else if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
+					code = http.StatusNotFound
+				}
+				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
+			}
+		}
 	})
 
 	// Tabellen-Endpunkt: POST /api/databases/{dbname}/tables
@@ -104,12 +124,22 @@ func SetupRouter() http.Handler {
 	})
 	// Tabellen-Endpunkt: GET /api/databases/{dbname}/tables
 	pr.HandleFunc("GET", "/api/databases/{dbname}/tables", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		listHandler := &table.ListTablesHandler{
-			ResponseWriter: w,
+		h := &table.ListTablesHandler{
 			DataDir: "./data", // TODO: Aus config.json laden
 			Logger:  &logger.NoopLogger{},
 		}
-		listHandler.HandleListTables(params["dbname"])
+		resp := h.HandleListTables(params["dbname"])
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(w, resp.Data, "Tabellen erfolgreich aufgelistet")
+			} else {
+				code := http.StatusBadRequest
+				if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
+					code = http.StatusNotFound
+				}
+				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
+			}
+		}
 	})
 	// Hier können weitere Table-Endpunkte ergänzt werden
 
