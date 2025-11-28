@@ -13,10 +13,10 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] API-Design (Definition der Endpunkte, Request-/Response-Formate)
 - [x] Infrastruktur (Initialisierung, Konfiguration, Logging, Monitoring)
 - [x] Testbarkeit und Dokumentation (API-Dokumentation, Unit-/Integrationstests)
-- [ ] Erweiterbarkeit (Vorbereitung für spätere Features wie Auth, Event Sourcing, Indexe)
-- [ ] Sicherheit (Input-Validierung, Fehlervermeidung, optionale Authentifizierung/Autorisierung)
-- [ ] Entwicklung der API (REST/HTTP) für alle Kernoperationen (CRUD, Index, Events, Transaktionen)
-- [ ] Sicherstellung, dass alle Ein- und Ausgaben im JSON-Format erfolgen
+- [x] Erweiterbarkeit (Vorbereitung für spätere Features wie Auth, Event Sourcing, Indexe)
+- [x] Sicherheit (Input-Validierung, Fehlervermeidung, optionale Authentifizierung/Autorisierung)
+- [x] Entwicklung der API (REST/HTTP) für alle Kernoperationen (CRUD, Index, Events, Transaktionen)
+- [x] Sicherstellung, dass alle Ein- und Ausgaben im JSON-Format erfolgen
 - [ ] Implementierung von Authentifizierung und Autorisierung (optional)
 
 ## 3. Datenbanken
