@@ -17,7 +17,7 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] Sicherheit (Input-Validierung, Fehlervermeidung, optionale Authentifizierung/Autorisierung)
 - [x] Entwicklung der API (REST/HTTP) für alle Kernoperationen (CRUD, Index, Events, Transaktionen)
 - [x] Sicherstellung, dass alle Ein- und Ausgaben im JSON-Format erfolgen
-- [ ] Implementierung von Authentifizierung und Autorisierung (optional)
+- [x] Implementierung von Authentifizierung und Autorisierung (optional)
 
 ## 3. Datenbanken
 - [ ] Implementierung der Verwaltung von Datenbanken (Anlegen, Löschen, Auflisten)
