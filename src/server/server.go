@@ -9,15 +9,20 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
 
-// StartServer initialisiert und startet den HTTP-Server
-func StartServer() {
-	port := getEnv("COCO_DB_PORT", "8080")
-	addr := ":" + port
-
+// StartServerWithConfig initialisiert und startet den HTTP-Server mit Konfiguration
+func StartServerWithConfig(cfg ServerConfig) {
+	// Logdateipfad ggf. mit LogFolder kombinieren, falls nicht absolut
+	logFile := cfg.ServerLog
+	if !filepath.IsAbs(logFile) && cfg.LogFolder != "" {
+		logFile = filepath.Join(cfg.LogFolder, logFile)
+	}
+	InitLogging(logFile)
+	addr := ":" + cfg.Port
 	mux := SetupRouter()
 
 	srv := &http.Server{
