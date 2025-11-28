@@ -68,7 +68,20 @@ func SetupRouter() http.Handler {
 	})
 
 	pr.HandleFunc("DELETE", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.HandleDeleteDatabase(w, r, "./data")
+		dbName := params["dbname"]
+		dd := &database.DatabaseDelete{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		resp := dd.HandleDeleteDatabase(dbName)
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich gelöscht")
+			} else {
+				code := http.StatusBadRequest
+				if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
+					code = http.StatusNotFound
+				}
+				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
+			}
+		}
 	})
 
 	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {

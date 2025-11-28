@@ -2,23 +2,25 @@ package database
 
 import (
 	"io/ioutil"
-	"net/http"
-	"github.com/a-digi/coco-db/src/response"
 	"os"
+	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/logger"
 )
 
-func HandleListDatabases(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	return handleListDatabases(w, r, dataDir)
+type DatabaseList struct {
+	DataDir string
+	Logger  logger.Logger
 }
 
-func handleListDatabases(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	entries, err := ioutil.ReadDir(dataDir)
+func (dl *DatabaseList) HandleListDatabases() *response.APIResponse {
+	entries, err := ioutil.ReadDir(dl.DataDir)
+
 	if err != nil {
-		// Wenn das Verzeichnis nicht existiert, gib eine leere Liste zurück
 		if os.IsNotExist(err) {
-			return response.WriteSuccess(w, map[string]interface{}{ "databases": []string{} }, "")
+			return response.WriteSuccess(nil, map[string]interface{}{ "databases": []string{} }, "")
 		}
-		return response.WriteError(w, http.StatusInternalServerError, "ERR_IO", err.Error(), "")
+		dl.Logger.Error("[DB_LIST] Fehler beim Lesen des Datenbankverzeichnisses:", err)
+		return response.WriteError(nil, 0, "ERR_IO", err.Error(), "")
 	}
 	dbs := []string{}
 	for _, entry := range entries {
@@ -26,5 +28,7 @@ func handleListDatabases(w http.ResponseWriter, r *http.Request, dataDir string)
 			dbs = append(dbs, entry.Name())
 		}
 	}
-	return response.WriteSuccess(w, map[string]interface{}{ "databases": dbs }, "")
+	dl.Logger.Info("[DB_LIST] Datenbanken aufgelistet:", dbs)
+
+	return response.WriteSuccess(nil, map[string]interface{}{ "databases": dbs }, "")
 }
