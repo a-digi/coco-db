@@ -17,14 +17,18 @@ curl -X GET http://localhost:2022/api/databases
 ```json
 {
   "success": true,
-  "data": [
-    "testdb",
-    "andere_db"
-  ],
-  "message": "Alle Datenbanken aufgelistet"
+  "data": {
+    "databases": [
+      "testdb",
+      "andere_db"
+    ]
+  },
+  "httpCode": 200,
+  "executionTime": "..."
 }
 ```
 
 ## Hinweise
 - Gibt eine Liste aller vorhandenen Datenbanken zurück.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
+- Die Felder `httpCode` und `executionTime` sind immer enthalten.

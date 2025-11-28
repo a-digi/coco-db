@@ -41,7 +41,8 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables \
     ],
     "options": { "documentLimit": 1000 }
   },
-  "message": "Tabelle erfolgreich angelegt"
+  "httpCode": 200,
+  "executionTime": "..."
 }
 ```
 
@@ -53,7 +54,9 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables \
   "error": {
     "code": "ERR_TABLE_EXISTS",
     "message": "Tabelle existiert bereits"
-  }
+  },
+  "httpCode": 409,
+  "executionTime": "..."
 }
 ```
 
@@ -61,3 +64,4 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables \
 - Der Datenbankname wird aus der URL extrahiert.
 - Die vollständige meta.json wird im Erfolgsfall zurückgegeben.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
+- Die Felder `httpCode` und `executionTime` sind immer enthalten.

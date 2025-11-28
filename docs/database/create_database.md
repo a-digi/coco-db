@@ -24,7 +24,8 @@ curl -X POST http://localhost:2022/api/databases \
   "data": {
     "name": "testdb"
   },
-  "message": "Datenbank erfolgreich angelegt"
+  "httpCode": 200,
+  "executionTime": "..."
 }
 ```
 
@@ -36,10 +37,13 @@ curl -X POST http://localhost:2022/api/databases \
   "error": {
     "code": "ERR_DB_EXISTS",
     "message": "Datenbank existiert bereits"
-  }
+  },
+  "httpCode": 409,
+  "executionTime": "..."
 }
 ```
 
 ## Hinweise
 - Der Name der Datenbank wird im JSON-Body übergeben.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
+- Die Felder `httpCode` und `executionTime` sind immer enthalten.

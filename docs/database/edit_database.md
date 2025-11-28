@@ -25,7 +25,8 @@ curl -X PUT http://localhost:2022/api/databases/testdb \
     "oldName": "testdb",
     "newName": "neuername"
   },
-  "message": "Datenbank erfolgreich umbenannt"
+  "httpCode": 200,
+  "executionTime": "..."
 }
 ```
 
@@ -37,10 +38,13 @@ curl -X PUT http://localhost:2022/api/databases/testdb \
   "error": {
     "code": "ERR_DB_EXISTS",
     "message": "Ziel-Datenbankname existiert bereits"
-  }
+  },
+  "httpCode": 409,
+  "executionTime": "..."
 }
 ```
 
 ## Hinweise
 - Der neue Name wird im JSON-Body übergeben.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
+- Die Felder `httpCode` und `executionTime` sind immer enthalten.
