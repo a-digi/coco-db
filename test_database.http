@@ -1,0 +1,33 @@
+### Test: Datenbank anlegen
+POST http://localhost:8080/api/databases
+Content-Type: application/json
+
+{
+  "name": "testdb"
+}
+
+### Test: Datenbank anlegen (existiert bereits)
+POST http://localhost:8080/api/databases
+Content-Type: application/json
+
+{
+  "name": "testdb"
+}
+
+### Test: Datenbank anlegen (ungültiger Name)
+POST http://localhost:8080/api/databases
+Content-Type: application/json
+
+{
+  "name": "../hack"
+}
+
+### Test: Datenbanken auflisten
+GET http://localhost:8080/api/databases
+
+### Test: Datenbank löschen
+DELETE http://localhost:8080/api/databases/testdb
+
+### Test: Datenbank löschen (nicht gefunden)
+DELETE http://localhost:8080/api/databases/doesnotexist
+

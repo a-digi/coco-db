@@ -20,8 +20,8 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] Implementierung von Authentifizierung und Autorisierung (optional)
 
 ## 3. Datenbanken
-- [ ] Implementierung der Verwaltung von Datenbanken (Anlegen, Löschen, Auflisten)
-- [ ] Anlegen der Verzeichnisstruktur `/data/{datenbankname}/`
+- [x] Implementierung der Verwaltung von Datenbanken (Anlegen, Löschen, Auflisten)
+- [x] Anlegen der Verzeichnisstruktur `/data/{datenbankname}/`
 
 ## 4. Tabellen
 - [ ] Implementierung der Verwaltung von Tabellen innerhalb einer Datenbank (Anlegen, Löschen, Auflisten)

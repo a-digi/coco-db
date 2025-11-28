@@ -3,12 +3,12 @@
 
 package server
 
-import "net/http"
+import (
+	"net/http"
+	"github.com/a-digi/coco-db/src/response"
+)
 
 // HealthHandler liefert einen einfachen Health-Status
-func HealthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
+func HealthHandler(w http.ResponseWriter, r *http.Request) *response.APIResponse {
+	return response.WriteSuccess(w, map[string]string{"status": "ok"}, "")
 }
-
