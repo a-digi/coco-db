@@ -24,3 +24,11 @@ start:
 
 stop:
 	./$(BINARY) stop
+
+check-port:
+	@echo "Prüfe, ob Port 2022 belegt ist..."
+	@if lsof -i :2022 | grep LISTEN; then \
+		echo "Port 2022 ist BELEGT."; \
+	else \
+		echo "Port 2022 ist FREI."; \
+	fi
