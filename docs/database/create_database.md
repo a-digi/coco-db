@@ -1,0 +1,45 @@
+# Datenbank anlegen (Create Database)
+
+## Endpunkt
+
+```
+POST /api/databases
+```
+
+## Beispiel-Request
+
+```bash
+curl -X POST http://localhost:8080/api/databases \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "testdb"
+  }'
+```
+
+## Beispiel-Response (Erfolg)
+
+```json
+{
+  "success": true,
+  "data": {
+    "name": "testdb"
+  },
+  "message": "Datenbank erfolgreich angelegt"
+}
+```
+
+## Beispiel-Response (Fehler: Datenbank existiert)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERR_DB_EXISTS",
+    "message": "Datenbank existiert bereits"
+  }
+}
+```
+
+## Hinweise
+- Der Name der Datenbank wird im JSON-Body übergeben.
+- Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
