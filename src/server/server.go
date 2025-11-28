@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/a-digi/coco-db/src/logger"
 	"log"
 	"net/http"
 	"os"
@@ -19,9 +20,11 @@ import (
 // StartServerWithConfig initialisiert und startet den HTTP-Server mit Konfiguration
 func StartServerWithConfig(cfg ServerConfig) {
 	fmt.Println("[DEBUG] Starte Server mit Konfiguration:", cfg)
+	var fileLogger *logger.FileLogger
+	var err error
 	// Datenverzeichnis anlegen, falls nicht vorhanden
 	if cfg.DataDir != "" {
-		err := os.MkdirAll(cfg.DataDir, 0755)
+		err = os.MkdirAll(cfg.DataDir, 0755)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Fehler beim Anlegen des Datenverzeichnisses: %v\n", err)
 			os.Exit(1)
@@ -30,7 +33,7 @@ func StartServerWithConfig(cfg ServerConfig) {
 	// Logdateipfad ggf. mit LogFolder kombinieren, falls nicht absolut
 	logFile := cfg.ServerLog
 	if !filepath.IsAbs(logFile) && cfg.LogFolder != "" {
-		err := os.MkdirAll(cfg.LogFolder, 0755)
+		err = os.MkdirAll(cfg.LogFolder, 0755)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Fehler beim Anlegen des Logverzeichnisses: %v\n", err)
 			os.Exit(1)
@@ -38,7 +41,16 @@ func StartServerWithConfig(cfg ServerConfig) {
 		logFile = filepath.Join(cfg.LogFolder, logFile)
 	}
 	fmt.Println("[DEBUG] Logdatei:", logFile)
-	InitLogging(logFile)
+	fileLogger, err = logger.NewFileLogger(logFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Fehler beim Initialisieren des FileLoggers: %v\n", err)
+		os.Exit(1)
+	}
+	defer fileLogger.Close()
+	fileLogger.Info("Server-Initialisierung gestartet.")
+	fileLogger.Info("Verwende Datenverzeichnis:", cfg.DataDir)
+	fileLogger.Info("Verwende Logdatei:", logFile)
+
 	addr := ":" + cfg.Port
 	mux := SetupRouter()
 
@@ -49,9 +61,11 @@ func StartServerWithConfig(cfg ServerConfig) {
 
 	// PID-Datei schreiben
 	if cfg.PidFile != "" {
-		err := writePidFile(cfg.PidFile)
+		err = writePidFile(cfg.PidFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Fehler beim Schreiben der PID-Datei: %v\n", err)
+			fileLogger.Error("Fehler beim Schreiben der PID-Datei:", err)
+		} else {
+			fileLogger.Info("PID-Datei geschrieben:", cfg.PidFile)
 		}
 	}
 
@@ -60,21 +74,26 @@ func StartServerWithConfig(cfg ServerConfig) {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-quit
+		fileLogger.Info("Shutdown signal received, shutting down server...")
 		log.Println("Shutdown signal received, shutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
+			fileLogger.Error("Server Shutdown Failed:", err)
 			log.Fatalf("Server Shutdown Failed: %v", err)
 		}
+		fileLogger.Info("Server gracefully stopped")
 		log.Println("Server gracefully stopped")
 		if cfg.PidFile != "" {
 			removePidFile(cfg.PidFile)
 		}
 	}()
 
+	fileLogger.Info("Server läuft auf http://localhost" + addr)
 	fmt.Printf("[DEBUG] Server läuft auf http://localhost%s\n", addr)
 	log.Printf("Server läuft auf http://localhost%s\n", addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		fileLogger.Error("ListenAndServe():", err)
 		fmt.Fprintf(os.Stderr, "ListenAndServe(): %v\n", err)
 		log.Fatalf("ListenAndServe(): %v", err)
 	}

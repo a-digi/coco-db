@@ -27,6 +27,22 @@ func NewFileLogger(path string) (*FileLogger, error) {
 	}, nil
 }
 
+// Log schreibt eine Log-Nachricht ins Log
+func (f *FileLogger) Log(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("LOG: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
+// Debug schreibt eine Debug-Nachricht ins Log
+func (f *FileLogger) Debug(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("DEBUG: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
 // Info schreibt eine Info-Nachricht ins Log
 func (f *FileLogger) Info(v ...interface{}) {
 	f.mu.Lock()
@@ -35,11 +51,51 @@ func (f *FileLogger) Info(v ...interface{}) {
 	f.logger.Output(2, fmt.Sprint(v...))
 }
 
+// Notice schreibt eine Notice-Nachricht ins Log
+func (f *FileLogger) Notice(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("NOTICE: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
+// Warning schreibt eine Warnung ins Log
+func (f *FileLogger) Warning(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("WARNING: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
 // Error schreibt eine Fehler-Nachricht ins Log
 func (f *FileLogger) Error(v ...interface{}) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.logger.SetPrefix("ERROR: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
+// Critical schreibt eine kritische Nachricht ins Log
+func (f *FileLogger) Critical(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("CRITICAL: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
+// Alert schreibt einen Alarm ins Log
+func (f *FileLogger) Alert(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("ALERT: ")
+	f.logger.Output(2, fmt.Sprint(v...))
+}
+
+// Emergency schreibt eine Notfall-Nachricht ins Log
+func (f *FileLogger) Emergency(v ...interface{}) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.logger.SetPrefix("EMERGENCY: ")
 	f.logger.Output(2, fmt.Sprint(v...))
 }
 

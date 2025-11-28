@@ -2,13 +2,16 @@
 
 BINARY=coco-db
 
-.PHONY: build run clean test start stop
+.PHONY: build run run-dev clean test start stop
 
 build:
-	go build -o $(BINARY) ./cmd/main.go
+	go build -o $(BINARY) main.go
 
 run: build
-	./$(BINARY)
+	./$(BINARY) init --data-dir=./data
+
+run-dev:
+	go run main.go init --data-dir=./data
 
 test:
 	go test ./...

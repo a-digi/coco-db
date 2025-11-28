@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"coco-db/server"
+	"github.com/a-digi/coco-db/src/server"
 )
 
 var config server.ServerConfig
