@@ -27,8 +27,11 @@ func TestHandleDeleteDatabase_Success(t *testing.T) {
 	os.MkdirAll(dbPath, 0755)
 	dd := &database.DatabaseDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dd.HandleDeleteDatabase(dbName)
-	if resp == nil || !resp.Success {
-		t.Fatalf("Erwartet: Success true, erhalten: %+v", resp)
+	if resp == nil || !resp.Success || resp.HttpCode != 200 {
+		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
+	}
+	if resp.ExecutionTime == "" {
+		t.Errorf("ExecutionTime fehlt")
 	}
 	if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
 		t.Errorf("Datenbankverzeichnis wurde nicht gelöscht: %v", err)
@@ -41,8 +44,11 @@ func TestHandleDeleteDatabase_NotFound(t *testing.T) {
 	dbName := "notfound"
 	dd := &database.DatabaseDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dd.HandleDeleteDatabase(dbName)
-	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_NOT_FOUND" {
+	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_NOT_FOUND" || resp.HttpCode != 404 {
 		t.Errorf("Nicht vorhandene Datenbank nicht korrekt erkannt: %+v", resp)
+	}
+	if resp.ExecutionTime == "" {
+		t.Errorf("ExecutionTime fehlt")
 	}
 }
 
@@ -51,7 +57,10 @@ func TestHandleDeleteDatabase_InvalidName(t *testing.T) {
 	defer teardownDeleteTestDir(testDir)
 	dd := &database.DatabaseDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dd.HandleDeleteDatabase("!invalid")
-	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_INVALID_NAME" {
+	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_INVALID_NAME" || resp.HttpCode != 400 {
 		t.Errorf("Ungültiger Name nicht korrekt erkannt: %+v", resp)
+	}
+	if resp.ExecutionTime == "" {
+		t.Errorf("ExecutionTime fehlt")
 	}
 }

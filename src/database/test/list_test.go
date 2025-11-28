@@ -24,8 +24,11 @@ func TestHandleListDatabases_Empty(t *testing.T) {
 	defer teardownListTestDir(testDir)
 	dl := &database.DatabaseList{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dl.HandleListDatabases()
-	if resp == nil || !resp.Success {
-		t.Fatalf("Erwartet: Success true, erhalten: %+v", resp)
+	if resp == nil || !resp.Success || resp.HttpCode != 200 {
+		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
+	}
+	if resp.ExecutionTime == "" {
+		t.Errorf("ExecutionTime fehlt")
 	}
 	dbs, ok := resp.Data.(map[string]interface{})["databases"].([]string)
 	if !ok && resp.Data.(map[string]interface{})["databases"] != nil {
@@ -48,8 +51,11 @@ func TestHandleListDatabases_WithDatabases(t *testing.T) {
 	os.MkdirAll(testDir+"/db2", 0755)
 	dl := &database.DatabaseList{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dl.HandleListDatabases()
-	if resp == nil || !resp.Success {
-		t.Fatalf("Erwartet: Success true, erhalten: %+v", resp)
+	if resp == nil || !resp.Success || resp.HttpCode != 200 {
+		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
+	}
+	if resp.ExecutionTime == "" {
+		t.Errorf("ExecutionTime fehlt")
 	}
 	dbsIface := resp.Data.(map[string]interface{})["databases"]
 	dbs := []string{}
@@ -67,4 +73,3 @@ func TestHandleListDatabases_WithDatabases(t *testing.T) {
 		t.Errorf("Erwartet: 2 Datenbanken, erhalten: %d", len(dbs))
 	}
 }
-

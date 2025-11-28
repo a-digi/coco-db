@@ -4,11 +4,7 @@
 package database
 
 import (
-	"net/http"
 	"regexp"
-	"github.com/a-digi/coco-db/src/response"
-	"os"
-	"path/filepath"
 )
 
 var DbNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)

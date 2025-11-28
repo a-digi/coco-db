@@ -1,7 +1,6 @@
 package response
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
@@ -34,6 +33,9 @@ func WriteSuccess(data interface{}, execTime string) *APIResponse {
 
 // WriteError schreibt eine Fehlerantwort mit Code und Nachricht und gibt das APIResponse-Objekt zurück.
 func WriteError(status int, code, message, execTime string) *APIResponse {
+	if execTime == "" {
+		execTime = "0s"
+	}
 	resp := &APIResponse{
 		Success:       false,
 		Error: &APIError{
