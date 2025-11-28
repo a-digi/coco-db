@@ -1,15 +1,16 @@
-package main
+package cmd
 
 import (
 	"errors"
 	"fmt"
-	"github.com/a-digi/coco-db/src/server"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
+
+	"coco-db/server"
 )
 
 var config server.ServerConfig

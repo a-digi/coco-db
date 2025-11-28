@@ -1,5 +1,0 @@
-[DEBUG] (_run) Lade Konfiguration aus: /Users/andet/Desktop/Development/playground/go/coco-db/config.json
-[DEBUG] (_run) Geladene Konfiguration: {DataDir:./data Port:2022 LogFolder:./logs ServerLog:coco-db.log PidFile:coco-db.pid}
-[DEBUG] Starte Server mit Konfiguration: {./data 2022 ./logs coco-db.log coco-db.pid}
-[DEBUG] Logdatei: logs/coco-db.log
-[DEBUG] Server läuft auf http://localhost:2022
