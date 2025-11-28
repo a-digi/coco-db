@@ -25,24 +25,26 @@ func apiHandler(fn func(http.ResponseWriter, *http.Request) *response.APIRespons
 // SetupRouter initialisiert das Routing für alle Kernoperationen
 func SetupRouter() http.Handler {
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("/health", apiHandler(HealthHandler))
 
 	pr := paramrouter.NewParamRouter()
+
 	// Datenbank-Endpunkte
 	pr.HandleFunc("GET", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		database.HandleListDatabases(w, r, "./data")
 	})
+
 	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		database.HandleCreateDatabase(w, r, "./data")
 	})
+
 	pr.HandleFunc("DELETE", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		dbname := params["dbname"]
-		database.HandleDeleteDatabase(w, r, "./data", dbname)
+		database.HandleDeleteDatabase(w, r, "./data")
 	})
 
 	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		dbname := params["dbname"]
-		database.HandleUpdateDatabase(w, r, "./data", dbname)
+		database.HandleUpdateDatabase(w, r, "./data")
 	})
 
 	// Tabellen-Endpunkt: POST /api/databases/{dbname}/tables
@@ -50,7 +52,7 @@ func SetupRouter() http.Handler {
 
 		tc := &table.TableCreator{
 			DataDir: "./data", // TODO: Aus config.json laden
-			Logger:  logger.GetDefault(),
+			Logger:  &logger.NoopLogger{},
 		}
 
 		// Setze den Datenbanknamen als Header, damit die Handler-Logik konsistent bleibt
@@ -78,10 +80,12 @@ func startsWith(s, prefix string) bool {
 
 // indexOf gibt den Index des ersten Vorkommens von sep in s zurück, oder -1
 func indexOf(s, sep string) int {
+
 	for i := 0; i+len(sep) <= len(s); i++ {
 		if s[i:i+len(sep)] == sep {
 			return i
 		}
 	}
+
 	return -1
 }
