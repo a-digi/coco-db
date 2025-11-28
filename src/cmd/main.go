@@ -58,6 +58,7 @@ func startServerBackground() {
 		fmt.Println("Server läuft bereits (PID-Datei existiert)")
 		os.Exit(1)
 	}
+
 	cmd := exec.Command(os.Args[0], "_run")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -68,11 +69,7 @@ func startServerBackground() {
 		os.Exit(1)
 	}
 	fmt.Printf("Server gestartet (PID %d)\n", cmd.Process.Pid)
-	f, err := os.Create(config.PidFile)
-	if err == nil {
-		fmt.Fprintf(f, "%d", cmd.Process.Pid)
-		f.Close()
-	}
+	// Entfernt: PID-Datei wird nur im Kindprozess (_run) geschrieben!
 	// Warte kurz und prüfe, ob der Prozess noch läuft
 	time.Sleep(1 * time.Second)
 	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
