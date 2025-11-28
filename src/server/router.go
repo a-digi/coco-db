@@ -6,6 +6,7 @@ package server
 import (
 	"net/http"
 	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/database"
 )
 
 // apiHandler ist ein Wrapper, der Handler mit APIResponse-Signatur in http.HandlerFunc umwandelt
@@ -26,8 +27,8 @@ func SetupRouter() *http.ServeMux {
 	mux.HandleFunc("/health", apiHandler(HealthHandler))
 
 	// Datenbank-Endpunkte
-	mux.HandleFunc("/api/databases", apiHandler(DatabaseHandler))        // POST, GET
-	mux.HandleFunc("/api/databases/", apiHandler(DatabaseHandler)) // DELETE (mit Name im Pfad)
+	mux.HandleFunc("/api/databases", apiHandler(database.Handler))        // POST, GET
+	mux.HandleFunc("/api/databases/", apiHandler(database.Handler)) // DELETE (mit Name im Pfad)
 
 	// TODO: Weitere Endpunkte für CRUD, Index, Events, Transaktionen
 	// z.B. mux.HandleFunc("/api/databases/{dbname}/tables", apiHandler(TableHandler))
