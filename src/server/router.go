@@ -35,43 +35,30 @@ func SetupRouter() http.Handler {
 	pr.HandleFunc("GET", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		dl := &database.DatabaseList{DataDir: "./data", Logger: &logger.NoopLogger{}}
 		resp := dl.HandleListDatabases()
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(resp.Data, "Datenbanken erfolgreich aufgelistet")
-			} else {
-				response.WriteError(http.StatusInternalServerError, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 
 	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		dbName := r.URL.Query().Get("name")
-
 		if dbName == "" {
-			// Optional: Versuche, den Namen aus dem JSON-Body zu lesen (Legacy-Support)
 			var body struct{ Name string `json:"name"` }
 			if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
 				dbName = body.Name
 			}
 		}
-
 		dc := &database.DatabaseCreate{
 			DataDir: "./data",
 			Logger:  &logger.NoopLogger{},
 		}
-
 		resp := dc.HandleCreateDatabase(dbName)
-
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich angelegt")
-			} else {
-				code := http.StatusBadRequest
-				if resp.Error != nil && resp.Error.Code == "ERR_DB_EXISTS" {
-					code = http.StatusConflict
-				}
-				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 
@@ -79,16 +66,10 @@ func SetupRouter() http.Handler {
 		dbName := params["dbname"]
 		dd := &database.DatabaseDelete{DataDir: "./data", Logger: &logger.NoopLogger{}}
 		resp := dd.HandleDeleteDatabase(dbName)
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich gelöscht")
-			} else {
-				code := http.StatusBadRequest
-				if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
-					code = http.StatusNotFound
-				}
-				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 
@@ -96,51 +77,41 @@ func SetupRouter() http.Handler {
 		oldName := params["dbname"]
 		var req struct{ NewName string `json:"newName"` }
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_DB_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 		du := &database.DatabaseUpdate{SataDir: "./data"}
 		resp := du.HandleUpdateDatabase(oldName, req.NewName)
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich umbenannt")
-			} else {
-				code := http.StatusBadRequest
-				if resp.Error != nil && resp.Error.Code == "ERR_DB_EXISTS" {
-					code = http.StatusConflict
-				} else if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
-					code = http.StatusNotFound
-				}
-				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 
 	// Tabellen-Endpunkt: POST /api/databases/{dbname}/tables
 	pr.HandleFunc("POST", "/api/databases/{dbname}/tables", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-
 		tc := &table.TableCreator{
 			DataDir: "./data", // TODO: Aus config.json laden
 			Logger:  &logger.NoopLogger{},
 		}
-
 		dbname := params["dbname"]
 		var meta table.TableMeta
 		if err := json.NewDecoder(r.Body).Decode(&meta); err != nil {
-			response.WriteError(w, http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 		resp := tc.HandleCreateTable(dbname, meta)
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(w, resp.Data, "Tabelle erfolgreich angelegt")
-			} else {
-				code := http.StatusBadRequest
-				if resp.Error != nil && resp.Error.Code == "ERR_TABLE_EXISTS" {
-					code = http.StatusConflict
-				}
-				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 	// Tabellen-Endpunkt: GET /api/databases/{dbname}/tables
@@ -150,16 +121,10 @@ func SetupRouter() http.Handler {
 			Logger:  &logger.NoopLogger{},
 		}
 		resp := h.HandleListTables(params["dbname"])
+		w.Header().Set("Content-Type", "application/json")
 		if resp != nil {
-			if resp.Success {
-				response.WriteSuccess(w, resp.Data, "Tabellen erfolgreich aufgelistet")
-			} else {
-				code := http.StatusBadRequest
-				if resp.Error != nil && resp.Error.Code == "ERR_DB_NOT_FOUND" {
-					code = http.StatusNotFound
-				}
-				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
-			}
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
 	// Hier können weitere Table-Endpunkte ergänzt werden

@@ -6,6 +6,7 @@ package server
 import (
 	"net/http"
 	"github.com/a-digi/coco-db/src/response"
+	"encoding/json"
 )
 
 // SimpleTokenAuth ist eine Beispielimplementierung für AuthProvider
@@ -28,12 +29,18 @@ func AuthMiddleware(auth AuthProvider, next func(http.ResponseWriter, *http.Requ
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
-			response.WriteError(w, http.StatusUnauthorized, "unauthorized", "Kein Auth-Token übergeben", "")
+			resp := response.WriteErrorInternal(http.StatusUnauthorized, "unauthorized", "Kein Auth-Token übergeben", "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 		_, err := auth.Authenticate(token)
 		if err != nil {
-			response.WriteError(w, http.StatusUnauthorized, "unauthorized", "Authentifizierung fehlgeschlagen", "")
+			resp := response.WriteErrorInternal(http.StatusUnauthorized, "unauthorized", "Authentifizierung fehlgeschlagen", "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 		next(w, r)

@@ -24,7 +24,7 @@ func (dl *DatabaseList) HandleListDatabases() *response.APIResponse {
 			return response.WriteSuccess(map[string]interface{}{"databases": []string{}}, execTime)
 		}
 		dl.Logger.Error("[DB_LIST] Fehler beim Lesen des Datenbankverzeichnisses:", err)
-		return response.WriteError(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
 	dbs := []string{}
 	for _, entry := range entries {

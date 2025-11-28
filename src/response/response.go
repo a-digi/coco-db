@@ -2,6 +2,7 @@ package response
 
 import (
 	"net/http"
+	"encoding/json"
 )
 
 // APIResponse ist die Standardstruktur für alle API-Antworten.
@@ -32,7 +33,17 @@ func WriteSuccess(data interface{}, execTime string) *APIResponse {
 }
 
 // WriteError schreibt eine Fehlerantwort mit Code und Nachricht und gibt das APIResponse-Objekt zurück.
-func WriteError(status int, code, message, execTime string) *APIResponse {
+func WriteError(w http.ResponseWriter, status int, code, message, execTime string) *APIResponse {
+	resp := WriteErrorInternal(status, code, message, execTime)
+	if w != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	}
+	return resp
+}
+
+func WriteErrorInternal(status int, code, message, execTime string) *APIResponse {
 	if execTime == "" {
 		execTime = "0s"
 	}
@@ -45,6 +56,5 @@ func WriteError(status int, code, message, execTime string) *APIResponse {
 		ExecutionTime: execTime,
 		HttpCode:      status,
 	}
-
 	return resp
 }
