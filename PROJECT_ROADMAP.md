@@ -3,9 +3,9 @@
 Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJECT_REQUIREMENT.md, um maximale Konsistenz und Nachvollziehbarkeit zu gewährleisten.
 
 ## 1. Initialisierung & Installation
-- [ ] Implementierung des Initialisierungskommandos (`./coco-db init --data-dir=...`) zur Anlage der Verzeichnisstruktur und Prüfung der Schreibbarkeit
-- [ ] Sicherstellen, dass das Datenverzeichnis beim Serverstart als Pflichtparameter übergeben und mit dem letzten Pfad abgeglichen wird
-- [ ] Dokumentation und Validierung aller Startparameter
+- [x] Implementierung des Initialisierungskommandos (`./coco-db init --data-dir=...`) zur Anlage der Verzeichnisstruktur und Prüfung der Schreibbarkeit
+- [x] Sicherstellen, dass das Datenverzeichnis beim Serverstart als Pflichtparameter übergeben und mit dem letzten Pfad abgeglichen wird
+- [x] Dokumentation und Validierung aller Startparameter
 
 ## 2. Datenbanken
 - [ ] Implementierung der Verwaltung von Datenbanken (Anlegen, Löschen, Auflisten)
