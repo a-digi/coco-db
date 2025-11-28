@@ -40,12 +40,11 @@ func TestHandleListTables_Empty(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	h := &ListTablesHandler{
-		ResponseWriter: w,
 		DataDir:        testDir,
 		Logger:         &logger.NoopLogger{},
 	}
 
-	h.HandleListTables("testdb")
+	h.HandleListTables(w, "testdb")
 	resp := w.Result()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Status != 200: %d", resp.StatusCode)
@@ -71,12 +70,11 @@ func TestHandleListTables_WithTables(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	h := &ListTablesHandler{
-		ResponseWriter: w,
 		DataDir:        testDir,
 		Logger:         &logger.NoopLogger{},
 	}
 
-	h.HandleListTables("testdb")
+	h.HandleListTables(w, "testdb")
 	resp := w.Result()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Status != 200: %d", resp.StatusCode)

@@ -9,21 +9,20 @@ import (
 )
 
 type ListTablesHandler struct {
-	ResponseWriter http.ResponseWriter
 	DataDir string
 	Logger  logger.Logger
 }
 
 // HandleListTables verarbeitet das Auflisten aller Tabellen (GET /api/databases/{dbname}/tables)
-func (lh *ListTablesHandler) HandleListTables(dbname string) {
+func (lh *ListTablesHandler) HandleListTables(w http.ResponseWriter, dbname string) {
 	if dbname == "" {
-		response.WriteError(lh.ResponseWriter, http.StatusBadRequest, "ERR_DB_NAME_MISSING", "Datenbankname fehlt", "")
+		response.WriteError(w, http.StatusBadRequest, "ERR_DB_NAME_MISSING", "Datenbankname fehlt", "")
 		return
 	}
 	dbDir := filepath.Join(lh.DataDir, dbname)
 	dirs, err := os.ReadDir(dbDir)
 	if err != nil {
-		response.WriteError(lh.ResponseWriter, http.StatusNotFound, "ERR_DB_NOT_FOUND", "Datenbank nicht gefunden", "")
+		response.WriteError(w, http.StatusNotFound, "ERR_DB_NOT_FOUND", "Datenbank nicht gefunden", "")
 		lh.Logger.Error("[TABLE_LIST] Datenbank nicht gefunden:", dbDir)
 		return
 	}
@@ -37,5 +36,5 @@ func (lh *ListTablesHandler) HandleListTables(dbname string) {
 		}
 	}
 	lh.Logger.Info("[TABLE_LIST] Tabellen aufgelistet für DB:", dbname, tables)
-	response.WriteSuccess(lh.ResponseWriter, map[string]interface{}{ "tables": tables }, "Tabellen erfolgreich aufgelistet")
+	response.WriteSuccess(w, map[string]interface{}{ "tables": tables }, "Tabellen erfolgreich aufgelistet")
 }
