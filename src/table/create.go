@@ -13,6 +13,14 @@ import (
 	"github.com/a-digi/coco-db/src/response"
 )
 
+// TableCreator kapselt die Abhängigkeiten für das Anlegen von Tabellen
+// und macht die Konfiguration (dataDir, Logger) explizit
+//
+type TableCreator struct {
+	DataDir string
+	Logger  logger.Logger
+}
+
 // FieldMeta beschreibt ein Feld in meta.json gemäß PROJECT_REQUIREMENT.md
 // Unterstützt alle geforderten Typen und Constraints
 type FieldMeta struct {
@@ -52,7 +60,7 @@ type TableMeta struct {
 var TableNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
 
 // HandleCreateTable verarbeitet das Anlegen einer neuen Tabelle (POST /api/databases/{dbname}/tables)
-func HandleCreateTable(w http.ResponseWriter, r *http.Request) {
+func (tc *TableCreator) HandleCreateTable(w http.ResponseWriter, r *http.Request) {
 	dbname := r.Header.Get("X-DB-Name")
 	if dbname == "" {
 		response.WriteError(w, http.StatusBadRequest, "ERR_DB_NAME_MISSING", "Datenbankname fehlt", "")
@@ -90,29 +98,28 @@ func HandleCreateTable(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	dataDir := "./data" // TODO: Aus Konfiguration laden
-	dbDir := filepath.Join(dataDir, dbname)
+	dbDir := filepath.Join(tc.DataDir, dbname)
 	if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dbDir, 0755); err != nil {
 			response.WriteError(w, http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des Datenbankverzeichnisses: "+err.Error(), "")
-			logger.LogError(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen DB-Verzeichnis: %v", err))
+			tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen DB-Verzeichnis: %v", err))
 			return
 		}
 	}
 	tableDir := filepath.Join(dbDir, meta.TableName)
 	if _, err := os.Stat(tableDir); err == nil {
 		response.WriteError(w, http.StatusConflict, "ERR_TABLE_EXISTS", "Tabelle existiert bereits", "")
-		logger.LogWarn(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s existiert bereits", dbname, meta.TableName))
+		tc.Logger.Warning(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s existiert bereits", dbname, meta.TableName))
 		return
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "entries"), 0755); err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des entries-Verzeichnisses: "+err.Error(), "")
-		logger.LogError(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen entries: %v", err))
+		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen entries: %v", err))
 		return
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "indexes"), 0755); err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error(), "")
-		logger.LogError(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen indexes: %v", err))
+		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen indexes: %v", err))
 		return
 	}
 
@@ -123,7 +130,7 @@ func HandleCreateTable(w http.ResponseWriter, r *http.Request) {
 	f, err := os.Create(metaPath)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "ERR_IO", "Fehler beim Anlegen der meta.json: "+err.Error(), "")
-		logger.LogError(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen meta.json: %v", err))
+		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen meta.json: %v", err))
 		return
 	}
 	defer f.Close()
@@ -131,14 +138,13 @@ func HandleCreateTable(w http.ResponseWriter, r *http.Request) {
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(meta); err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben der meta.json: "+err.Error(), "")
-		logger.LogError(fmt.Sprintf("[TABLE_CREATE] Fehler beim Schreiben meta.json: %v", err))
+		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Schreiben meta.json: %v", err))
 		return
 	}
 
-	logger.LogInfo(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s erfolgreich angelegt", dbname, meta.TableName))
-	// Logge die vollständige meta.json als JSON-String
+	tc.Logger.Info(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s erfolgreich angelegt", dbname, meta.TableName))
 	if metaBytes, err := json.MarshalIndent(meta, "", "  "); err == nil {
-		logger.LogInfo("[TABLE_CREATE] meta.json: " + string(metaBytes))
+		tc.Logger.Info("[TABLE_CREATE] meta.json: " + string(metaBytes))
 	}
 
 	// Erfolgsantwort: gesamte meta.json zurückgeben

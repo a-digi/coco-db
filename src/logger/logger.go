@@ -1,7 +1,5 @@
 package logger
 
-// Logger ist ein Enterprise-Interface für Logging-Implementierungen
-// mit allen gängigen Log-Leveln.
 type Logger interface {
 	Log(v ...interface{})
 	Debug(v ...interface{})
@@ -12,11 +10,17 @@ type Logger interface {
 	Critical(v ...interface{})
 	Alert(v ...interface{})
 	Emergency(v ...interface{})
-	Close() error
 }
 
-// Beispiel für die Nutzung:
-// logger, _ := logger.NewFileLogger("log.txt")
-// logger.Info("Server gestartet")
-// logger.Error("Fehler: ", err)
-// logger.Close()
+type NoopLogger struct{}
+
+func (n *NoopLogger) Log(v ...interface{})      {}
+func (n *NoopLogger) Debug(v ...interface{})    {}
+func (n *NoopLogger) Info(v ...interface{})     {}
+func (n *NoopLogger) Notice(v ...interface{})   {}
+func (n *NoopLogger) Warning(v ...interface{})  {}
+func (n *NoopLogger) Error(v ...interface{})    {}
+func (n *NoopLogger) Critical(v ...interface{}) {}
+func (n *NoopLogger) Alert(v ...interface{})    {}
+func (n *NoopLogger) Emergency(v ...interface{}) {}
+

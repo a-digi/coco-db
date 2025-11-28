@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/database"
+	"github.com/a-digi/coco-db/src/table"
+	"github.com/a-digi/coco-db/src/logger"
 	paramrouter "github.com/a-digi/coco-db/src/server/router"
 )
 
@@ -38,6 +40,21 @@ func SetupRouter() http.Handler {
 	})
 	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		database.Handler(w, r)
+	})
+
+	// Tabellen-Endpunkt: POST /api/databases/{dbname}/tables
+	pr.HandleFunc("POST", "/api/databases/{dbname}/tables", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+
+		tc := &table.TableCreator{
+			DataDir: "./data", // TODO: Aus config.json laden
+			Logger:  logger.GetDefault(),
+		}
+
+		// Setze den Datenbanknamen als Header, damit die Handler-Logik konsistent bleibt
+		if dbname, ok := params["dbname"]; ok {
+			r.Header.Set("X-DB-Name", dbname)
+		}
+		tc.HandleCreateTable(w, r)
 	})
 	// Hier können weitere Table-Endpunkte ergänzt werden
 
