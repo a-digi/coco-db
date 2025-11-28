@@ -86,11 +86,17 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELDS_MISSING", "Mindestens ein Feld muss definiert sein", execTime)
 	}
+	fieldNames := make(map[string]struct{})
 	for _, f := range meta.Fields {
 		if f.Name == "" || f.Type == "" {
 			execTime := time.Since(start).String()
 			return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELD_INVALID", "Jedes Feld muss einen Namen und Typ haben", execTime)
 		}
+		if _, exists := fieldNames[f.Name]; exists {
+			execTime := time.Since(start).String()
+			return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELD_DUPLICATE", "Feldname kommt mehrfach vor: "+f.Name, execTime)
+		}
+		fieldNames[f.Name] = struct{}{}
 	}
 
 	dbDir := filepath.Join(tc.DataDir, dbname)
