@@ -1,7 +1,0 @@
-{
-  "data_dir": "./data",
-  "port": "2022",
-  "log_folder": "./logs",
-  "server_log": "coco-db.log",
-  "pid_file": "coco-db.pid"
-}
