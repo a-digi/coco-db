@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/database"
+	paramrouter "github.com/a-digi/coco-db/src/server/router"
 )
 
 // apiHandler ist ein Wrapper, der Handler mit APIResponse-Signatur in http.HandlerFunc umwandelt
@@ -20,22 +21,47 @@ func apiHandler(fn func(http.ResponseWriter, *http.Request) *response.APIRespons
 }
 
 // SetupRouter initialisiert das Routing für alle Kernoperationen
-func SetupRouter() *http.ServeMux {
+func SetupRouter() http.Handler {
 	mux := http.NewServeMux()
-
-	// Beispiel-Handler für Health-Check
 	mux.HandleFunc("/health", apiHandler(HealthHandler))
 
+	pr := paramrouter.NewParamRouter()
 	// Datenbank-Endpunkte
-	mux.HandleFunc("/api/databases", apiHandler(database.Handler))        // POST, GET
-	mux.HandleFunc("/api/databases/", apiHandler(database.Handler)) // DELETE (mit Name im Pfad)
+	pr.HandleFunc("GET", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		database.Handler(w, r)
+	})
+	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		database.Handler(w, r)
+	})
+	pr.HandleFunc("DELETE", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		database.Handler(w, r)
+	})
+	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		database.Handler(w, r)
+	})
+	// Hier können weitere Table-Endpunkte ergänzt werden
 
-	// TODO: Weitere Endpunkte für CRUD, Index, Events, Transaktionen
-	// z.B. mux.HandleFunc("/api/databases/{dbname}/tables", apiHandler(TableHandler))
-	//      mux.HandleFunc("/api/databases/{dbname}/tables/{tablename}/documents", apiHandler(DocumentHandler))
-	//      mux.HandleFunc("/api/databases/{dbname}/tables/{tablename}/indexes", apiHandler(IndexHandler))
-	//      mux.HandleFunc("/api/events", apiHandler(EventHandler))
-	//      mux.HandleFunc("/api/transactions", apiHandler(TransactionHandler))
+	// Kombiniere Health-Mux und ParamRouter
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			mux.ServeHTTP(w, r)
+			return
+		}
+		pr.ServeHTTP(w, r)
+	})
+}
 
-	return mux
+// startsWith prüft, ob s mit prefix beginnt
+func startsWith(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+// indexOf gibt den Index des ersten Vorkommens von sep in s zurück, oder -1
+func indexOf(s, sep string) int {
+	for i := 0; i+len(sep) <= len(s); i++ {
+		if s[i:i+len(sep)] == sep {
+			return i
+		}
+	}
+	return -1
 }

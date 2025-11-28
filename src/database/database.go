@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"regexp"
 	"github.com/a-digi/coco-db/src/response"
+	"os"
+	"path/filepath"
 )
 
 var DbNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
@@ -32,6 +34,7 @@ func NewDBHandlerChain(dataDir string) *DBHandlerChain {
 			routeHandler("/api/databases/create/", handleCreateDatabase),
 			routeHandler("/api/databases/delete/", handleDeleteDatabase),
 			routeHandler("/api/databases/update/", handleUpdateDatabase),
+			routeHandlerRESTUpdate(), // <--- REST-Update-Handler für PUT /api/databases/{dbname}
 		},
 		dataDir: dataDir,
 	}
@@ -44,6 +47,24 @@ func routeHandler(routePattern string, fn func(http.ResponseWriter, *http.Reques
 			return true, fn(w, r, dataDir)
 		}
 		return false, nil
+	}
+}
+
+// REST-Handler für PUT /api/databases/{dbname}
+func routeHandlerRESTUpdate() DBHandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request, dataDir string) (bool, *response.APIResponse) {
+		if r.Method != http.MethodPut {
+			return false, nil
+		}
+		prefix := "/api/databases/"
+		if !startsWith(r.URL.Path, prefix) {
+			return false, nil
+		}
+		dbname := r.URL.Path[len(prefix):]
+		if dbname == "" || !DbNamePattern.MatchString(dbname) {
+			return false, nil
+		}
+		return true, handleUpdateDatabaseREST(w, r, dataDir, dbname)
 	}
 }
 
@@ -61,4 +82,35 @@ func (c *DBHandlerChain) Serve(w http.ResponseWriter, r *http.Request) *response
 func Handler(w http.ResponseWriter, r *http.Request) *response.APIResponse {
 	chain := NewDBHandlerChain("./data") // TODO: Aus Konfiguration laden
 	return chain.Serve(w, r)
+}
+
+// REST-Logik für PUT /api/databases/{dbname}
+func handleUpdateDatabaseREST(w http.ResponseWriter, r *http.Request, dataDir, oldName string) *response.APIResponse {
+	var req UpdateDatabaseRequest
+	if err := decodeJSON(r, &req); err != nil {
+		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", err.Error(), "")
+	}
+	if !DbNamePattern.MatchString(req.NewName) {
+		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger neuer Datenbankname", "")
+	}
+	if req.NewName == oldName {
+		return response.WriteError(w, http.StatusConflict, "ERR_DB_SAME_NAME", "Neuer Name ist identisch mit altem Namen", "")
+	}
+	oldPath := filepath.Join(dataDir, oldName)
+	newPath := filepath.Join(dataDir, req.NewName)
+	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+		return response.WriteError(w, http.StatusNotFound, "ERR_DB_NOT_FOUND", "Alte Datenbank nicht gefunden", "")
+	}
+	if _, err := os.Stat(newPath); err == nil {
+		return response.WriteError(w, http.StatusConflict, "ERR_DB_EXISTS", "Ziel-Datenbankname existiert bereits", "")
+	}
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return response.WriteError(w, http.StatusInternalServerError, "ERR_IO", err.Error(), "")
+	}
+	return response.WriteSuccess(w, map[string]string{"oldName": oldName, "newName": req.NewName}, "")
+}
+
+// Hilfsfunktion für Prefix-Matching
+func startsWith(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }

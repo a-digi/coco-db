@@ -4,10 +4,11 @@
 
 ### 1. API-Design & Endpunkte
 - [ ] Definiere REST-API-Endpunkte für Tabellenoperationen:
-    - POST   `/api/databases/{dbname}/tables`         → Tabelle anlegen
-    - DELETE `/api/databases/{dbname}/tables/{tname}` → Tabelle löschen
-    - GET    `/api/databases/{dbname}/tables`         → Tabellen auflisten
-    - GET    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle abrufen
+    - [ ] POST   `/api/databases/{dbname}/tables`         → Tabelle anlegen
+    - [ ] DELETE `/api/databases/{dbname}/tables/{tname}` → Tabelle löschen
+    - [ ] GET    `/api/databases/{dbname}/tables`         → Tabellen auflisten
+    - [ ] GET    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle abrufen
+    - [ ] PUT    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle bearbeiten (Edit)
 
 ### 2. Verzeichnisstruktur & Dateianlage
 - [ ] Lege für jede Tabelle ein Verzeichnis an: `/data/{datenbankname}/{tabellenname}/`
@@ -58,4 +59,3 @@
 **Jeder Schritt wird nach Umsetzung mit Tests und Review überprüft.**
 
 Wenn du Anpassungen oder Ergänzungen wünschst, gib Bescheid!
-

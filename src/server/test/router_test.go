@@ -3,7 +3,9 @@ package test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
 	"github.com/a-digi/coco-db/src/server"
 )
 
@@ -29,31 +31,37 @@ func TestRouter_DatabasesRoute(t *testing.T) {
 
 func TestRouter_DatabaseCreateRoute(t *testing.T) {
 	router := server.SetupRouter()
-	req := httptest.NewRequest(http.MethodGet, "/api/databases/create/testdb", nil)
+	// Nutze POST /api/databases mit JSON-Body
+	body := strings.NewReader(`{"name":"testdb"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/databases", body)
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	if w.Code != http.StatusOK && w.Code != http.StatusBadRequest && w.Code != http.StatusConflict {
-		t.Errorf("/api/databases/create/ Route gibt unerwarteten Status zurück: %d", w.Code)
+		t.Errorf("/api/databases (POST) Route gibt unerwarteten Status zurück: %d", w.Code)
 	}
 }
 
 func TestRouter_DatabaseDeleteRoute(t *testing.T) {
 	router := server.SetupRouter()
-	req := httptest.NewRequest(http.MethodGet, "/api/databases/delete/testdb", nil)
+	// Nutze DELETE /api/databases/testdb
+	req := httptest.NewRequest(http.MethodDelete, "/api/databases/testdb", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	if w.Code != http.StatusOK && w.Code != http.StatusNotFound && w.Code != http.StatusBadRequest {
-		t.Errorf("/api/databases/delete/ Route gibt unerwarteten Status zurück: %d", w.Code)
+		t.Errorf("/api/databases/{dbname} (DELETE) Route gibt unerwarteten Status zurück: %d", w.Code)
 	}
 }
 
 func TestRouter_DatabaseUpdateRoute(t *testing.T) {
 	router := server.SetupRouter()
-	updateBody := httptest.NewRequest(http.MethodGet, "/api/databases/update/testdb", nil)
+	// Nutze PUT /api/databases/testdb
+	updateBody := strings.NewReader(`{"name":"testdb"}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/databases/testdb", updateBody)
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	router.ServeHTTP(w, updateBody)
+	router.ServeHTTP(w, req)
 	if w.Code != http.StatusBadRequest && w.Code != http.StatusConflict && w.Code != http.StatusOK {
-		t.Errorf("/api/databases/update/ Route gibt unerwarteten Status zurück: %d", w.Code)
+		t.Errorf("/api/databases/{dbname} (PUT) Route gibt unerwarteten Status zurück: %d", w.Code)
 	}
 }
-
