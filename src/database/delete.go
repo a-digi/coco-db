@@ -1,8 +1,10 @@
 package database
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
@@ -14,15 +16,17 @@ type DatabaseDelete struct {
 }
 
 func (dd *DatabaseDelete) HandleDeleteDatabase(name string) *response.APIResponse {
+	start := time.Now()
 	if len(name) == 0 || !DbNamePattern.MatchString(name) {
-		return response.WriteError(nil, 0, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", "")
+		return response.WriteError(http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", "")
 	}
 	dbPath := filepath.Join(dd.DataDir, name)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		return response.WriteError(nil, 0, "ERR_DB_NOT_FOUND", "Datenbank nicht gefunden", "")
+		return response.WriteError(http.StatusNotFound, "ERR_DB_NOT_FOUND", "Datenbank nicht gefunden", "")
 	}
 	if err := os.RemoveAll(dbPath); err != nil {
-		return response.WriteError(nil, 0, "ERR_IO", err.Error(), "")
+		return response.WriteError(http.StatusInternalServerError, "ERR_IO", err.Error(), "")
 	}
-	return response.WriteSuccess(nil, map[string]string{"name": name}, "")
+	execTime := time.Since(start).String()
+	return response.WriteSuccess(map[string]string{"name": name}, execTime)
 }

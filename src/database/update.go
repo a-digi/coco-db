@@ -1,8 +1,10 @@
 package database
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/a-digi/coco-db/src/response"
 )
@@ -16,79 +18,43 @@ type DatabaseUpdate struct {
 }
 
 func (du *DatabaseUpdate) HandleUpdateDatabase(oldName, newName string) *response.APIResponse {
+	start := time.Now()
 	if len(oldName) == 0 || !DbNamePattern.MatchString(oldName) {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_INVALID_NAME",
-				Message: "Ungültiger alter Datenbankname",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger alter Datenbankname", execTime)
 	}
 
 	if len(newName) == 0 {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_INVALID_JSON",
-				Message: "newName fehlt",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusBadRequest, "ERR_DB_INVALID_JSON", "newName fehlt", execTime)
 	}
 
 	if !DbNamePattern.MatchString(newName) {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_INVALID_NAME",
-				Message: "Ungültiger neuer Datenbankname",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger neuer Datenbankname", execTime)
 	}
 
 	if newName == oldName {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_SAME_NAME",
-				Message: "Neuer Name ist identisch mit altem Namen",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusBadRequest, "ERR_DB_SAME_NAME", "Neuer Name ist identisch mit altem Namen", execTime)
 	}
 
 	oldPath := filepath.Join(du.SataDir, oldName)
 	newPath := filepath.Join(du.SataDir, newName)
 
 	if _, err := os.Stat(oldPath); os.IsNotExist(err) {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_NOT_FOUND",
-				Message: "Alte Datenbank nicht gefunden",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusNotFound, "ERR_DB_NOT_FOUND", "Alte Datenbank nicht gefunden", execTime)
 	}
 
 	if _, err := os.Stat(newPath); err == nil {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_DB_EXISTS",
-				Message: "Ziel-Datenbankname existiert bereits",
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusConflict, "ERR_DB_EXISTS", "Ziel-Datenbankname existiert bereits", execTime)
 	}
 	if err := os.Rename(oldPath, newPath); err != nil {
-		return &response.APIResponse{
-			Success: false,
-			Error: &response.APIError{
-				Code:    "ERR_IO",
-				Message: err.Error(),
-			},
-		}
+		execTime := time.Since(start).String()
+		return response.WriteError(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
-	return &response.APIResponse{
-		Success: true,
-		Data:    map[string]string{"oldName": oldName, "newName": newName},
-	}
+	execTime := time.Since(start).String()
+	return response.WriteSuccess(map[string]string{"oldName": oldName, "newName": newName}, execTime)
 }

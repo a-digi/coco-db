@@ -33,7 +33,15 @@ func SetupRouter() http.Handler {
 
 	// Datenbank-Endpunkte
 	pr.HandleFunc("GET", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.HandleListDatabases(w, r, "./data")
+		dl := &database.DatabaseList{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		resp := dl.HandleListDatabases()
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(resp.Data, "Datenbanken erfolgreich aufgelistet")
+			} else {
+				response.WriteError(http.StatusInternalServerError, resp.Error.Code, resp.Error.Message, "")
+			}
+		}
 	})
 
 	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
