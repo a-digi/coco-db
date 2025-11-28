@@ -61,7 +61,115 @@ Die Indexsuche erfolgt im Speicher (In-Memory) für schnelle Zugriffe. Zusätzli
 - Der Index ist immer tabellenbasiert, d.h. jede Tabelle verwaltet ihre eigenen Indexdateien unabhängig von anderen Tabellen.
 
 ## 5. Filter & Query
-Abfragen können durch Iteration über alle Dokumente einer Tabelle oder durch Nutzung der Indizes erfolgen, abhängig von der Komplexität.
+
+**Abfragearten:**
+- Unterstützung von einfachen Filtern (z. B. Suche nach Feldwerten wie Gleichheit, Bereich, Teilstring).
+- Unterstützung von komplexen Filtern mit logischen Operatoren (AND, OR, NOT).
+- Unterstützung von Joins über mehrere Tabellen hinweg.
+- Vergleichsoperatoren: =, !=, <, <=, >, >=, IN, NOT IN, LIKE/Pattern.
+
+**Suchverfahren und Textsuche:**
+- Für strukturierte Filter (Gleichheit, Bereich, IN, etc.) werden direkte Vergleiche auf den Feldwerten durchgeführt, unterstützt durch Indizes, sofern vorhanden.
+- Für LIKE/Pattern-Suchen wird standardmäßig eine Substring-Suche (Teilstring-Match) verwendet.
+- Für fortgeschrittene Textsuche (z. B. Suche nach einzelnen Wörtern, Wortstämmen, Phrasen) ist perspektivisch die Einführung eines Tokenizers und eines Inverted Index vorgesehen (ähnlich wie bei PostgreSQL oder Elasticsearch). In der ersten Version erfolgt die Textsuche jedoch ohne Tokenizer.
+- Volltextsuche, Stemming und Stopword-Filter sind als optionale Erweiterung geplant und werden in der Dokumentation als zukünftige Features ausgewiesen.
+- Die unterstützten Operatoren orientieren sich an gängigen Standards aus SQL- und dokumentenbasierten Datenbanken (z. B. =, !=, <, <=, >, >=, IN, NOT IN, LIKE/Pattern).
+
+**Index-Nutzung:**
+- Filter auf indizierte Felder nutzen immer den entsprechenden Index für die Suche.
+- Filter auf nicht indizierte Felder führen zu einem vollständigen Scan aller Einträge (Full Table Scan).
+
+**Query-Syntax (API):**
+- Abfragen werden als JSON-Objekt an die API übergeben, z. B.:
+  ```json
+  {
+    "table": "kunden",
+    "filter": {
+      "age": { "gte": 18, "lte": 65 },
+      "isActive": true
+    },
+    "joins": [
+      {
+        "table": "bestellungen",
+        "on": { "kunden.id": "bestellungen.kunden_id" },
+        "type": "inner",
+        "filter": { "status": "offen" },
+        "joins": [
+          {
+            "table": "produkte",
+            "on": { "bestellungen.produkt_id": "produkte.id" },
+            "type": "left",
+            "filter": { "kategorie": "digital" }
+          }
+        ]
+      }
+    ],
+    "sort": [{ "field": "created_at", "direction": "desc" }],
+    "limit": 20,
+    "offset": 0
+  }
+  ```
+- Das Feld `joins` ist rekursiv: Jede Join-Definition kann selbst wieder ein `joins`-Array enthalten, um beliebig tiefe Join-Hierarchien zu ermöglichen.
+- Die maximale Tiefe für verschachtelte Joins beträgt 64 Ebenen (`maxJoinDepth = 64`).
+- Jede Join-Definition besteht aus:
+  - `table`: Name der Zieltabelle
+  - `on`: Join-Bedingung (Feld in Haupttabelle → Feld in Zieltabelle)
+  - `type`: Join-Typ (z. B. inner, left; optional, Standard: inner)
+  - `filter`: Optionaler Filter auf die gejointe Tabelle
+  - `joins`: Optional, Array weiterer Joins auf dieser Ebene
+- Unterstützung von Sortierung, Limitierung und Pagination.
+
+**Beispiele:**
+- Einfache Abfrage: Alle aktiven Kunden über 30 Jahre
+  ```json
+  {
+    "table": "kunden",
+    "filter": {
+      "isActive": true,
+      "age": { "gt": 30 }
+    }
+  }
+  ```
+- Komplexe Abfrage mit Join: Kunden mit offenen Bestellungen, sortiert nach Erstellungsdatum
+  ```json
+  {
+    "table": "kunden",
+    "joins": [
+      {
+        "table": "bestellungen",
+        "on": { "kunden.id": "bestellungen.kunden_id" },
+        "type": "inner",
+        "filter": { "status": "offen" }
+      }
+    ],
+    "sort": [{ "field": "created_at", "direction": "desc" }],
+    "limit": 20
+  }
+  ```
+- Komplexe Abfrage mit verschachtelten Joins:
+  ```json
+  {
+    "table": "kunden",
+    "joins": [
+      {
+        "table": "bestellungen",
+        "on": { "kunden.id": "bestellungen.kunden_id" },
+        "type": "inner",
+        "filter": { "status": "offen" },
+        "joins": [
+          {
+            "table": "produkte",
+            "on": { "bestellungen.produkt_id": "produkte.id" },
+            "type": "left",
+            "filter": { "kategorie": "digital" }
+          }
+        ]
+      }
+    ],
+    "sort": [{ "field": "created_at", "direction": "desc" }],
+    "limit": 20
+  }
+  ```
 
 ## 6. Speicherstruktur
 Die eigentlichen Dateninhalte (Dokumente) werden ausschließlich persistent als einzelne JSON-Dateien gespeichert und nicht im RAM gehalten. Nur die Indexdaten der jeweiligen Tabellen befinden sich im Speicher (In-Memory), um schnelle Suchen und Zugriffe zu ermöglichen.
