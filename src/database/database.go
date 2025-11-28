@@ -22,9 +22,6 @@ type DatabaseRequest struct {
 func handleUpdateDatabaseREST(w http.ResponseWriter, r *http.Request, dataDir, oldName string) *response.APIResponse {
 
 	var req UpdateDatabaseRequest
-	if err := decodeJSON(r, &req); err != nil {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", err.Error(), "")
-	}
 	if !DbNamePattern.MatchString(req.NewName) {
 		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger neuer Datenbankname", "")
 	}

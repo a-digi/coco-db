@@ -37,7 +37,34 @@ func SetupRouter() http.Handler {
 	})
 
 	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.HandleCreateDatabase(w, r, "./data")
+		dbName := r.URL.Query().Get("name")
+
+		if dbName == "" {
+			// Optional: Versuche, den Namen aus dem JSON-Body zu lesen (Legacy-Support)
+			var body struct{ Name string `json:"name"` }
+			if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
+				dbName = body.Name
+			}
+		}
+
+		dc := &database.DatabaseCreate{
+			DataDir: "./data",
+			Logger:  &logger.NoopLogger{},
+		}
+
+		resp := dc.HandleCreateDatabase(dbName)
+
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(w, resp.Data, "Datenbank erfolgreich angelegt")
+			} else {
+				code := http.StatusBadRequest
+				if resp.Error != nil && resp.Error.Code == "ERR_DB_EXISTS" {
+					code = http.StatusConflict
+				}
+				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
+			}
+		}
 	})
 
 	pr.HandleFunc("DELETE", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {

@@ -1,38 +1,58 @@
 package database
 
 import (
-	"encoding/json"
-	"net/http"
 	"os"
 	"path/filepath"
-
+    "github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
 )
 
-func HandleCreateDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	return handleCreateDatabase(w, r, dataDir)
+type DatabaseCreate struct {
+	DataDir     string
+	Logger      logger.Logger
+	APIResponse *response.APIResponse
 }
 
-func handleCreateDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	var req DatabaseRequest
-	if err := decodeJSON(r, &req); err != nil {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", err.Error(), "")
+func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIResponse {
+	if !DbNamePattern.MatchString(dbName) {
+		dc.APIResponse = &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_INVALID_NAME",
+				Message: "Ungültiger Datenbankname",
+			},
+		}
+
+		return dc.APIResponse
 	}
-	if !DbNamePattern.MatchString(req.Name) {
-		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", "")
-	}
-	dbPath := filepath.Join(dataDir, req.Name)
+
+	dbPath := filepath.Join(dc.DataDir, dbName)
 	if _, err := os.Stat(dbPath); err == nil {
-		return response.WriteError(w, http.StatusConflict, "ERR_DB_EXISTS", "Datenbank existiert bereits", "")
+		dc.APIResponse = &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_DB_EXISTS",
+				Message: "Datenbank existiert bereits",
+			},
+		}
+		return dc.APIResponse
 	}
-	if err := os.MkdirAll(dbPath, 0755); err != nil {
-		return response.WriteError(w, http.StatusInternalServerError, "ERR_IO", err.Error(), "")
-	}
-	return response.WriteSuccess(w, map[string]string{"name": req.Name}, "")
-}
 
-func decodeJSON(r *http.Request, v interface{}) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(v)
+	if err := os.MkdirAll(dbPath, 0755); err != nil {
+		dc.APIResponse = &response.APIResponse{
+			Success: false,
+			Error: &response.APIError{
+				Code:    "ERR_IO",
+				Message: err.Error(),
+			},
+		}
+		return dc.APIResponse
+	}
+
+	dc.APIResponse = &response.APIResponse{
+		Success: true,
+		Data:    map[string]string{"name": dbName},
+	}
+
+	return dc.APIResponse
 }
