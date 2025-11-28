@@ -14,5 +14,6 @@ func main() {
 		cmd.RunInitCommand()
 		return
 	}
+
 	fmt.Println("coco-db gestartet. (Verwende 'init' für die Initialisierung des Datenverzeichnisses)")
 }
