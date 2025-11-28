@@ -60,12 +60,11 @@ func TestHandleListTables_Empty(t *testing.T) {
 	os.MkdirAll(filepath.Join(testDir, "testdb"), 0755)
 
 	h := &table.ListTablesHandler{
-		DataDir:        testDir,
-		Logger:         &logger.NoopLogger{},
+		DataDir: testDir,
+		Logger:  &logger.NoopLogger{},
 	}
 
-	h.HandleListTables("testdb")
-	resp := h.APIResponse
+	resp := h.HandleListTables("testdb")
 	if resp == nil {
 		t.Fatalf("APIResponse ist nil")
 	}
@@ -87,12 +86,11 @@ func TestHandleListTables_WithTables(t *testing.T) {
 	createTableDir(t, dbDir, "orders")
 
 	h := &table.ListTablesHandler{
-		DataDir:        testDir,
-		Logger:         &logger.NoopLogger{},
+		DataDir: testDir,
+		Logger:  &logger.NoopLogger{},
 	}
 
-	h.HandleListTables("testdb")
-	resp := h.APIResponse
+	resp := h.HandleListTables("testdb")
 	if resp == nil {
 		t.Fatalf("APIResponse ist nil")
 	}

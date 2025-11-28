@@ -16,9 +16,8 @@ import (
 // und macht die Konfiguration (dataDir, Logger) explizit
 //
 type TableCreator struct {
-	DataDir     string
-	Logger      logger.Logger
-	APIResponse *response.APIResponse
+	DataDir string
+	Logger  logger.Logger
 }
 
 // FieldMeta beschreibt ein Feld in meta.json gemäß PROJECT_REQUIREMENT.md
@@ -60,60 +59,50 @@ type TableMeta struct {
 var TableNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
 
 // HandleCreateTable verarbeitet das Anlegen einer neuen Tabelle (POST /api/databases/{dbname}/tables)
-func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) {
+func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *response.APIResponse {
 	if dbname == "" {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_NAME_MISSING", Message: "Datenbankname fehlt"}}
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_NAME_MISSING", Message: "Datenbankname fehlt"}}
 	}
 	if !TableNamePattern.MatchString(dbname) {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_INVALID_NAME", Message: "Ungültiger Datenbankname"}}
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_DB_INVALID_NAME", Message: "Ungültiger Datenbankname"}}
 	}
 
 	if !TableNamePattern.MatchString(meta.TableName) {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_INVALID_NAME", Message: "Ungültiger Tabellenname"}}
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_INVALID_NAME", Message: "Ungültiger Tabellenname"}}
 	}
 	if strings.ToLower(meta.TableName) == "meta" || strings.ToLower(meta.TableName) == "entries" || strings.ToLower(meta.TableName) == "indexes" {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_RESERVED_NAME", Message: "Tabellenname ist reserviert"}}
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_RESERVED_NAME", Message: "Tabellenname ist reserviert"}}
 	}
 
 	// Felder-Validierung: Mindestens ein Feld, alle Pflichtfelder müssen Namen und Typ haben
 	if len(meta.Fields) == 0 {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELDS_MISSING", Message: "Mindestens ein Feld muss definiert sein"}}
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELDS_MISSING", Message: "Mindestens ein Feld muss definiert sein"}}
 	}
 	for _, f := range meta.Fields {
 		if f.Name == "" || f.Type == "" {
-			tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELD_INVALID", Message: "Jedes Feld muss einen Namen und Typ haben"}}
-			return
+			return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_FIELD_INVALID", Message: "Jedes Feld muss einen Namen und Typ haben"}}
 		}
 	}
 
 	dbDir := filepath.Join(tc.DataDir, dbname)
 	if _, err := os.Stat(dbDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dbDir, 0755); err != nil {
-			tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des Datenbankverzeichnisses: "+err.Error()}}
 			tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen DB-Verzeichnis: %v", err))
-			return
+			return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des Datenbankverzeichnisses: "+err.Error()}}
 		}
 	}
 	tableDir := filepath.Join(dbDir, meta.TableName)
 	if _, err := os.Stat(tableDir); err == nil {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_EXISTS", Message: "Tabelle existiert bereits"}}
 		tc.Logger.Warning(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s existiert bereits", dbname, meta.TableName))
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_TABLE_EXISTS", Message: "Tabelle existiert bereits"}}
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "entries"), 0755); err != nil {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des entries-Verzeichnisses: "+err.Error()}}
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen entries: %v", err))
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des entries-Verzeichnisses: "+err.Error()}}
 	}
 	if err := os.MkdirAll(filepath.Join(tableDir, "indexes"), 0755); err != nil {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error()}}
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen indexes: %v", err))
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen des indexes-Verzeichnisses: "+err.Error()}}
 	}
 
 	metaPath := filepath.Join(tableDir, "meta.json")
@@ -122,17 +111,15 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) {
 	}
 	f, err := os.Create(metaPath)
 	if err != nil {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen der meta.json: "+err.Error()}}
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Anlegen meta.json: %v", err))
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Anlegen der meta.json: "+err.Error()}}
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(meta); err != nil {
-		tc.APIResponse = &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Schreiben der meta.json: "+err.Error()}}
 		tc.Logger.Error(fmt.Sprintf("[TABLE_CREATE] Fehler beim Schreiben meta.json: %v", err))
-		return
+		return &response.APIResponse{Success: false, Error: &response.APIError{Code: "ERR_IO", Message: "Fehler beim Schreiben der meta.json: "+err.Error()}}
 	}
 
 	tc.Logger.Info(fmt.Sprintf("[TABLE_CREATE] Tabelle %s/%s erfolgreich angelegt", dbname, meta.TableName))
@@ -140,5 +127,5 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) {
 		tc.Logger.Info("[TABLE_CREATE] meta.json: " + string(metaBytes))
 	}
 
-	tc.APIResponse = &response.APIResponse{Success: true, Data: meta}
+	return &response.APIResponse{Success: true, Data: meta}
 }

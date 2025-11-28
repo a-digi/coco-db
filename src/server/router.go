@@ -89,16 +89,16 @@ func SetupRouter() http.Handler {
 			response.WriteError(w, http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
 			return
 		}
-		tc.HandleCreateTable(dbname, meta)
-		if tc.APIResponse != nil {
-			if tc.APIResponse.Success {
-				response.WriteSuccess(w, tc.APIResponse.Data, "Tabelle erfolgreich angelegt")
+		resp := tc.HandleCreateTable(dbname, meta)
+		if resp != nil {
+			if resp.Success {
+				response.WriteSuccess(w, resp.Data, "Tabelle erfolgreich angelegt")
 			} else {
 				code := http.StatusBadRequest
-				if tc.APIResponse.Error != nil && tc.APIResponse.Error.Code == "ERR_TABLE_EXISTS" {
+				if resp.Error != nil && resp.Error.Code == "ERR_TABLE_EXISTS" {
 					code = http.StatusConflict
 				}
-				response.WriteError(w, code, tc.APIResponse.Error.Code, tc.APIResponse.Error.Message, "")
+				response.WriteError(w, code, resp.Error.Code, resp.Error.Message, "")
 			}
 		}
 	})

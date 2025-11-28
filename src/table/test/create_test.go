@@ -26,14 +26,13 @@ func TestHandleCreateTable_Success(t *testing.T) {
 	defer teardownCreateTestDir(testDir)
 	creator := &table.TableCreator{
 		DataDir: testDir,
-		Logger: &logger.NoopLogger{},
+		Logger:  &logger.NoopLogger{},
 	}
 	meta := table.TableMeta{
 		TableName: "users",
-		Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
+		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
 	}
-	creator.HandleCreateTable("testdb", meta)
-	resp := creator.APIResponse
+	resp := creator.HandleCreateTable("testdb", meta)
 	if resp == nil || !resp.Success {
 		t.Fatalf("Erwartet: Success true, erhalten: %+v", resp)
 	}
@@ -47,8 +46,7 @@ func TestHandleCreateTable_Success(t *testing.T) {
 func TestHandleCreateTable_EmptyDBName(t *testing.T) {
 	creator := &table.TableCreator{Logger: &logger.NoopLogger{}}
 	meta := table.TableMeta{TableName: "users", Fields: []table.FieldMeta{{Name: "id", Type: "string"}}}
-	creator.HandleCreateTable("", meta)
-	resp := creator.APIResponse
+	resp := creator.HandleCreateTable("", meta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_NAME_MISSING" {
 		t.Errorf("Fehlerfall leerer DB-Name nicht erkannt: %+v", resp)
 	}
@@ -57,8 +55,7 @@ func TestHandleCreateTable_EmptyDBName(t *testing.T) {
 func TestHandleCreateTable_InvalidTableName(t *testing.T) {
 	creator := &table.TableCreator{Logger: &logger.NoopLogger{}}
 	meta := table.TableMeta{TableName: "!invalid", Fields: []table.FieldMeta{{Name: "id", Type: "string"}}}
-	creator.HandleCreateTable("testdb", meta)
-	resp := creator.APIResponse
+	resp := creator.HandleCreateTable("testdb", meta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_TABLE_INVALID_NAME" {
 		t.Errorf("Fehlerfall ungültiger Tabellenname nicht erkannt: %+v", resp)
 	}
@@ -69,8 +66,7 @@ func TestHandleCreateTable_ReservedTableName(t *testing.T) {
 	reserved := []string{"meta", "entries", "indexes"}
 	for _, name := range reserved {
 		meta := table.TableMeta{TableName: name, Fields: []table.FieldMeta{{Name: "id", Type: "string"}}}
-		creator.HandleCreateTable("testdb", meta)
-		resp := creator.APIResponse
+		resp := creator.HandleCreateTable("testdb", meta)
 		if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_TABLE_RESERVED_NAME" {
 			t.Errorf("Fehlerfall reservierter Tabellenname '%s' nicht erkannt: %+v", name, resp)
 		}
@@ -80,8 +76,7 @@ func TestHandleCreateTable_ReservedTableName(t *testing.T) {
 func TestHandleCreateTable_NoFields(t *testing.T) {
 	creator := &table.TableCreator{Logger: &logger.NoopLogger{}}
 	meta := table.TableMeta{TableName: "users", Fields: []table.FieldMeta{}}
-	creator.HandleCreateTable("testdb", meta)
-	resp := creator.APIResponse
+	resp := creator.HandleCreateTable("testdb", meta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_FIELDS_MISSING" {
 		t.Errorf("Fehlerfall keine Felder nicht erkannt: %+v", resp)
 	}
@@ -95,8 +90,7 @@ func TestHandleCreateTable_TableExists(t *testing.T) {
 	os.MkdirAll(tableDir, 0755)
 	creator := &table.TableCreator{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	meta := table.TableMeta{TableName: "users", Fields: []table.FieldMeta{{Name: "id", Type: "string"}}}
-	creator.HandleCreateTable("testdb", meta)
-	resp := creator.APIResponse
+	resp := creator.HandleCreateTable("testdb", meta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_TABLE_EXISTS" {
 		t.Errorf("Fehlerfall Tabelle existiert nicht erkannt: %+v", resp)
 	}

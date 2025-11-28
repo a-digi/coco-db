@@ -8,35 +8,32 @@ import (
 )
 
 type ListTablesHandler struct {
-	DataDir      string
-	Logger       logger.Logger
-	APIResponse  *response.APIResponse
+	DataDir string
+	Logger  logger.Logger
 }
 
 // HandleListTables verarbeitet das Auflisten aller Tabellen (GET /api/databases/{dbname}/tables)
-func (lh *ListTablesHandler) HandleListTables(dbname string) {
+func (lh *ListTablesHandler) HandleListTables(dbname string) *response.APIResponse {
 	if dbname == "" {
-		lh.APIResponse = &response.APIResponse{
+		return &response.APIResponse{
 			Success: false,
 			Error: &response.APIError{
 				Code:    "ERR_DB_NAME_MISSING",
 				Message: "Datenbankname fehlt",
 			},
 		}
-		return
 	}
 	dbDir := filepath.Join(lh.DataDir, dbname)
 	dirs, err := os.ReadDir(dbDir)
 	if err != nil {
-		lh.APIResponse = &response.APIResponse{
+		lh.Logger.Error("[TABLE_LIST] Datenbank nicht gefunden:", dbDir)
+		return &response.APIResponse{
 			Success: false,
 			Error: &response.APIError{
 				Code:    "ERR_DB_NOT_FOUND",
 				Message: "Datenbank nicht gefunden",
 			},
 		}
-		lh.Logger.Error("[TABLE_LIST] Datenbank nicht gefunden:", dbDir)
-		return
 	}
 	tables := []string{}
 	for _, entry := range dirs {
@@ -48,7 +45,7 @@ func (lh *ListTablesHandler) HandleListTables(dbname string) {
 		}
 	}
 	lh.Logger.Info("[TABLE_LIST] Tabellen aufgelistet für DB:", dbname, tables)
-	lh.APIResponse = &response.APIResponse{
+	return &response.APIResponse{
 		Success: true,
 		Data: map[string]interface{}{ "tables": tables },
 	}
