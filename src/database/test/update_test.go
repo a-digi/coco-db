@@ -26,12 +26,12 @@ func TestHandleUpdateDatabase_Success(t *testing.T) {
 	oldName := "olddb"
 	newName := "newdb"
 	os.MkdirAll(testDir+"/"+oldName, 0755)
-	// Simuliere tables.json mit olddb und einer weiteren DB
+	// Simuliere db.json mit olddb und einer weiteren DB
 	dbs := []database.DatabaseMeta{{Name: oldName}, {Name: "otherdb"}}
-	tablesPath := testDir + "/tables.json"
-	f, err := os.Create(tablesPath)
+	dbJsonPath := testDir + "/db.json"
+	f, err := os.Create(dbJsonPath)
 	if err != nil {
-		t.Fatalf("Fehler beim Anlegen von tables.json: %v", err)
+		t.Fatalf("Fehler beim Anlegen von db.json: %v", err)
 	}
 	defer f.Close()
 	_ = json.NewEncoder(f).Encode(dbs)
@@ -50,14 +50,14 @@ func TestHandleUpdateDatabase_Success(t *testing.T) {
 	if _, err := os.Stat(testDir + "/" + oldName); err == nil {
 		t.Errorf("Alter Datenbankordner existiert noch")
 	}
-	// Prüfe, ob olddb in tables.json zu newdb geändert wurde
-	content, err := os.ReadFile(tablesPath)
+	// Prüfe, ob olddb in db.json zu newdb geändert wurde
+	content, err := os.ReadFile(dbJsonPath)
 	if err != nil {
-		t.Fatalf("tables.json nicht lesbar: %v", err)
+		t.Fatalf("db.json nicht lesbar: %v", err)
 	}
 	var newDbs []database.DatabaseMeta
 	if err := json.Unmarshal(content, &newDbs); err != nil {
-		t.Fatalf("tables.json nicht parsebar: %v", err)
+		t.Fatalf("db.json nicht parsebar: %v", err)
 	}
 	foundOld := false
 	foundNew := false
@@ -70,10 +70,10 @@ func TestHandleUpdateDatabase_Success(t *testing.T) {
 		}
 	}
 	if foundOld {
-		t.Errorf("olddb wurde nicht aus tables.json entfernt")
+		t.Errorf("olddb wurde nicht aus db.json entfernt")
 	}
 	if !foundNew {
-		t.Errorf("newdb wurde nicht in tables.json eingetragen")
+		t.Errorf("newdb wurde nicht in db.json eingetragen")
 	}
 }
 

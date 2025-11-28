@@ -40,11 +40,10 @@ func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIRespo
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), "")
 	}
 
-	// tables.json aktualisieren
-	tablesPath := filepath.Join(dc.DataDir, "tables.json")
+	dbPath = filepath.Join(dc.DataDir, "db.json")
 	var dbs []DatabaseMeta
-	if _, err := os.Stat(tablesPath); err == nil {
-		content, err := ioutil.ReadFile(tablesPath)
+	if _, err := os.Stat(dbPath); err == nil {
+		content, err := ioutil.ReadFile(dbPath)
 		if err == nil {
 			_ = json.Unmarshal(content, &dbs)
 		}
@@ -56,7 +55,7 @@ func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIRespo
 		}
 	}
 	dbs = append(dbs, DatabaseMeta{Name: dbName, CreatedAt: time.Now()})
-	f, err := os.Create(tablesPath)
+	f, err := os.Create(dbPath)
 	if err != nil {
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben von tables.json: "+err.Error(), "")
 	}

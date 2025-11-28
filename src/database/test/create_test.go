@@ -35,15 +35,15 @@ func TestHandleCreateDatabase_Success(t *testing.T) {
 	if _, err := os.Stat(testDir + "/testdb"); err != nil {
 		t.Errorf("Datenbankverzeichnis wurde nicht angelegt: %v", err)
 	}
-	// Prüfe, ob tables.json existiert und testdb eingetragen ist
-	tablesPath := testDir + "/tables.json"
-	content, err := os.ReadFile(tablesPath)
+	// Prüfe, ob db.json existiert und testdb eingetragen ist
+	dbPath := testDir + "/db.json"
+	content, err := os.ReadFile(dbPath)
 	if err != nil {
-		t.Fatalf("tables.json wurde nicht angelegt: %v", err)
+		t.Fatalf("db.json wurde nicht angelegt: %v", err)
 	}
 	var dbs []database.DatabaseMeta
 	if err := json.Unmarshal(content, &dbs); err != nil {
-		t.Fatalf("tables.json nicht lesbar: %v", err)
+		t.Fatalf("db.json nicht lesbar: %v", err)
 	}
 	found := false
 	for _, entry := range dbs {
@@ -55,7 +55,7 @@ func TestHandleCreateDatabase_Success(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Errorf("testdb nicht in tables.json gefunden")
+		t.Errorf("testdb nicht in db.json gefunden")
 	}
 }
 
@@ -74,12 +74,12 @@ func TestHandleCreateDatabase_AlreadyExists(t *testing.T) {
 	testDir := setupCreateTestDir(t)
 	defer teardownCreateTestDir(testDir)
 	os.MkdirAll(testDir+"/testdb", 0755)
-	// Simuliere tables.json mit testdb
+	// Simuliere db.json mit testdb
 	dbs := []database.DatabaseMeta{{Name: "testdb", CreatedAt: time.Now()}}
-	tablesPath := testDir + "/tables.json"
-	f, err := os.Create(tablesPath)
+	dbPath := testDir + "/db.json"
+	f, err := os.Create(dbPath)
 	if err != nil {
-		t.Fatalf("Fehler beim Anlegen von tables.json: %v", err)
+		t.Fatalf("Fehler beim Anlegen von db.json: %v", err)
 	}
 	defer f.Close()
 	_ = json.NewEncoder(f).Encode(dbs)

@@ -53,12 +53,12 @@ func TestHandleListDatabases_Empty(t *testing.T) {
 func TestHandleListDatabases_WithDatabases(t *testing.T) {
 	testDir := setupListTestDir(t)
 	defer teardownListTestDir(testDir)
-	// Simuliere tables.json mit zwei Datenbanken
+	// Simuliere db.json mit zwei Datenbanken
 	dbs := []database.DatabaseMeta{{Name: "db1"}, {Name: "db2"}}
-	tablesPath := testDir + "/tables.json"
-	f, err := os.Create(tablesPath)
+	dbJsonPath := testDir + "/db.json"
+	f, err := os.Create(dbJsonPath)
 	if err != nil {
-		t.Fatalf("Fehler beim Anlegen von tables.json: %v", err)
+		t.Fatalf("Fehler beim Anlegen von db.json: %v", err)
 	}
 	defer f.Close()
 	_ = json.NewEncoder(f).Encode(dbs)
@@ -83,7 +83,9 @@ func TestHandleListDatabases_WithDatabases(t *testing.T) {
 		}
 	case []database.DatabaseMeta:
 		for _, m := range v {
-			names = append(names, m.Name)
+			if m.Name != "" {
+				names = append(names, m.Name)
+			}
 		}
 	}
 	if len(names) != 2 {

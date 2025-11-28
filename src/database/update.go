@@ -58,11 +58,11 @@ func (du *DatabaseUpdate) HandleUpdateDatabase(oldName, newName string) *respons
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
 
-	// tables.json aktualisieren
-	tablesPath := filepath.Join(du.SataDir, "tables.json")
+	// db.json aktualisieren
+	dbJsonPath := filepath.Join(du.SataDir, "db.json")
 	var dbs []DatabaseMeta
-	if _, err := os.Stat(tablesPath); err == nil {
-		content, err := ioutil.ReadFile(tablesPath)
+	if _, err := os.Stat(dbJsonPath); err == nil {
+		content, err := ioutil.ReadFile(dbJsonPath)
 		if err == nil {
 			_ = json.Unmarshal(content, &dbs)
 		}
@@ -79,7 +79,7 @@ func (du *DatabaseUpdate) HandleUpdateDatabase(oldName, newName string) *respons
 		}
 	}
 	if updated {
-		f, err := os.Create(tablesPath)
+		f, err := os.Create(dbJsonPath)
 		if err == nil {
 			enc := json.NewEncoder(f)
 			enc.SetIndent("", "  ")

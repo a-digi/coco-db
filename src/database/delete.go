@@ -30,11 +30,10 @@ func (dd *DatabaseDelete) HandleDeleteDatabase(name string) *response.APIRespons
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), "")
 	}
 
-	// tables.json aktualisieren
-	tablesPath := filepath.Join(dd.DataDir, "tables.json")
+	dbPath = filepath.Join(dd.DataDir, "db.json")
 	var dbs []DatabaseMeta
-	if _, err := os.Stat(tablesPath); err == nil {
-		content, err := ioutil.ReadFile(tablesPath)
+	if _, err := os.Stat(dbPath); err == nil {
+		content, err := ioutil.ReadFile(dbPath)
 		if err == nil {
 			_ = json.Unmarshal(content, &dbs)
 		}
@@ -46,7 +45,7 @@ func (dd *DatabaseDelete) HandleDeleteDatabase(name string) *response.APIRespons
 			newDbs = append(newDbs, entry)
 		}
 	}
-	f, err := os.Create(tablesPath)
+	f, err := os.Create(dbPath)
 	if err == nil {
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", "  ")

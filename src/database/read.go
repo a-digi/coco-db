@@ -21,21 +21,21 @@ type DatabaseList struct {
 
 func (dl *DatabaseList) HandleListDatabases() *response.APIResponse {
 	start := time.Now()
-	tablesPath := filepath.Join(dl.DataDir, "tables.json")
+	dbJsonPath := filepath.Join(dl.DataDir, "db.json")
 	var dbs []DatabaseMeta
-	if _, err := os.Stat(tablesPath); os.IsNotExist(err) {
+	if _, err := os.Stat(dbJsonPath); os.IsNotExist(err) {
 		execTime := time.Since(start).String()
 		return response.WriteSuccess(map[string]interface{}{"databases": []DatabaseMeta{}}, execTime)
 	}
-	content, err := ioutil.ReadFile(tablesPath)
+	content, err := ioutil.ReadFile(dbJsonPath)
 	if err != nil {
 		execTime := time.Since(start).String()
-		dl.Logger.Error("[DB_LIST] Fehler beim Lesen von tables.json:", err)
+		dl.Logger.Error("[DB_LIST] Fehler beim Lesen von db.json:", err)
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
 	if err := json.Unmarshal(content, &dbs); err != nil {
 		execTime := time.Since(start).String()
-		dl.Logger.Error("[DB_LIST] Fehler beim Parsen von tables.json:", err)
+		dl.Logger.Error("[DB_LIST] Fehler beim Parsen von db.json:", err)
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_JSON", err.Error(), execTime)
 	}
 	dl.Logger.Info("[DB_LIST] Datenbanken aufgelistet:", dbs)
