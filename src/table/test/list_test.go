@@ -102,3 +102,43 @@ func TestHandleListTables_WithTables(t *testing.T) {
 		t.Errorf("Erwartet: 2 Tabellen, erhalten: %d", len(tables))
 	}
 }
+
+func TestHandleListTables_ErrorCases(t *testing.T) {
+	testDir := setupListTestDir(t)
+	defer teardownListTestDir(testDir)
+
+	h := &table.ListTablesHandler{
+		DataDir: testDir,
+		Logger:  &logger.NoopLogger{},
+	}
+
+	// Fehler: Datenbankname fehlt
+	resp := h.HandleListTables("")
+	if resp == nil || resp.Success || resp.Error == nil {
+		t.Fatalf("Fehlerfall: Kein Datenbankname nicht korrekt erkannt")
+	}
+	if resp.Error.Code != "ERR_DB_NAME_MISSING" {
+		t.Errorf("Falscher Fehlercode: %v", resp.Error.Code)
+	}
+	if resp.HttpCode != 400 {
+		t.Errorf("Falscher HttpCode: %v", resp.HttpCode)
+	}
+	if resp.Error.Message == "" {
+		t.Errorf("Fehlermeldung fehlt")
+	}
+
+	// Fehler: Datenbank nicht gefunden
+	resp = h.HandleListTables("nichtvorhanden")
+	if resp == nil || resp.Success || resp.Error == nil {
+		t.Fatalf("Fehlerfall: Nicht vorhandene DB nicht korrekt erkannt")
+	}
+	if resp.Error.Code != "ERR_DB_NOT_FOUND" {
+		t.Errorf("Falscher Fehlercode: %v", resp.Error.Code)
+	}
+	if resp.HttpCode != 404 {
+		t.Errorf("Falscher HttpCode: %v", resp.HttpCode)
+	}
+	if resp.Error.Message == "" {
+		t.Errorf("Fehlermeldung fehlt")
+	}
+}
