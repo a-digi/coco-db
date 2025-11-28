@@ -9,7 +9,7 @@ POST /api/databases/{dbname}/tables
 ## Beispiel-Request
 
 ```bash
-curl -X POST http://localhost:8080/api/databases/testdb/tables \
+curl -X POST http://localhost:2022/api/databases/testdb/tables \
   -H "Content-Type: application/json" \
   -d '{
     "tableName": "users",
@@ -61,4 +61,3 @@ curl -X POST http://localhost:8080/api/databases/testdb/tables \
 - Der Datenbankname wird aus der URL extrahiert.
 - Die vollständige meta.json wird im Erfolgsfall zurückgegeben.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
-

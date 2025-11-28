@@ -9,7 +9,7 @@ POST /api/databases
 ## Beispiel-Request
 
 ```bash
-curl -X POST http://localhost:8080/api/databases \
+curl -X POST http://localhost:2022/api/databases \
   -H "Content-Type: application/json" \
   -d '{
     "name": "testdb"

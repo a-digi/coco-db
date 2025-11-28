@@ -9,7 +9,7 @@ DELETE /api/databases/{dbname}
 ## Beispiel-Request
 
 ```bash
-curl -X DELETE http://localhost:8080/api/databases/testdb
+curl -X DELETE http://localhost:2022/api/databases/testdb
 ```
 
 ## Beispiel-Response (Erfolg)
@@ -39,4 +39,3 @@ curl -X DELETE http://localhost:8080/api/databases/testdb
 ## Hinweise
 - Der Name der zu löschenden Datenbank wird in der URL angegeben.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
-
