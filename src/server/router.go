@@ -30,16 +30,19 @@ func SetupRouter() http.Handler {
 	pr := paramrouter.NewParamRouter()
 	// Datenbank-Endpunkte
 	pr.HandleFunc("GET", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.Handler(w, r)
+		database.HandleListDatabases(w, r, "./data")
 	})
 	pr.HandleFunc("POST", "/api/databases", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.Handler(w, r)
+		database.HandleCreateDatabase(w, r, "./data")
 	})
 	pr.HandleFunc("DELETE", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.Handler(w, r)
+		dbname := params["dbname"]
+		database.HandleDeleteDatabase(w, r, "./data", dbname)
 	})
+
 	pr.HandleFunc("PUT", "/api/databases/{dbname}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		database.Handler(w, r)
+		dbname := params["dbname"]
+		database.HandleUpdateDatabase(w, r, "./data", dbname)
 	})
 
 	// Tabellen-Endpunkt: POST /api/databases/{dbname}/tables

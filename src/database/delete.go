@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/a-digi/coco-db/src/response"
 )
@@ -13,8 +14,9 @@ func HandleDeleteDatabase(w http.ResponseWriter, r *http.Request, dataDir string
 }
 
 func handleDeleteDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	prefix := "/api/databases/delete/"
-	if len(r.URL.Path) <= len(prefix) {
+	// REST: /api/databases/{dbname}
+	prefix := "/api/databases/"
+	if !strings.HasPrefix(r.URL.Path, prefix) || len(r.URL.Path) <= len(prefix) {
 		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", "")
 	}
 	name := r.URL.Path[len(prefix):]

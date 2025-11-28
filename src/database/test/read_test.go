@@ -31,4 +31,3 @@ func TestListDatabases_Empty(t *testing.T) {
 		t.Errorf("Datenbanken auflisten fehlgeschlagen: %+v", resp)
 	}
 }
-

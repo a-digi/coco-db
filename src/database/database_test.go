@@ -59,7 +59,7 @@ func TestCreateListDeleteDatabase(t *testing.T) {
 	}
 
 	// 4. Datenbank löschen
-	r4 := httptest.NewRequest(http.MethodGet, "/api/databases/delete/testdb", nil)
+	r4 := httptest.NewRequest(http.MethodDelete, "/api/databases/testdb", nil)
 	w4 := httptest.NewRecorder()
 	resp4 := handleDeleteDatabase(w4, r4, dataDir)
 	if !resp4.Success {
@@ -67,7 +67,7 @@ func TestCreateListDeleteDatabase(t *testing.T) {
 	}
 
 	// 5. Datenbank löschen (nicht gefunden)
-	r5 := httptest.NewRequest(http.MethodGet, "/api/databases/delete/testdb", nil)
+	r5 := httptest.NewRequest(http.MethodDelete, "/api/databases/testdb", nil)
 	w5 := httptest.NewRecorder()
 	resp5 := handleDeleteDatabase(w5, r5, dataDir)
 	if resp5.Success || resp5.Error == nil || resp5.Error.Code != "ERR_DB_NOT_FOUND" {

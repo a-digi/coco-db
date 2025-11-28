@@ -27,12 +27,12 @@ func TestDeleteDatabase_Success(t *testing.T) {
 
 	// Erst anlegen
 	body := bytes.NewBufferString(`{"name":"testdb"}`)
-	rCreate := httptest.NewRequest(http.MethodGet, "/api/databases/create/", body)
+	rCreate := httptest.NewRequest(http.MethodPost, "/api/databases", body)
 	wCreate := httptest.NewRecorder()
 	database.HandleCreateDatabase(wCreate, rCreate, dataDir)
 
 	// Dann löschen
-	r := httptest.NewRequest(http.MethodGet, "/api/databases/delete/testdb", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/api/databases/testdb", nil)
 	w := httptest.NewRecorder()
 	resp := database.HandleDeleteDatabase(w, r, dataDir)
 	if !resp.Success {
@@ -47,7 +47,7 @@ func TestDeleteDatabase_NotFound(t *testing.T) {
 	dataDir := setupTestDataDirDelete(t)
 	defer teardownTestDataDirDelete(dataDir)
 
-	r := httptest.NewRequest(http.MethodGet, "/api/databases/delete/notfounddb", nil)
+	r := httptest.NewRequest(http.MethodDelete, "/api/databases/notfounddb", nil)
 	w := httptest.NewRecorder()
 	resp := database.HandleDeleteDatabase(w, r, dataDir)
 	if resp.Success {

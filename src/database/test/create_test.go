@@ -26,7 +26,7 @@ func TestCreateDatabase_Success(t *testing.T) {
 	defer teardownTestDataDir(dataDir)
 
 	body := bytes.NewBufferString(`{"name":"testdb"}`)
-	r := httptest.NewRequest(http.MethodGet, "/api/databases/create/", body)
+	r := httptest.NewRequest(http.MethodPost, "/api/databases", body)
 	w := httptest.NewRecorder()
 	resp := database.HandleCreateDatabase(w, r, dataDir)
 	if !resp.Success {
@@ -39,7 +39,7 @@ func TestCreateDatabase_InvalidName(t *testing.T) {
 	defer teardownTestDataDir(dataDir)
 
 	body := bytes.NewBufferString(`{"name":"../hack"}`)
-	r := httptest.NewRequest(http.MethodGet, "/api/databases/create/", body)
+	r := httptest.NewRequest(http.MethodPost, "/api/databases", body)
 	w := httptest.NewRecorder()
 	resp := database.HandleCreateDatabase(w, r, dataDir)
 	if resp.Success || resp.Error == nil || resp.Error.Code != "ERR_DB_INVALID_NAME" {
@@ -52,16 +52,15 @@ func TestCreateDatabase_AlreadyExists(t *testing.T) {
 	defer teardownTestDataDir(dataDir)
 
 	body := bytes.NewBufferString(`{"name":"testdb"}`)
-	r := httptest.NewRequest(http.MethodGet, "/api/databases/create/", body)
+	r := httptest.NewRequest(http.MethodPost, "/api/databases", body)
 	w := httptest.NewRecorder()
 	database.HandleCreateDatabase(w, r, dataDir)
 
 	body2 := bytes.NewBufferString(`{"name":"testdb"}`)
-	r2 := httptest.NewRequest(http.MethodGet, "/api/databases/create/", body2)
+	r2 := httptest.NewRequest(http.MethodPost, "/api/databases", body2)
 	w2 := httptest.NewRecorder()
 	resp2 := database.HandleCreateDatabase(w2, r2, dataDir)
 	if resp2.Success || resp2.Error == nil || resp2.Error.Code != "ERR_DB_EXISTS" {
 		t.Errorf("Doppelte Datenbank nicht korrekt erkannt: %+v", resp2)
 	}
 }
-

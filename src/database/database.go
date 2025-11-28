@@ -18,74 +18,9 @@ type DatabaseRequest struct {
 	Name string `json:"name"`
 }
 
-// Chain of Responsibility für GET-Routen
-
-type DBHandlerFunc func(w http.ResponseWriter, r *http.Request, dataDir string) (handled bool, resp *response.APIResponse)
-
-type DBHandlerChain struct {
-	handlers []DBHandlerFunc
-	dataDir  string
-}
-
-func NewDBHandlerChain(dataDir string) *DBHandlerChain {
-	return &DBHandlerChain{
-		handlers: []DBHandlerFunc{
-			routeHandler("/api/databases", handleListDatabases),
-			routeHandler("/api/databases/create/", handleCreateDatabase),
-			routeHandler("/api/databases/delete/", handleDeleteDatabase),
-			routeHandler("/api/databases/update/", handleUpdateDatabase),
-			routeHandlerRESTUpdate(), // <--- REST-Update-Handler für PUT /api/databases/{dbname}
-		},
-		dataDir: dataDir,
-	}
-}
-
-// Handler für exakten oder Prefix-Match (nur GET)
-func routeHandler(routePattern string, fn func(http.ResponseWriter, *http.Request, string) *response.APIResponse) DBHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, dataDir string) (bool, *response.APIResponse) {
-		if routePattern == r.URL.Path || (routePattern[len(routePattern)-1] == '/' && len(r.URL.Path) > len(routePattern) && r.URL.Path[:len(routePattern)] == routePattern) {
-			return true, fn(w, r, dataDir)
-		}
-		return false, nil
-	}
-}
-
-// REST-Handler für PUT /api/databases/{dbname}
-func routeHandlerRESTUpdate() DBHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, dataDir string) (bool, *response.APIResponse) {
-		if r.Method != http.MethodPut {
-			return false, nil
-		}
-		prefix := "/api/databases/"
-		if !startsWith(r.URL.Path, prefix) {
-			return false, nil
-		}
-		dbname := r.URL.Path[len(prefix):]
-		if dbname == "" || !DbNamePattern.MatchString(dbname) {
-			return false, nil
-		}
-		return true, handleUpdateDatabaseREST(w, r, dataDir, dbname)
-	}
-}
-
-func (c *DBHandlerChain) Serve(w http.ResponseWriter, r *http.Request) *response.APIResponse {
-	for _, h := range c.handlers {
-		handled, resp := h(w, r, c.dataDir)
-		if handled {
-			return resp
-		}
-	}
-	return response.WriteError(w, http.StatusNotFound, "ERR_ROUTE_NOT_FOUND", "Route nicht gefunden", "")
-}
-
-// Handler verarbeitet alle Datenbank-Operationen (nur GET) über die Chain
-func Handler(w http.ResponseWriter, r *http.Request) *response.APIResponse {
-	chain := NewDBHandlerChain("./data") // TODO: Aus Konfiguration laden
-	return chain.Serve(w, r)
-}
-
 // REST-Logik für PUT /api/databases/{dbname}
 func handleUpdateDatabaseREST(w http.ResponseWriter, r *http.Request, dataDir, oldName string) *response.APIResponse {
+
 	var req UpdateDatabaseRequest
 	if err := decodeJSON(r, &req); err != nil {
 		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_JSON", err.Error(), "")
@@ -107,6 +42,7 @@ func handleUpdateDatabaseREST(w http.ResponseWriter, r *http.Request, dataDir, o
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return response.WriteError(w, http.StatusInternalServerError, "ERR_IO", err.Error(), "")
 	}
+
 	return response.WriteSuccess(w, map[string]string{"oldName": oldName, "newName": req.NewName}, "")
 }
 

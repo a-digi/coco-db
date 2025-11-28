@@ -13,9 +13,13 @@ type UpdateDatabaseRequest struct {
 	NewName string `json:"newName"`
 }
 
-// Platzhalter für zukünftige Update-Logik
 func handleUpdateDatabase(w http.ResponseWriter, r *http.Request, dataDir string) *response.APIResponse {
-	oldName := strings.TrimPrefix(r.URL.Path, "/api/databases/update/")
+	// REST: /api/databases/{dbname}
+	prefix := "/api/databases/"
+	if !strings.HasPrefix(r.URL.Path, prefix) || len(r.URL.Path) <= len(prefix) {
+		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger alter Datenbankname", "")
+	}
+	oldName := r.URL.Path[len(prefix):]
 	if len(oldName) == 0 || !DbNamePattern.MatchString(oldName) {
 		return response.WriteError(w, http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger alter Datenbankname", "")
 	}
