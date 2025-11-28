@@ -58,7 +58,65 @@ type TableMeta struct {
 	AllowAdditionalFields *bool                 `json:"allowAdditionalFields,omitempty"`
 }
 
+// --- Hilfsfunktionen für Validierung (aus edit.go) ---
 var TableNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
+
+func validateTableName(name string) error {
+	if !TableNamePattern.MatchString(name) {
+		return fmt.Errorf("Ungültiger Tabellenname")
+	}
+	reserved := map[string]struct{}{"meta": {}, "entries": {}, "indexes": {}}
+	if _, found := reserved[strings.ToLower(name)]; found {
+		return fmt.Errorf("Tabellenname ist reserviert")
+	}
+	return nil
+}
+
+func validateFields(fields []FieldMeta) error {
+	if len(fields) == 0 {
+		return fmt.Errorf("Mindestens ein Feld muss definiert sein")
+	}
+	fieldNames := make(map[string]struct{})
+	for _, f := range fields {
+		if f.Name == "" || f.Type == "" {
+			return fmt.Errorf("Jedes Feld muss einen Namen und Typ haben")
+		}
+		if _, exists := fieldNames[f.Name]; exists {
+			return fmt.Errorf("Feldname kommt mehrfach vor: %s", f.Name)
+		}
+		fieldNames[f.Name] = struct{}{}
+	}
+	return nil
+}
+
+// Fehlercode-Wrapper für Validierung
+func validateTableNameWithCode(name string) (string, error) {
+	if !TableNamePattern.MatchString(name) {
+		return "ERR_TABLE_INVALID_NAME", fmt.Errorf("Ungültiger Tabellenname")
+	}
+	reserved := map[string]struct{}{"meta": {}, "entries": {}, "indexes": {}}
+	if _, found := reserved[strings.ToLower(name)]; found {
+		return "ERR_TABLE_RESERVED_NAME", fmt.Errorf("Tabellenname ist reserviert")
+	}
+	return "", nil
+}
+
+func validateFieldsWithCode(fields []FieldMeta) (string, error) {
+	if len(fields) == 0 {
+		return "ERR_FIELDS_MISSING", fmt.Errorf("Mindestens ein Feld muss definiert sein")
+	}
+	fieldNames := make(map[string]struct{})
+	for _, f := range fields {
+		if f.Name == "" || f.Type == "" {
+			return "ERR_FIELD_INVALID", fmt.Errorf("Jedes Feld muss einen Namen und Typ haben")
+		}
+		if _, exists := fieldNames[f.Name]; exists {
+			return "ERR_FIELD_DUPLICATE", fmt.Errorf("Feldname kommt mehrfach vor: %s", f.Name)
+		}
+		fieldNames[f.Name] = struct{}{}
+	}
+	return "", nil
+}
 
 // HandleCreateTable verarbeitet das Anlegen einer neuen Tabelle (POST /api/databases/{dbname}/tables)
 func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *response.APIResponse {
@@ -72,31 +130,13 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_DB_INVALID_NAME", "Ungültiger Datenbankname", execTime)
 	}
 
-	if !TableNamePattern.MatchString(meta.TableName) {
+	if code, err := validateTableNameWithCode(meta.TableName); err != nil {
 		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_TABLE_INVALID_NAME", "Ungültiger Tabellenname", execTime)
+		return response.WriteErrorInternal(http.StatusBadRequest, code, err.Error(), execTime)
 	}
-	if strings.ToLower(meta.TableName) == "meta" || strings.ToLower(meta.TableName) == "entries" || strings.ToLower(meta.TableName) == "indexes" {
+	if code, err := validateFieldsWithCode(meta.Fields); err != nil {
 		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_TABLE_RESERVED_NAME", "Tabellenname ist reserviert", execTime)
-	}
-
-	// Felder-Validierung: Mindestens ein Feld, alle Pflichtfelder müssen Namen und Typ haben
-	if len(meta.Fields) == 0 {
-		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELDS_MISSING", "Mindestens ein Feld muss definiert sein", execTime)
-	}
-	fieldNames := make(map[string]struct{})
-	for _, f := range meta.Fields {
-		if f.Name == "" || f.Type == "" {
-			execTime := time.Since(start).String()
-			return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELD_INVALID", "Jedes Feld muss einen Namen und Typ haben", execTime)
-		}
-		if _, exists := fieldNames[f.Name]; exists {
-			execTime := time.Since(start).String()
-			return response.WriteErrorInternal(http.StatusBadRequest, "ERR_FIELD_DUPLICATE", "Feldname kommt mehrfach vor: "+f.Name, execTime)
-		}
-		fieldNames[f.Name] = struct{}{}
+		return response.WriteErrorInternal(http.StatusBadRequest, code, err.Error(), execTime)
 	}
 
 	dbDir := filepath.Join(tc.DataDir, dbname)
