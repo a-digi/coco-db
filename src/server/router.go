@@ -61,6 +61,15 @@ func SetupRouter() http.Handler {
 		}
 		tc.HandleCreateTable(w, r)
 	})
+	// Tabellen-Endpunkt: GET /api/databases/{dbname}/tables
+	pr.HandleFunc("GET", "/api/databases/{dbname}/tables", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		listHandler := &table.ListTablesHandler{
+			ResponseWriter: w,
+			DataDir: "./data", // TODO: Aus config.json laden
+			Logger:  &logger.NoopLogger{},
+		}
+		listHandler.HandleListTables(params["dbname"])
+	})
 	// Hier können weitere Table-Endpunkte ergänzt werden
 
 	// Kombiniere Health-Mux und ParamRouter
