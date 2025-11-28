@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 	"github.com/a-digi/coco-db/src/database"
@@ -30,14 +31,19 @@ func TestHandleListDatabases_Empty(t *testing.T) {
 	if resp.ExecutionTime == "" {
 		t.Errorf("ExecutionTime fehlt")
 	}
-	dbs, ok := resp.Data.(map[string]interface{})["databases"].([]string)
-	if !ok && resp.Data.(map[string]interface{})["databases"] != nil {
-		// Fallback für []interface{}
-		arr := resp.Data.(map[string]interface{})["databases"].([]interface{})
-		if len(arr) != 0 {
-			t.Errorf("Erwartet: 0 Datenbanken, erhalten: %d", len(arr))
+	dbsIface := resp.Data.(map[string]interface{})["databases"]
+	dbs := []database.DatabaseMeta{}
+	switch v := dbsIface.(type) {
+	case []interface{}:
+		for _, entry := range v {
+			if m, ok := entry.(map[string]interface{}); ok {
+				if name, ok := m["name"].(string); ok {
+					dbs = append(dbs, database.DatabaseMeta{Name: name})
+				}
+			}
 		}
-		return
+	case []database.DatabaseMeta:
+		dbs = v
 	}
 	if len(dbs) != 0 {
 		t.Errorf("Erwartet: 0 Datenbanken, erhalten: %d", len(dbs))
@@ -47,8 +53,15 @@ func TestHandleListDatabases_Empty(t *testing.T) {
 func TestHandleListDatabases_WithDatabases(t *testing.T) {
 	testDir := setupListTestDir(t)
 	defer teardownListTestDir(testDir)
-	os.MkdirAll(testDir+"/db1", 0755)
-	os.MkdirAll(testDir+"/db2", 0755)
+	// Simuliere tables.json mit zwei Datenbanken
+	dbs := []database.DatabaseMeta{{Name: "db1"}, {Name: "db2"}}
+	tablesPath := testDir + "/tables.json"
+	f, err := os.Create(tablesPath)
+	if err != nil {
+		t.Fatalf("Fehler beim Anlegen von tables.json: %v", err)
+	}
+	defer f.Close()
+	_ = json.NewEncoder(f).Encode(dbs)
 	dl := &database.DatabaseList{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := dl.HandleListDatabases()
 	if resp == nil || !resp.Success || resp.HttpCode != 200 {
@@ -58,18 +71,22 @@ func TestHandleListDatabases_WithDatabases(t *testing.T) {
 		t.Errorf("ExecutionTime fehlt")
 	}
 	dbsIface := resp.Data.(map[string]interface{})["databases"]
-	dbs := []string{}
+	names := []string{}
 	switch v := dbsIface.(type) {
 	case []interface{}:
 		for _, entry := range v {
-			if s, ok := entry.(string); ok {
-				dbs = append(dbs, s)
+			if m, ok := entry.(map[string]interface{}); ok {
+				if name, ok := m["name"].(string); ok {
+					names = append(names, name)
+				}
 			}
 		}
-	case []string:
-		dbs = v
+	case []database.DatabaseMeta:
+		for _, m := range v {
+			names = append(names, m.Name)
+		}
 	}
-	if len(dbs) != 2 {
-		t.Errorf("Erwartet: 2 Datenbanken, erhalten: %d", len(dbs))
+	if len(names) != 2 {
+		t.Errorf("Erwartet: 2 Datenbanken, erhalten: %d", len(names))
 	}
 }

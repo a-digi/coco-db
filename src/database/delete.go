@@ -1,6 +1,8 @@
 package database
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,6 +29,31 @@ func (dd *DatabaseDelete) HandleDeleteDatabase(name string) *response.APIRespons
 	if err := os.RemoveAll(dbPath); err != nil {
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), "")
 	}
+
+	// tables.json aktualisieren
+	tablesPath := filepath.Join(dd.DataDir, "tables.json")
+	var dbs []DatabaseMeta
+	if _, err := os.Stat(tablesPath); err == nil {
+		content, err := ioutil.ReadFile(tablesPath)
+		if err == nil {
+			_ = json.Unmarshal(content, &dbs)
+		}
+	}
+	// Filtere die gelöschte DB heraus
+	newDbs := make([]DatabaseMeta, 0, len(dbs))
+	for _, entry := range dbs {
+		if entry.Name != name {
+			newDbs = append(newDbs, entry)
+		}
+	}
+	f, err := os.Create(tablesPath)
+	if err == nil {
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(newDbs)
+		f.Close()
+	}
+
 	execTime := time.Since(start).String()
 	return response.WriteSuccess(map[string]string{"name": name}, execTime)
 }

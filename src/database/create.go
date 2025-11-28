@@ -1,6 +1,8 @@
 package database
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +15,13 @@ import (
 type DatabaseCreate struct {
 	DataDir     string
 	Logger      logger.Logger
+}
+
+// Struktur für einen Eintrag in tables.json
+// (kann bei Bedarf erweitert werden)
+type DatabaseMeta struct {
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIResponse {
@@ -29,6 +38,33 @@ func (dc *DatabaseCreate) HandleCreateDatabase(dbName string) *response.APIRespo
 
 	if err := os.MkdirAll(dbPath, 0755); err != nil {
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), "")
+	}
+
+	// tables.json aktualisieren
+	tablesPath := filepath.Join(dc.DataDir, "tables.json")
+	var dbs []DatabaseMeta
+	if _, err := os.Stat(tablesPath); err == nil {
+		content, err := ioutil.ReadFile(tablesPath)
+		if err == nil {
+			_ = json.Unmarshal(content, &dbs)
+		}
+	}
+	// Prüfe, ob der Name schon in tables.json existiert
+	for _, entry := range dbs {
+		if entry.Name == dbName {
+			return response.WriteErrorInternal(http.StatusConflict, "ERR_DB_EXISTS", "Datenbank existiert bereits", "")
+		}
+	}
+	dbs = append(dbs, DatabaseMeta{Name: dbName, CreatedAt: time.Now()})
+	f, err := os.Create(tablesPath)
+	if err != nil {
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben von tables.json: "+err.Error(), "")
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(dbs); err != nil {
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben von tables.json: "+err.Error(), "")
 	}
 
 	execTime := time.Since(start).String()
