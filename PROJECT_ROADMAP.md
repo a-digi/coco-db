@@ -29,9 +29,31 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] Speichern und Laden der Metadaten-Datei `meta.json`
 
 ## 5. Felder und unterstützte Datentypen
-- [ ] Validierung von Einträgen anhand der in `meta.json` definierten Felder und Typen
-- [ ] Durchsetzung aller Constraints (minLength, maxLength, nullable, pattern, enum, etc.)
-- [ ] Unterstützung von Schema-Versionierung und Migration
+- [ ] **Validierung von Einträgen anhand der in `meta.json` definierten Felder und Typen**
+    - [ ] Implementiere eine zentrale Validierungsfunktion, die alle Einträge (Dokumente) gegen das meta.json-Schema prüft
+    - [ ] Prüfe, ob alle Pflichtfelder vorhanden sind und keine unbekannten Felder enthalten sind (sofern nicht erlaubt)
+    - [ ] Prüfe, ob die Typen der Felder mit den Vorgaben in meta.json übereinstimmen (string, int, float, bool, object, array, date, etc.)
+    - [ ] Prüfe, ob Defaultwerte korrekt gesetzt werden, falls ein Feld fehlt und ein Default definiert ist
+- [ ] **Durchsetzung aller Constraints**
+    - [ ] minLength, maxLength (für Strings)
+    - [ ] min, max (für numerische Werte)
+    - [ ] nullable (Feld darf null sein)
+    - [ ] pattern (Regulärer Ausdruck für Strings)
+    - [ ] enum (Werte müssen aus einer vorgegebenen Liste stammen)
+    - [ ] unique (optional, für spätere Index-Validierung)
+    - [ ] required (Pflichtfeld)
+    - [ ] allowAdditionalFields (ob zusätzliche Felder erlaubt sind)
+- [ ] **Unterstützung von Schema-Versionierung und Migration**
+    - [ ] meta.json enthält ein Feld schemaVersion
+    - [ ] Bei Änderung des Schemas: Migration bestehender Einträge auf das neue Schema ermöglichen
+    - [ ] Optional: Migrationsskripte oder automatische Anpassung der Einträge
+- [ ] **Fehlerbehandlung und Rückmeldung**
+    - [ ] Fehlerhafte Einträge werden mit präzisen Fehlercodes und -nachrichten abgelehnt (z. B. ERR_FIELD_MISSING, ERR_TYPE_MISMATCH, ERR_CONSTRAINT_FAILED)
+    - [ ] Fehler werden geloggt und in der API-Response zurückgegeben
+- [ ] **Tests & Validierung**
+    - [ ] Unit-Tests für alle Feldtypen und Constraints (inkl. Grenzfälle)
+    - [ ] Integrationstests für das Einfügen, Aktualisieren und Validieren von Dokumenten
+    - [ ] Tests für fehlerhafte und gültige Einträge, Defaultwerte, optionale Felder, etc.
 
 ## 6. Index Engine (Tabellenbasiert)
 - [ ] Aufbau und Verwaltung der In-Memory-Indizes pro Tabelle
