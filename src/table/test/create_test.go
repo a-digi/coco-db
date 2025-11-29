@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"encoding/json"
@@ -24,6 +24,7 @@ func teardownTestDir(dir string) {
 }
 
 func TestHandleCreateTable_WithIndex_Success(t *testing.T) {
+	t.Log("TestHandleCreateTable_WithIndex_Success läuft")
 	testDir := setupTestDir(t)
 	defer teardownTestDir(testDir)
 	creator := &table.TableCreator{

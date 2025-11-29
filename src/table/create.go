@@ -13,6 +13,7 @@ import (
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
+	"github.com/a-digi/coco-db/src/table/index"
 )
 
 // TableCreator kapselt die Abhängigkeiten für das Anlegen von Tabellen
@@ -155,6 +156,20 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta fields.TableMeta) 
 		errMsg := "Indexdefinitionen ungültig: " + strings.Join(indexErrors, "; ")
 		tc.Logger.Error("[TABLE_CREATE] " + errMsg)
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INDEX_DEFINITION", errMsg, execTime)
+	}
+
+	// Indexdateien initial anlegen (leere Indexstruktur persistieren)
+	for _, idxMeta := range meta.Indexes {
+		idx := index.NewBTreeIndex(index.IndexMeta{
+			Name:   idxMeta.Name,
+			Fields: idxMeta.Fields,
+			Type:   index.IndexTypeBTree,
+			Unique: idxMeta.Unique,
+			Sparse: idxMeta.Sparse,
+		})
+		if err := idx.SaveToFile(tableDir); err != nil {
+			tc.Logger.Error("[TABLE_CREATE] Fehler beim Anlegen Indexdatei: " + err.Error())
+		}
 	}
 
 	// tables.json der Datenbank aktualisieren
