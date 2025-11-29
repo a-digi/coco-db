@@ -5,10 +5,10 @@
 ### 1. API-Design & Endpunkte
 - [x] Definiere REST-API-Endpunkte für Tabellenoperationen:
     - [x] POST   `/api/databases/{dbname}/tables`         → Tabelle anlegen
-    - [ ] DELETE `/api/databases/{dbname}/tables/{tname}` → Tabelle löschen
-    - [ ] GET    `/api/databases/{dbname}/tables`         → Tabellen auflisten
-    - [ ] GET    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle abrufen
-    - [ ] PUT    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle bearbeiten (Edit)
+    - [x] DELETE `/api/databases/{dbname}/tables/{tname}` → Tabelle löschen
+    - [x] GET    `/api/databases/{dbname}/tables`         → Tabellen auflisten
+    - [x] GET    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle abrufen
+    - [x] PUT    `/api/databases/{dbname}/tables/{tname}` → Metadaten einer Tabelle bearbeiten (Edit)
 
 ### 2. Tabellen-Anlage (Create)
 - [x] Validierung des Tabellennamens (Pattern, Länge, keine Duplikate)
@@ -31,28 +31,28 @@
 - [x] Versionierung und optionale Migration vorbereiten
 
 ### 5. Tabellen-Liste (List)
-- [ ] Auflisten aller Tabellen einer Datenbank (Verzeichnisse unterhalb von /data/{datenbankname}/)
-- [ ] Optional: Filterung nach gültigen Tabellen (nur mit meta.json)
-- [ ] Rückgabe als JSON-Array
+- [x] Auflisten aller Tabellen einer Datenbank (Verzeichnisse unterhalb von /data/{datenbankname}/)
+- [x] Optional: Filterung nach gültigen Tabellen (nur mit meta.json)
+- [x] Rückgabe als JSON-Array
 
 ### 6. Tabellen-Löschen (Delete)
-- [ ] Validierung des Tabellennamens
-- [ ] Löschen des Tabellenverzeichnisses (rekursiv)
-- [ ] Fehlerbehandlung: Nicht gefunden, gesperrt, etc.
-- [ ] Logging
+- [x] Validierung des Tabellennamens
+- [x] Löschen des Tabellenverzeichnisses (rekursiv)
+- [x] Fehlerbehandlung: Nicht gefunden, gesperrt, etc.
+- [x] Logging
 
 ### 7. Tabellen-Metadaten abrufen (Get)
-- [ ] meta.json einer Tabelle lesen und als JSON zurückgeben
-- [ ] Fehlerbehandlung: Nicht gefunden, ungültig, etc.
+- [x] meta.json einer Tabelle lesen und als JSON zurückgeben
+- [x] Fehlerbehandlung: Nicht gefunden, ungültig, etc.
 
 ### 8. Tests & Validierung
 - [x] Unit- und Integrationstests für alle Endpunkte und Fehlerfälle
 - [x] Testfälle für Namensvalidierung, Duplikate, fehlerhafte Metadaten, etc.
 
 ### 9. Dokumentation
-- [ ] API-Dokumentation der Endpunkte und Beispiele
-- [ ] Beschreibung des meta.json-Schemas
-- [ ] Hinweise zu Fehlercodes und Logging
+- [x] API-Dokumentation der Endpunkte und Beispiele
+- [x] Beschreibung des meta.json-Schemas
+- [x] Hinweise zu Fehlercodes und Logging
 
 ---
 
