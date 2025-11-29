@@ -160,8 +160,8 @@ Content-Type: application/json
 - [x] Sortiere die Ergebnisse nach den angegebenen Feldern
 
 ## 7. Fehlerbehandlung
-- [ ] Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
-- [ ] Begrenze die maximale Anzahl zurückgegebener Einträge
+- [x] Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
+- [x] Begrenze die maximale Anzahl zurückgegebener Einträge
 
 ## 8. Response-Format
 - [ ] Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
