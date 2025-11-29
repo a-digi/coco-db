@@ -62,7 +62,7 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
     - [x] Routinen zum Laden und Speichern der Indexdateien implementieren
 
 - [ ] **4. Indexaufbau und -aktualisierung**
-    - [~] Indexaufbau beim Start (Initialisierung aus bestehenden Einträgen)
+    - [x] Indexaufbau beim Start (Initialisierung aus bestehenden Einträgen)
     - [ ] Indexaktualisierung bei Insert, Update, Delete von Einträgen
     - [ ] Konsistenzprüfung zwischen Index und Daten
 

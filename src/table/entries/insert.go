@@ -78,6 +78,37 @@ func (ec *EntryCreator) InsertEntry(dbName, tableName string, entry map[string]i
 		return fmt.Errorf("Fehler beim Hinzufügen der neuen Version: %v", err)
 	}
 
+	// 5. Indexaktualisierung nach Insert
+	metaPath := filepath.Join(tableDir, "meta.json")
+	metaFile, err := os.ReadFile(metaPath)
+	if err == nil {
+		var meta fields.TableMeta
+		if err := json.Unmarshal(metaFile, &meta); err == nil {
+			for _, idxMeta := range meta.Indexes {
+				if len(idxMeta.Fields) == 1 {
+					idxField := idxMeta.Fields[0]
+					key, ok := entry[idxField]
+					if ok {
+						// Index laden oder neu anlegen
+						idxPath := filepath.Join(tableDir, "index_"+idxMeta.Name+".json")
+						var idxObj map[string][]string
+						idxObj = map[string][]string{}
+						if idxData, err := os.ReadFile(idxPath); err == nil {
+							_ = json.Unmarshal(idxData, &idxObj)
+						}
+						k, ok := key.(string)
+						if ok {
+							idxObj[k] = append(idxObj[k], entryId)
+							idxFile, _ := os.Create(idxPath)
+							_ = json.NewEncoder(idxFile).Encode(idxObj)
+							idxFile.Close()
+						}
+					}
+				}
+			}
+		}
+	}
+
 	ec.Logger.Info(fmt.Sprintf("Eintrag erfolgreich gespeichert: %s (Version %d)", entryPath, versionNumber))
 	return nil
 }
@@ -145,6 +176,37 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 	if err := versioningObj.AddNewVersion(entryId, versionNumber); err != nil {
 		log.Error(fmt.Sprintf("Fehler beim Hinzufügen der neuen Version: %v", err))
 		return response.WriteErrorInternal(500, "ERR_ADD_VERSION", err.Error(), "")
+	}
+
+	// 5. Indexaktualisierung nach Insert
+	metaPath := filepath.Join(tableDir, "meta.json")
+	metaFile, err := os.ReadFile(metaPath)
+	if err == nil {
+		var meta fields.TableMeta
+		if err := json.Unmarshal(metaFile, &meta); err == nil {
+			for _, idxMeta := range meta.Indexes {
+				if len(idxMeta.Fields) == 1 {
+					idxField := idxMeta.Fields[0]
+					key, ok := entry[idxField]
+					if ok {
+						// Index laden oder neu anlegen
+						idxPath := filepath.Join(tableDir, "index_"+idxMeta.Name+".json")
+						var idxObj map[string][]string
+						idxObj = map[string][]string{}
+						if idxData, err := os.ReadFile(idxPath); err == nil {
+							_ = json.Unmarshal(idxData, &idxObj)
+						}
+						k, ok := key.(string)
+						if ok {
+							idxObj[k] = append(idxObj[k], entryId)
+							idxFile, _ := os.Create(idxPath)
+							_ = json.NewEncoder(idxFile).Encode(idxObj)
+							idxFile.Close()
+						}
+					}
+				}
+			}
+		}
 	}
 
 	log.Info(fmt.Sprintf("Eintrag erfolgreich gespeichert: %s (Version %d)", entryPath, versionNumber))
