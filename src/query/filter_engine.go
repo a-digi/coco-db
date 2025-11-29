@@ -2,9 +2,10 @@ package query
 
 import (
 	"encoding/json"
+	"github.com/a-digi/coco-db/src/table/fields"
 	"os"
 	"path/filepath"
-	"github.com/a-digi/coco-db/src/table/fields"
+	"sort"
 )
 
 // Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
@@ -63,6 +64,12 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	}
+
+	// Nach dem Filtern: Sortierung und Paginierung
+	if len(query.Sort) > 0 {
+		sortEntries(result, query.Sort)
+	}
+	result = applyPagination(result, query.Limit, query.Offset)
 	return result, nil
 }
 
@@ -138,4 +145,81 @@ func intersectIDSets(sets [][]string) []string {
 		}
 	}
 	return result
+}
+
+// sortEntries sortiert die Einträge nach den angegebenen Feldern (auf- und absteigend)
+func sortEntries(entries []map[string]interface{}, sortFields []string) {
+	sort.SliceStable(entries, func(i, j int) bool {
+		for _, field := range sortFields {
+			asc := true
+			name := field
+			if len(field) > 0 && field[0] == '-' {
+				asc = false
+				name = field[1:]
+			}
+			vi, iok := entries[i][name]
+			vj, jok := entries[j][name]
+			if !iok || !jok {
+				continue
+			}
+			cmp := compareValues(vi, vj)
+			if cmp == 0 {
+				continue
+			}
+			if asc {
+				return cmp < 0
+			} else {
+				return cmp > 0
+			}
+		}
+		return false
+	})
+}
+
+// compareValues vergleicht zwei Werte (int, float, string, bool)
+func compareValues(a, b interface{}) int {
+	fa, okA := toFloat64(a)
+	fb, okB := toFloat64(b)
+	if okA && okB {
+		if fa < fb {
+			return -1
+		} else if fa > fb {
+			return 1
+		}
+		return 0
+	}
+	sa, okA := a.(string)
+	sb, okB := b.(string)
+	if okA && okB {
+		if sa < sb {
+			return -1
+		} else if sa > sb {
+			return 1
+		}
+		return 0
+	}
+	ba, okA := a.(bool)
+	bb, okB := b.(bool)
+	if okA && okB {
+		if ba == bb {
+			return 0
+		} else if !ba && bb {
+			return -1
+		} else {
+			return 1
+		}
+	}
+	return 0
+}
+
+// applyPagination schneidet das Ergebnis auf limit/offset zu
+func applyPagination(entries []map[string]interface{}, limit, offset int) []map[string]interface{} {
+	if offset > len(entries) {
+		return []map[string]interface{}{}
+	}
+	end := len(entries)
+	if limit > 0 && offset+limit < end {
+		end = offset + limit
+	}
+	return entries[offset:end]
 }

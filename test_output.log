@@ -1,1 +1,8 @@
-ok  	command-line-arguments	0.166s
+=== RUN   TestFilterEngine_IndexAndNonIndex
+    filter_engine_test.go:79: Sortierung aufsteigend: Ergebnis nicht korrekt sortiert: [map[age:20 email:foo@bar.de id:48dece68-4380-4f82-92e3-8fdb7da2b8bd name:Test User]], err=<nil>
+    filter_engine_test.go:86: Sortierung absteigend: Ergebnis nicht korrekt sortiert: [map[age:20 email:foo@bar.de id:48dece68-4380-4f82-92e3-8fdb7da2b8bd name:Test User]], err=<nil>
+    filter_engine_test.go:93: Paginierung: Erwartet 1 Ergebnis, bekommen: [], err=<nil>
+--- FAIL: TestFilterEngine_IndexAndNonIndex (0.00s)
+FAIL
+FAIL	command-line-arguments	0.168s
+FAIL

@@ -156,8 +156,8 @@ Content-Type: application/json
   - [x] Verknüpfe die Ergebnisse als verschachtelte Objekte
 
 ## 6. Paginierung & Sortierung
-- [ ] Unterstütze `limit` und `offset` im Request
-- [ ] Sortiere die Ergebnisse nach den angegebenen Feldern
+- [x] Unterstütze `limit` und `offset` im Request
+- [x] Sortiere die Ergebnisse nach den angegebenen Feldern
 
 ## 7. Fehlerbehandlung
 - [ ] Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
