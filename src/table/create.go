@@ -184,6 +184,14 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", "Fehler beim Schreiben der meta.json: "+err.Error(), execTime)
 	}
 
+	// Indexdefinitionen validieren
+	if indexErrors := ValidateIndexes(&meta); len(indexErrors) > 0 {
+		execTime := time.Since(start).String()
+		errMsg := "Indexdefinitionen ungültig: " + strings.Join(indexErrors, "; ")
+		tc.Logger.Error("[TABLE_CREATE] " + errMsg)
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INDEX_DEFINITION", errMsg, execTime)
+	}
+
 	// tables.json der Datenbank aktualisieren
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
 	var tablesMeta []TableMeta

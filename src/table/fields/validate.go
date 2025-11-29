@@ -148,3 +148,37 @@ func validateFieldValue(value interface{}, meta types.FieldMeta) *types.Validati
 		Message: "Unbekannter Feldtyp",
 	}
 }
+
+// ValidateIndexes prüft die Indexdefinitionen in TableMeta
+func ValidateIndexes(meta *TableMeta) []string {
+	errors := []string{}
+	nameSet := map[string]struct{}{}
+	fieldSet := map[string]struct{}{}
+	for _, f := range meta.Fields {
+		fieldSet[f.Name] = struct{}{}
+	}
+	for _, idx := range meta.Indexes {
+		if idx.Name == "" {
+			errors = append(errors, "Index ohne Namen")
+		}
+		if _, exists := nameSet[idx.Name]; exists {
+			errors = append(errors, fmt.Sprintf("Doppelter Indexname: %s", idx.Name))
+		}
+		nameSet[idx.Name] = struct{}{}
+		if idx.Type != "primary" && idx.Type != "secondary" {
+			errors = append(errors, fmt.Sprintf("Ungültiger Index-Typ: %s", idx.Type))
+		}
+		if len(idx.Fields) == 0 {
+			errors = append(errors, fmt.Sprintf("Index %s ohne Felder", idx.Name))
+		}
+		for _, f := range idx.Fields {
+			if _, ok := fieldSet[f]; !ok {
+				errors = append(errors, fmt.Sprintf("Index %s referenziert unbekanntes Feld: %s", idx.Name, f))
+			}
+		}
+		if idx.Unique && idx.Sparse {
+			errors = append(errors, fmt.Sprintf("Index %s: unique und sparse nicht kombinierbar", idx.Name))
+		}
+	}
+	return errors
+}

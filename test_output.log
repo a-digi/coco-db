@@ -1,0 +1,4 @@
+# github.com/a-digi/coco-db/src/table
+src/table/create.go:188:20: undefined: ValidateIndexes
+FAIL	command-line-arguments [build failed]
+FAIL

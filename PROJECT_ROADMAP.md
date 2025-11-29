@@ -47,10 +47,40 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] Integrationstests für das Einfügen, Aktualisieren und Validieren von Dokumenten
 - [x] Tests für fehlerhafte und gültige Einträge, Defaultwerte, optionale Felder, etc.
 
-## 6. Index Engine (Tabellenbasiert)
-- [ ] Aufbau und Verwaltung der In-Memory-Indizes pro Tabelle
-- [ ] Persistenz der Indexdateien (`index.jsonl`, `index_{feldname}.jsonl`)
-- [ ] Unterstützung von Primär- und Sekundärindizes inkl. Unique/Sparse
+## 6. Index Engine (Tabellenbasiert) – Schritt-für-Schritt-Plan
+
+- [x] **1. Indexdatenstruktur entwerfen**
+    - [x] Definition der Index-Metadatenstruktur (z.B. IndexMeta, IndexType, Felder, unique/sparse)
+    - [x] Definition der In-Memory-Indexstruktur (z.B. Map, Tree, etc.)
+
+- [x] **2. Indexdefinition in meta.json ermöglichen**
+    - [x] Erweiterung von meta.json um Indexdefinitionen (z.B. Primär-/Sekundärindex, unique, sparse)
+    - [x] Validierung der Indexdefinitionen beim Anlegen/Ändern einer Tabelle
+
+- [ ] **3. Indexdateien persistieren**
+    - [ ] Format und Speicherort für Indexdateien festlegen (`index.jsonl`, `index_{feldname}.jsonl`)
+    - [ ] Routinen zum Laden und Speichern der Indexdateien implementieren
+
+- [ ] **4. Indexaufbau und -aktualisierung**
+    - [ ] Indexaufbau beim Start (Initialisierung aus bestehenden Einträgen)
+    - [ ] Indexaktualisierung bei Insert, Update, Delete von Einträgen
+    - [ ] Konsistenzprüfung zwischen Index und Daten
+
+- [ ] **5. Indexabfragen**
+    - [ ] API/Methoden für schnelle Suche nach Einträgen über Index (z.B. GetByField, RangeQuery)
+    - [ ] Unterstützung für Primär- und Sekundärindizes
+    - [ ] Unterstützung für unique/sparse-Index
+
+- [ ] **6. Fehlerbehandlung und Tests**
+    - [ ] Fehlerfälle (z.B. Indexverletzung, Inkonsistenz) behandeln
+    - [ ] Unit- und Integrationstests für Indexaufbau, -aktualisierung und -abfrage
+
+- [ ] **7. Dokumentation**
+    - [ ] Dokumentation der Index-Engine, Indexdefinitionen und API
+
+---
+
+Jeder Schritt sollte einzeln umgesetzt und getestet werden. Die Reihenfolge ist empfohlen, kann aber je nach Architektur angepasst werden.
 
 ## 7. Filter & Query
 - [ ] Implementierung von Abfrage- und Filtermechanismen auf Basis der Indizes und/oder vollständiger Iteration
