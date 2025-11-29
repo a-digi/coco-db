@@ -177,10 +177,42 @@ Content-Type: application/json
   - [x] Joins (inkl. Verschachtelung)
 
 ## 10. Dokumentation
-- [ ] Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
-- [ ] Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
+- [x] Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
+- [x] Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
 
-## Beispiele für Query-JSONs
+### Unterstützte Operatoren
+| Operator     | Beschreibung                                 | Beispiel                                  |
+|--------------|----------------------------------------------|-------------------------------------------|
+| eq           | Gleichheit                                   | { "age": 18 }                            |
+| neq          | Ungleichheit                                 | { "age": { "neq": 18 } }                |
+| gt           | Größer als                                   | { "age": { "gt": 18 } }                 |
+| gte          | Größer oder gleich                           | { "age": { "gte": 18 } }                |
+| lt           | Kleiner als                                  | { "age": { "lt": 65 } }                 |
+| lte          | Kleiner oder gleich                          | { "age": { "lte": 65 } }                |
+| like         | Pattern-Matching mit Wildcards (*, ?)        | { "name": { "like": "Max*" } }         |
+| partial      | Teilstring-Matching (ohne Wildcards)         | { "bio": { "partial": "engineer" } }   |
+| fulltext     | Volltextsuche (Tokenisierung, mehrere Wörter)| { "desc": { "fulltext": "foo bar" } }  |
+
+### Unterstützte Query-Parameter
+| Parameter | Typ      | Beschreibung                                  |
+|-----------|----------|-----------------------------------------------|
+| filter    | Objekt   | Filterbedingungen (Feldname: Wert/Operator)   |
+| limit     | int      | Maximale Anzahl Ergebnisse (Paginierung)      |
+| offset    | int      | Startindex für Ergebnisse (Paginierung)       |
+| sort      | Array    | Sortierfelder, optional mit '-' für absteigend|
+| join      | Array    | Join-Definitionen für globale Queries         |
+
+### Hinweise zu Performance, Index-Nutzung und Limitationen
+- **Index-Nutzung:** Filter auf indizierten Feldern werden hochperformant ausgeführt. Nicht indizierte Felder führen zu sequenziellen Dateizugriffen.
+- **Speicherverbrauch:** Es werden niemals vollständige Tabellen in den Speicher geladen. Nur Indexdaten werden im RAM gehalten.
+- **Maximale Join-Tiefe:** Standardmäßig bis zu 64 verschachtelte Joins möglich (empfohlen: <10 für Performance).
+- **Limitationen:**
+  - Keine Transaktionen oder Sperrmechanismen für parallele Schreibzugriffe.
+  - Volltextsuche ist einfach (keine Gewichtung, kein Ranking, keine Stemming/Stopwords).
+  - Keine komplexen Aggregationen (COUNT, SUM, GROUP BY etc.)
+  - Keine Subqueries.
+
+### Beispiele für Query-JSONs
 
 | Datentyp / Operator         | Beispiel-Filter im JSON-Body |
 |----------------------------|------------------------------|
