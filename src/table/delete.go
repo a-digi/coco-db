@@ -21,45 +21,27 @@ type TableDelete struct {
 }
 
 // HandleDeleteTable verarbeitet das Löschen einer Tabelle (DELETE /api/databases/{dbname}/tables/{tname})
-func (td *TableDelete) HandleDeleteTable(w http.ResponseWriter, r *http.Request) {
+func (td *TableDelete) HandleDeleteTable(dbname, tableName string) *response.APIResponse {
 	start := time.Now()
-	dbname := r.URL.Query().Get("db")
-	tableName := r.URL.Query().Get("table")
 	if dbname == "" || tableName == "" {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_PARAM_MISSING", "Datenbank- oder Tabellenname fehlt", execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_PARAM_MISSING", "Datenbank- oder Tabellenname fehlt", execTime)
 	}
 	dbDir := filepath.Join(td.DataDir, dbname)
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
 	var tablesMeta []TableMeta
 	if _, err := os.Stat(tablesJsonPath); os.IsNotExist(err) {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
 	}
 	content, err := os.ReadFile(tablesJsonPath)
 	if err != nil {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
 	}
 	if err := json.Unmarshal(content, &tablesMeta); err != nil {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusInternalServerError, "ERR_JSON", err.Error(), execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_JSON", err.Error(), execTime)
 	}
 	found := false
 	newTables := make([]TableMeta, 0, len(tablesMeta))
@@ -72,11 +54,7 @@ func (td *TableDelete) HandleDeleteTable(w http.ResponseWriter, r *http.Request)
 	}
 	if !found {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLE_NOT_FOUND", "Tabelle nicht gefunden", execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLE_NOT_FOUND", "Tabelle nicht gefunden", execTime)
 	}
 	// Schreibe neue tables.json
 	f, err := os.Create(tablesJsonPath)
@@ -91,8 +69,5 @@ func (td *TableDelete) HandleDeleteTable(w http.ResponseWriter, r *http.Request)
 	_ = os.RemoveAll(tableDir)
 	td.Logger.Info("[TABLE_DELETE] Tabelle gelöscht:", dbname, tableName)
 	execTime := time.Since(start).String()
-	resp := response.WriteSuccess(map[string]string{"table": tableName}, execTime)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(resp.HttpCode)
-	_ = json.NewEncoder(w).Encode(resp)
+	return response.WriteSuccess(map[string]string{"table": tableName}, execTime)
 }
