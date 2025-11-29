@@ -72,6 +72,11 @@ Definiere, wie neue Einträge über eine REST-API entgegengenommen, validiert un
 6. **Fehlerbehandlung**
     - [ ] Bei internen Fehlern: Gib Fehlerobjekt zurück
 
+#### Zusätzliche Validierung: Verbotenes ID-Feld
+- Beim Anlegen eines Eintrags darf das Feld `ID` (Groß- oder Kleinschreibung, also `ID` oder `id`) **nicht** im Request-Body enthalten sein.
+- Wird das Feld `ID` oder `id` im Eintrag gefunden, wird der Request mit einem Validierungsfehler (z. B. Fehlercode `ERR_FORBIDDEN_ID_FIELD`) abgelehnt.
+- Die ID wird ausschließlich vom System generiert und dem Eintrag zugewiesen.
+
 ### Beispiel: Pseudocode für die Einfügefunktion
 
 ```go
@@ -124,6 +129,26 @@ func InsertEntry(dbName string, tableName string, entry map[string]interface{}) 
      - Der neue Eintrag erhält die nächste `version_number` und ein leeres `versioned_at`.
   3. Die Versionseinträge in `version.json` sind chronologisch sortiert und die `version_number` ist immer eindeutig und aufsteigend.
 
+- **Ablauf beim Editieren eines Eintrags:**
+  1. Lade den aktuellen Eintrag (`{entryId}.json`) und die zugehörige `version.json`.
+  2. Validierung des neuen Eintrags gegen das aktuelle Schema.
+  3. Versioniere den bisherigen Stand:
+     - Setze das Feld `versioned_at` des bisherigen Eintrags auf den aktuellen Zeitstempel.
+     - Verschiebe die bisherige Datei `{entryId}.json` nach `version/{versionNumber}.json`.
+     - Erhöhe die `version_number`.
+  4. Speichere den neuen Eintrag als `{entryId}.json` und trage ihn als neue Version in `version.json` ein (mit leerem `versioned_at`).
+
+- **Ablauf beim Löschen eines Eintrags:**
+  1. Lade die `version.json` und prüfe, ob ein aktiver Eintrag existiert.
+  2. Setze das Feld `versioned_at` des aktiven Eintrags auf den aktuellen Zeitstempel.
+  3. Verschiebe die Datei `{entryId}.json` nach `version/{versionNumber}.json` (optional: setze ein Lösch-Flag oder entferne die Datei nicht endgültig, um Historie zu bewahren).
+  4. Es existiert kein aktiver Eintrag mehr für diese `entryId`.
+
+- **Ablauf beim Lesen eines Eintrags:**
+  1. Lade die Datei `{entryId}.json` für den aktuellen Stand.
+  2. Optional: Lade aus dem Unterordner `version/` eine bestimmte Version (`{versionNumber}.json`) für historische Abfragen.
+  3. Die `version.json` gibt Auskunft über alle Versionen und deren Zeitstempel.
+
 - **Beispiel für version.json:**
 
 ```json
@@ -146,3 +171,4 @@ func InsertEntry(dbName string, tableName string, entry map[string]interface{}) 
 - **Hinweis:**
   - Die Versionierung wird in einer eigenen Datei `src/table/entries/version.go` implementiert.
   - Die Versionierung ist Pflicht, bevor ein neuer Eintrag als aktiv gespeichert wird.
+  - Editieren, Löschen und Lesen greifen auf die gleiche Versionierungslogik und -struktur zurück.
