@@ -3,14 +3,15 @@ package query_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 	"os"
 	"path/filepath"
+	"testing"
 
-	"github.com/a-digi/coco-db/src/query"
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/query"
 	"github.com/a-digi/coco-db/src/table/fields"
 )
 
@@ -48,9 +49,19 @@ func TestTableQueryHandler_Success(t *testing.T) {
 	if !resp.Success || resp.HttpCode != http.StatusOK {
 		t.Errorf("Erwartet Success und Status 200, bekommen: %+v", resp)
 	}
-	data, ok := resp.Data.([]map[string]interface{})
-	if !ok || len(data) != 1 || data[0]["id"] != "1" {
-		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen: %+v", resp.Data)
+	data, ok := resp.Data.([]interface{})
+	if !ok || len(data) != 1 {
+		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen wawe: %+v", data)
+		return
+	}
+	entry, ok := data[0].(map[string]interface{})
+	if !ok {
+		t.Errorf("Erwartet map[string]interface{} für entry, bekommen: %+v", data[0])
+		return
+	}
+	t.Logf("Entry: %+v", entry)
+	if entry["id"] != "1" || entry["name"] != "Test" || fmt.Sprintf("%v", entry["age"]) != "42" {
+		t.Errorf("Erwartet einen Eintrag mit id=1, name=Test, age=42, bekommen: %+v", entry)
 	}
 }
 
@@ -86,9 +97,56 @@ func TestQueryHandler_Success(t *testing.T) {
 	if !resp.Success || resp.HttpCode != http.StatusOK {
 		t.Errorf("Erwartet Success und Status 200, bekommen: %+v", resp)
 	}
-	data, ok := resp.Data.([]map[string]interface{})
-	if !ok || len(data) != 1 || data[0]["id"] != "1" {
-		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen: %+v", resp.Data)
+	results, ok := resp.Data.([]interface{})
+	if !ok || len(results) == 0 {
+		t.Errorf("Erwartet mindestens ein Tabellenergebnis, bekommen: %+v", resp.Data)
+		return
+	}
+	found := false
+	var foundEntry map[string]interface{}
+	for _, tbl := range results {
+		tblMap, ok := tbl.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if tblMap["table"] == "users" {
+			entries, ok := tblMap["entries"].([]interface{})
+			if !ok {
+				continue
+			}
+			for _, e := range entries {
+				entry, ok := e.(map[string]interface{})
+				if ok && entry["id"] == "1" {
+					found = true
+					foundEntry = entry
+					break
+				}
+			}
+		}
+	}
+	if !found {
+		t.Errorf("Erwartet einen Eintrag mit id=1 in Tabelle users, bekommen: %+v", resp.Data)
+		for i, tbl := range results {
+			tblMap, ok := tbl.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			t.Logf("Tabelle %d: %v", i, tblMap)
+			entries, ok := tblMap["entries"].([]interface{})
+			if ok {
+				for j, e := range entries {
+					entry, ok := e.(map[string]interface{})
+					if ok {
+						t.Logf("  Entry %d: %v", j, entry)
+					}
+				}
+			}
+		}
+	} else {
+		// Erwarte, dass der Eintrag alle Felder enthält
+		if foundEntry["name"] != "Test" || fmt.Sprintf("%v", foundEntry["age"]) != "42" {
+			t.Errorf("Gefundener Eintrag stimmt nicht: %+v", foundEntry)
+		}
 	}
 }
 

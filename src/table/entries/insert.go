@@ -118,10 +118,15 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 		}
 	}
 
+	// Rückgabe: entryId und vollständiger Eintrag im Data-Objekt
+	respData := map[string]interface{}{"entryId": entryId}
+	for k, v := range entry {
+		respData[k] = v
+	}
 	return &response.APIResponse{
 		HttpCode:      201,
 		Success:       true,
-		Data:          map[string]interface{}{ "entryId": entryId },
+		Data:          respData,
 		ExecutionTime: time.Since(start).String(),
 	}
 }
