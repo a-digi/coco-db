@@ -31,6 +31,8 @@ func (ec *EntryCreator) InsertEntry(dbName, tableName string, entry map[string]i
 		ec.Logger.Error(fmt.Sprintf("Fehler beim Generieren der UUID: %v", err))
 		return fmt.Errorf("Fehler beim Generieren der UUID: %v", err)
 	}
+	// id-Feld manuell setzen
+	entry["id"] = entryId
 	entryDir := filepath.Join(entriesDir, entryId)
 	if err := os.MkdirAll(entryDir, 0755); err != nil {
 		ec.Logger.Error(fmt.Sprintf("Fehler beim Anlegen des entry-Ordners: %v", err))
@@ -98,6 +100,8 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 		log.Error(fmt.Sprintf("Fehler beim Generieren der UUID: %v", err))
 		return response.WriteErrorInternal(500, "ERR_UUID", err.Error(), "")
 	}
+	// id-Feld manuell setzen
+	entry["id"] = entryId
 	entryDir := filepath.Join(entriesDir, entryId)
 	if err := os.MkdirAll(entryDir, 0755); err != nil {
 		log.Error(fmt.Sprintf("Fehler beim Anlegen des entry-Ordners: %v", err))

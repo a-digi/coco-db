@@ -44,6 +44,8 @@ func EditEntry(dbName, tableName, entryId string, entry map[string]interface{}, 
 		return response.WriteErrorInternal(404, "ERR_NO_ACTIVE_VERSION", "Keine aktive Version vorhanden", "")
 	}
 
+	// id-Feld manuell setzen
+	entry["id"] = entryId
 	// 2. Neue Version speichern
 	f, err := os.Create(entryPath)
 	if err != nil {
@@ -107,6 +109,8 @@ func (ee *EntryEditor) EditEntry(dbName, tableName, entryId string, entry map[st
 		return fmt.Errorf("Keine aktive Version vorhanden")
 	}
 
+	// id-Feld manuell setzen
+	entry["id"] = entryId
 	// 2. Neue Version speichern
 	f, err := os.Create(entryPath)
 	if err != nil {
