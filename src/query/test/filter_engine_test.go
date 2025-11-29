@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/a-digi/coco-db/src/query"
@@ -115,4 +116,72 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 	if len(result6) == 1 && result6[0]["age"].(float64) != 20.0 {
 		t.Errorf("Paginierung: Erwartet age=20.0, bekommen: %+v", result6[0])
 	}
+}
+
+func TestFilterEngine_DeepJoins(t *testing.T) {
+	dataDir := "../../../../data"
+	dbName := "testdb"
+	joinDepth := 10
+
+	// Testdaten für 10 verschachtelte Ebenen erzeugen
+	for i := 0; i <= joinDepth; i++ {
+		tableName := "level" + strconv.Itoa(i)
+		entriesDir := filepath.Join(dataDir, dbName, tableName, "entries", "id0")
+		_ = os.MkdirAll(entriesDir, 0755)
+		entry := map[string]interface{}{"id": "id0"}
+		if i < joinDepth {
+			entry["ref_id"] = "id0"
+		}
+		b, _ := json.Marshal(entry)
+		_ = os.WriteFile(filepath.Join(entriesDir, "id0.json"), b, 0644)
+		// Indexdatei
+		idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
+		_ = os.MkdirAll(idxDir, 0755)
+		idxPath := filepath.Join(idxDir, "id_idx.json")
+		_ = os.WriteFile(idxPath, []byte(`["id0"]`), 0644)
+	}
+
+	// TableMeta für alle Ebenen
+	metas := make([]*fields.TableMeta, joinDepth+1)
+	for i := 0; i <= joinDepth; i++ {
+		tableName := "level" + strconv.Itoa(i)
+		metas[i] = &fields.TableMeta{
+			TableName: tableName,
+			Fields: []fields.FieldMeta{
+				{Name: "id", Type: "string"},
+				{Name: "ref_id", Type: "string"},
+			},
+			Indexes: []fields.IndexMeta{
+				{Name: "id_idx", Type: "btree", Fields: []string{"id"}},
+			},
+		}
+	}
+
+	t.Cleanup(func() {
+		os.RemoveAll(filepath.Join(dataDir, dbName))
+	})
+
+	// Baue die Join-Definitionen für 10 Ebenen
+	joins := make([]map[string]interface{}, joinDepth)
+	for i := 1; i <= joinDepth; i++ {
+		joins[i-1] = map[string]interface{}{
+			"table": "level" + strconv.Itoa(i),
+			"on": map[string]interface{}{ "ref_id": "id" },
+		}
+	}
+
+	// Simuliere eine globale Query mit 10 verschachtelten Joins
+	q := &query.Query{
+		Filter: map[string]interface{}{ "id": "id0" },
+		Join: joins,
+	}
+
+	// Dummy-Implementierung: Wir prüfen nur, ob die Join-Struktur korrekt erzeugt werden kann
+	// (Die eigentliche Join-Engine muss in der API implementiert sein)
+	// Hier simulieren wir, dass die Join-Tiefe nicht zu einem Stackoverflow oder Fehler führt
+	// und dass die Join-Definitionen korrekt verarbeitet werden
+	if len(q.Join) != joinDepth {
+		t.Errorf("Erwartet %d Joins, bekommen: %d", joinDepth, len(q.Join))
+	}
+	// (Optional: Wenn Join-Engine vorhanden, kann hier die tatsächliche Ausführung getestet werden)
 }

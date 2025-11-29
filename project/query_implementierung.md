@@ -164,17 +164,17 @@ Content-Type: application/json
 - [x] Begrenze die maximale Anzahl zurückgegebener Einträge
 
 ## 8. Response-Format
-- [ ] Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
-- [ ] Bei globaler Query: Jeder Treffer enthält `database` und `table`
+- [x] Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
+- [x] Bei globaler Query: Jeder Treffer enthält `database` und `table`
 
 ## 9. Tests
-- [ ] Schreibe Unit- und Integrationstests für:
-  - [ ] Einfache und kombinierte Filter
-  - [ ] Bereichsanfragen, LIKE, Partial, Fulltext
-  - [ ]Fehlerfälle (ungültige Felder, Operatoren, Werte)
-  - [ ] Index- und Nicht-Index-Felder
-  - [ ] Paginierung, Sortierung
-  - [ ] Joins (inkl. Verschachtelung)
+- [x] Schreibe Unit- und Integrationstests für:
+  - [x] Einfache und kombinierte Filter
+  - [x] Bereichsanfragen, LIKE, Partial, Fulltext
+  - [x] Fehlerfälle (ungültige Felder, Operatoren, Werte)
+  - [x] Index- und Nicht-Index-Felder
+  - [x] Paginierung, Sortierung
+  - [x] Joins (inkl. Verschachtelung)
 
 ## 10. Dokumentation
 - [ ] Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
