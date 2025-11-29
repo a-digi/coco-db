@@ -2,7 +2,7 @@
 
 BINARY=coco-db
 
-.PHONY: build run run-dev clean test start stop check-port
+.PHONY: build run run-dev clean test start stop check-port faker-test
 
 build:
 	go build -o $(BINARY) main.go
@@ -47,3 +47,6 @@ stop-dev:
 	else \
 		echo "Keine coco-db.pid gefunden. Kein laufender dev-Server."; \
 	fi
+
+faker-test:
+	go run ./scripts/faker.go --table testdb/users --amount 100
