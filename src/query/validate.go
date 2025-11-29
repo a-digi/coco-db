@@ -11,11 +11,11 @@ type ValidationError struct {
 	Message string
 }
 
-// ValidateQueryRequest prüft die QueryRequest-Struktur und die Filter gegen das TableMeta-Schema
-func ValidateQueryRequest(qr *QueryRequest, meta *fields.TableMeta) []ValidationError {
+// ValidateQuery prüft die Query-Struktur und die Filter gegen das TableMeta-Schema
+func ValidateQuery(qr *Query, meta *fields.TableMeta) []ValidationError {
 	errors := []ValidationError{}
 	if qr == nil {
-		errors = append(errors, ValidationError{"_query", "ERR_QUERY_NIL", "QueryRequest is nil"})
+		errors = append(errors, ValidationError{"_query", "ERR_QUERY_NIL", "Query is nil"})
 		return errors
 	}
 	if qr.Filter == nil {
