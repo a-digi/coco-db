@@ -67,9 +67,9 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
     - [x] Konsistenzprüfung zwischen Index und Daten
 
 - [ ] **5. Indexabfragen**
-    - [ ] API/Methoden für schnelle Suche nach Einträgen über Index (z.B. GetByField, RangeQuery)
-    - [ ] Unterstützung für Primär- und Sekundärindizes
-    - [ ] Unterstützung für unique/sparse-Index
+    - [x] API/Methoden für schnelle Suche nach Einträgen über Index (z.B. GetByField, RangeQuery)
+    - [x] Unterstützung für Primär- und Sekundärindizes
+    - [x] Unterstützung für unique/sparse-Index
 
 - [ ] **6. Fehlerbehandlung und Tests**
     - [ ] Fehlerfälle (z.B. Indexverletzung, Inkonsistenz) behandeln
