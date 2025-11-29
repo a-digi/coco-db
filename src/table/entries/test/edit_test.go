@@ -124,32 +124,3 @@ func TestEditEntry_InvalidField(t *testing.T) {
 		t.Errorf("Ungültiges Feld nicht korrekt erkannt: %v", err)
 	}
 }
-
-func TestEditEntry_FuncVariant(t *testing.T) {
-	testDir := setupTestDir(t)
-	defer teardownTestDir(testDir)
-	dbName := "testdb"
-	tableName := "users"
-	entryId := "test-entry-3"
-	origEntry := map[string]interface{}{"name": "Lisa"}
-	createTestEntry(t, testDir, dbName, tableName, entryId, origEntry)
-
-	newEntry := map[string]interface{}{"name": "Lisa Müller"}
-	resp := entries.EditEntry(dbName, tableName, entryId, newEntry, testDir, &testLogger{})
-	if resp == nil || !resp.Success {
-		t.Fatalf("EditEntry (Funktion) fehlgeschlagen: %+v", resp)
-	}
-	// Prüfen, ob die Datei überschrieben wurde
-	entryPath := filepath.Join(testDir, dbName, tableName, "entries", entryId, entryId+".json")
-	content, err := os.ReadFile(entryPath)
-	if err != nil {
-		t.Fatalf("Eintrag nicht lesbar: %v", err)
-	}
-	var got map[string]interface{}
-	if err := json.Unmarshal(content, &got); err != nil {
-		t.Fatalf("Eintrag nicht parsebar: %v", err)
-	}
-	if got["name"] != "Lisa Müller" {
-		t.Errorf("Eintrag nicht korrekt aktualisiert: %+v", got)
-	}
-}

@@ -12,6 +12,7 @@ import (
 	paramrouter "github.com/a-digi/coco-db/src/server/router"
 	"encoding/json"
 	entries "github.com/a-digi/coco-db/src/table/entries"
+	"time"
 )
 
 // apiHandler ist ein Wrapper, der Handler mit APIResponse-Signatur in http.HandlerFunc umwandelt
@@ -212,7 +213,23 @@ func SetupRouter() http.Handler {
 			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
-		resp := entries.EditEntry(dbname, tablename, entryid, entry, "./data", &logger.NoopLogger{})
+		editor := &entries.EntryEditor{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		err := editor.EditEntry(dbname, tablename, entryid, entry)
+		var resp *response.APIResponse
+		if err != nil {
+			if err.Error() == "Eintrag nicht gefunden" {
+				resp = response.WriteErrorInternal(404, "ERR_ENTRY_NOT_FOUND", err.Error(), "")
+			} else if err.Error() == "Keine aktive Version vorhanden" {
+				resp = response.WriteErrorInternal(404, "ERR_NO_ACTIVE_VERSION", err.Error(), "")
+			} else {
+				resp = response.WriteErrorInternal(400, "ERR_UPDATE_ENTRY", err.Error(), "")
+			}
+		} else {
+			resp = response.WriteSuccess(map[string]interface{}{
+				"entryId": entryid,
+				"updated_at": time.Now().UTC().Format(time.RFC3339),
+			}, "")
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)
 		_ = json.NewEncoder(w).Encode(resp)
