@@ -12,6 +12,7 @@ import (
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 // TableCreator kapselt die Abhängigkeiten für das Anlegen von Tabellen
@@ -20,42 +21,6 @@ import (
 type TableCreator struct {
 	DataDir string
 	Logger  logger.Logger
-}
-
-// FieldMeta beschreibt ein Feld in meta.json gemäß PROJECT_REQUIREMENT.md
-// Unterstützt alle geforderten Typen und Constraints
-type FieldMeta struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`
-	Required    bool          `json:"required,omitempty"`
-	Default     interface{}   `json:"default,omitempty"`
-	MinLength   *int          `json:"minLength,omitempty"`
-	MaxLength   *int          `json:"maxLength,omitempty"`
-	Min         *float64      `json:"min,omitempty"`
-	Max         *float64      `json:"max,omitempty"`
-	Nullable    *bool         `json:"nullable,omitempty"`
-	Pattern     string        `json:"pattern,omitempty"`
-	Enum        []interface{} `json:"enum,omitempty"`
-	Description string        `json:"description,omitempty"`
-}
-
-// IndexMeta beschreibt einen Index in meta.json
-type IndexMeta struct {
-	Name   string   `json:"name"`
-	Type   string   `json:"type"` // "primary" oder "secondary"
-	Fields []string `json:"fields"`
-	Unique bool     `json:"unique,omitempty"`
-	Sparse bool     `json:"sparse,omitempty"`
-}
-
-// TableMeta entspricht exakt dem meta.json-Schema laut PROJECT_REQUIREMENT.md
-type TableMeta struct {
-	TableName            string                 `json:"tableName"`
-	SchemaVersion        int                    `json:"schemaVersion"`
-	Fields               []FieldMeta            `json:"fields"`
-	Indexes              []IndexMeta            `json:"indexes,omitempty"`
-	Options              map[string]interface{} `json:"options,omitempty"`
-	AllowAdditionalFields *bool                 `json:"allowAdditionalFields,omitempty"`
 }
 
 // --- Hilfsfunktionen für Validierung (aus edit.go) ---
@@ -72,7 +37,7 @@ func validateTableName(name string) error {
 	return nil
 }
 
-func validateFields(fields []FieldMeta) error {
+func validateFields(fields []fields.FieldMeta) error {
 	if len(fields) == 0 {
 		return fmt.Errorf("Mindestens ein Feld muss definiert sein")
 	}
@@ -101,7 +66,7 @@ func validateTableNameWithCode(name string) (string, error) {
 	return "", nil
 }
 
-func validateFieldsWithCode(fields []FieldMeta) (string, error) {
+func validateFieldsWithCode(fields []fields.FieldMeta) (string, error) {
 	if len(fields) == 0 {
 		return "ERR_FIELDS_MISSING", fmt.Errorf("Mindestens ein Feld muss definiert sein")
 	}
@@ -119,7 +84,7 @@ func validateFieldsWithCode(fields []FieldMeta) (string, error) {
 }
 
 // HandleCreateTable verarbeitet das Anlegen einer neuen Tabelle (POST /api/databases/{dbname}/tables)
-func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *response.APIResponse {
+func (tc *TableCreator) HandleCreateTable(dbname string, meta fields.TableMeta) *response.APIResponse {
 	start := time.Now()
 	if dbname == "" {
 		execTime := time.Since(start).String()
@@ -185,7 +150,7 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 	}
 
 	// Indexdefinitionen validieren
-	if indexErrors := ValidateIndexes(&meta); len(indexErrors) > 0 {
+	if indexErrors := fields.ValidateIndexes(&meta); len(indexErrors) > 0 {
 		execTime := time.Since(start).String()
 		errMsg := "Indexdefinitionen ungültig: " + strings.Join(indexErrors, "; ")
 		tc.Logger.Error("[TABLE_CREATE] " + errMsg)
@@ -194,7 +159,7 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta TableMeta) *respon
 
 	// tables.json der Datenbank aktualisieren
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	var tablesMeta []TableMeta
+	var tablesMeta []fields.TableMeta
 	if _, err := os.Stat(tablesJsonPath); err == nil {
 		content, err := os.ReadFile(tablesJsonPath)
 		if err == nil {

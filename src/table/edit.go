@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/table/fields"
 	"time"
 )
 
@@ -18,7 +19,7 @@ type TableUpdate struct {
 }
 
 // HandleEditTable verarbeitet das Bearbeiten der Metadaten einer Tabelle (PUT /api/databases/{dbname}/tables/{tname})
-func (tu *TableUpdate) HandleEditTable(dbname, tableName string, meta TableMeta) *response.APIResponse {
+func (tu *TableUpdate) HandleEditTable(dbname, tableName string, meta fields.TableMeta) *response.APIResponse {
 	start := time.Now()
 	if err := validateTableName(tableName); err != nil {
 		execTime := time.Since(start).String()
@@ -54,7 +55,7 @@ func (tu *TableUpdate) HandleEditTable(dbname, tableName string, meta TableMeta)
 
 	// tables.json der Datenbank aktualisieren
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	var tablesMeta []TableMeta
+	var tablesMeta []fields.TableMeta
 	if _, err := os.Stat(tablesJsonPath); err == nil {
 		content, err := os.ReadFile(tablesJsonPath)
 		if err == nil {

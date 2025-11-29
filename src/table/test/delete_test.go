@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	tbl "github.com/a-digi/coco-db/src/table"
 	"github.com/a-digi/coco-db/src/logger"
-	"github.com/a-digi/coco-db/src/table"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 func setupDeleteTestDir(t *testing.T) string {
@@ -31,7 +32,7 @@ func TestHandleDeleteTable_Success(t *testing.T) {
 	tableDir := filepath.Join(dbDir, tableName)
 	os.MkdirAll(tableDir, 0755)
 	// Lege tables.json mit der Tabelle an
-	tables := []table.TableMeta{{TableName: tableName, Fields: []table.FieldMeta{{Name: "id", Type: "string"}}}}
+	tables := []fields.TableMeta{{TableName: tableName, Fields: []fields.FieldMeta{{Name: "id", Type: "string"}}}}
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
 	f, err := os.Create(tablesJsonPath)
 	if err != nil {
@@ -40,7 +41,7 @@ func TestHandleDeleteTable_Success(t *testing.T) {
 	_ = json.NewEncoder(f).Encode(tables)
 	f.Close()
 
-	td := &table.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	td := &tbl.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := td.HandleDeleteTable(dbName, tableName)
 	if resp == nil || !resp.Success || resp.HttpCode != 200 {
 		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
@@ -54,7 +55,7 @@ func TestHandleDeleteTable_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tables.json nicht lesbar: %v", err)
 	}
-	var tablesMeta []table.TableMeta
+	var tablesMeta []fields.TableMeta
 	if err := json.Unmarshal(content, &tablesMeta); err != nil {
 		t.Fatalf("tables.json nicht parsebar: %v", err)
 	}
@@ -68,7 +69,7 @@ func TestHandleDeleteTable_Success(t *testing.T) {
 func TestHandleDeleteTable_TableNotFound(t *testing.T) {
 	testDir := setupDeleteTestDir(t)
 	defer teardownDeleteTestDir(testDir)
-	td := &table.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	td := &tbl.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := td.HandleDeleteTable("testdb", "notfound")
 	if resp == nil || resp.Success || resp.Error == nil {
 		t.Errorf("Nicht vorhandene Tabelle nicht korrekt erkannt: %+v", resp)
@@ -89,7 +90,7 @@ func TestHandleDeleteTable_TableNotFound(t *testing.T) {
 func TestHandleDeleteTable_MissingParams(t *testing.T) {
 	testDir := setupDeleteTestDir(t)
 	defer teardownDeleteTestDir(testDir)
-	td := &table.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	td := &tbl.TableDelete{DataDir: testDir, Logger: &logger.NoopLogger{}}
 	resp := td.HandleDeleteTable("", "")
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_PARAM_MISSING" {
 		t.Errorf("Fehlende Parameter nicht korrekt erkannt: %+v", resp)

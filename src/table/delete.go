@@ -10,6 +10,7 @@ import (
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 // TableDelete kapselt die Abhängigkeiten für das Löschen von Tabellen
@@ -29,7 +30,7 @@ func (td *TableDelete) HandleDeleteTable(dbname, tableName string) *response.API
 	}
 	dbDir := filepath.Join(td.DataDir, dbname)
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	var tablesMeta []TableMeta
+	var tablesMeta []fields.TableMeta
 	if _, err := os.Stat(tablesJsonPath); os.IsNotExist(err) {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
@@ -44,7 +45,7 @@ func (td *TableDelete) HandleDeleteTable(dbname, tableName string) *response.API
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_JSON", err.Error(), execTime)
 	}
 	found := false
-	newTables := make([]TableMeta, 0, len(tablesMeta))
+	newTables := make([]fields.TableMeta, 0, len(tablesMeta))
 	for _, meta := range tablesMeta {
 		if strings.EqualFold(meta.TableName, tableName) {
 			found = true

@@ -11,6 +11,7 @@ import (
 	"github.com/a-digi/coco-db/src/logger"
 	paramrouter "github.com/a-digi/coco-db/src/server/router"
 	"encoding/json"
+	"github.com/a-digi/coco-db/src/table/fields"
 	entries "github.com/a-digi/coco-db/src/table/entries"
 	"time"
 )
@@ -101,7 +102,7 @@ func SetupRouter() http.Handler {
 			Logger:  &logger.NoopLogger{},
 		}
 		dbname := params["dbname"]
-		var meta table.TableMeta
+		var meta fields.TableMeta
 		if err := json.NewDecoder(r.Body).Decode(&meta); err != nil {
 			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
 			w.Header().Set("Content-Type", "application/json")
@@ -137,7 +138,7 @@ func SetupRouter() http.Handler {
 		}
 		dbname := params["dbname"]
 		tablename := params["tablename"]
-		var meta table.TableMeta
+		var meta fields.TableMeta
 		if err := json.NewDecoder(r.Body).Decode(&meta); err != nil {
 			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
 			w.Header().Set("Content-Type", "application/json")

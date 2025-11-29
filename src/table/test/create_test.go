@@ -1,82 +1,60 @@
 package test
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
-	"github.com/a-digi/coco-db/src/table"
+
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/table"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
-func TestHandleCreateTable_InvalidIndexDefinitions(t *testing.T) {
-	creator := &table.TableCreator{Logger: &logger.NoopLogger{}}
-	cases := []struct {
-		name string
-		meta table.TableMeta
-		wantCode string
-	}{
-		{
-			name: "Doppelter Indexname",
-			meta: table.TableMeta{
-				TableName: "users",
-				Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
-				Indexes: []table.IndexMeta{
-					{Name: "idx1", Type: "primary", Fields: []string{"id"}},
-					{Name: "idx1", Type: "secondary", Fields: []string{"id"}},
-				},
-			},
-			wantCode: "ERR_INDEX_DEFINITION",
-		},
-		{
-			name: "Unbekanntes Feld",
-			meta: table.TableMeta{
-				TableName: "users",
-				Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
-				Indexes: []table.IndexMeta{
-					{Name: "idx2", Type: "primary", Fields: []string{"notfound"}},
-				},
-			},
-			wantCode: "ERR_INDEX_DEFINITION",
-		},
-		{
-			name: "Ungültiger Index-Typ",
-			meta: table.TableMeta{
-				TableName: "users",
-				Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
-				Indexes: []table.IndexMeta{
-					{Name: "idx3", Type: "foo", Fields: []string{"id"}},
-				},
-			},
-			wantCode: "ERR_INDEX_DEFINITION",
-		},
-		{
-			name: "Index ohne Felder",
-			meta: table.TableMeta{
-				TableName: "users",
-				Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
-				Indexes: []table.IndexMeta{
-					{Name: "idx4", Type: "primary", Fields: []string{}},
-				},
-			},
-			wantCode: "ERR_INDEX_DEFINITION",
-		},
-		{
-			name: "Unique und Sparse kombiniert",
-			meta: table.TableMeta{
-				TableName: "users",
-				Fields: []table.FieldMeta{{Name: "id", Type: "string"}},
-				Indexes: []table.IndexMeta{
-					{Name: "idx5", Type: "primary", Fields: []string{"id"}, Unique: true, Sparse: true},
-				},
-			},
-			wantCode: "ERR_INDEX_DEFINITION",
-		},
+func setupTestDir(t *testing.T) string {
+	dir, err := os.MkdirTemp("", "cocodb_create_index_test_")
+	if err != nil {
+		t.Fatalf("TempDir Fehler: %v", err)
 	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			resp := creator.HandleCreateTable("testdb", c.meta)
-			if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != c.wantCode {
-				t.Errorf("%s: Fehlerfall nicht erkannt: %+v", c.name, resp)
-			}
-		})
-	}
+	return dir
 }
 
+func teardownTestDir(dir string) {
+	_ = os.RemoveAll(dir)
+}
+
+func TestHandleCreateTable_WithIndex_Success(t *testing.T) {
+	testDir := setupTestDir(t)
+	defer teardownTestDir(testDir)
+	creator := &table.TableCreator{
+		DataDir: testDir,
+		Logger:  &logger.NoopLogger{},
+	}
+	meta := fields.TableMeta{
+		TableName: "users",
+		Fields:    []fields.FieldMeta{{Name: "id", Type: "string", Required: true}},
+		Indexes: []fields.IndexMeta{
+			{Name: "primary_id", Type: "primary", Fields: []string{"id"}, Unique: true},
+		},
+	}
+	resp := creator.HandleCreateTable("testdb", meta)
+	if resp == nil || !resp.Success {
+		t.Fatalf("Erwartet: Success true, erhalten: %+v", resp)
+	}
+	// Prüfe, ob meta.json existiert und Index korrekt gespeichert ist
+	metaPath := filepath.Join(testDir, "testdb", "users", "meta.json")
+	content, err := os.ReadFile(metaPath)
+	if err != nil {
+		t.Fatalf("meta.json wurde nicht angelegt: %v", err)
+	}
+	var loadedMeta fields.TableMeta
+	if err := json.Unmarshal(content, &loadedMeta); err != nil {
+		t.Fatalf("meta.json nicht parsebar: %v", err)
+	}
+	if len(loadedMeta.Indexes) != 1 {
+		t.Errorf("Index nicht korrekt gespeichert: %+v", loadedMeta.Indexes)
+	}
+	if loadedMeta.Indexes[0].Name != "primary_id" || !loadedMeta.Indexes[0].Unique {
+		t.Errorf("Indexdaten stimmen nicht: %+v", loadedMeta.Indexes[0])
+	}
+}

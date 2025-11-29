@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 type ListTablesHandler struct {
@@ -24,7 +25,7 @@ func (lh *ListTablesHandler) HandleListTables(dbname string) *response.APIRespon
 	}
 	dbDir := filepath.Join(lh.DataDir, dbname)
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	var tablesMeta []TableMeta
+	var tablesMeta []fields.TableMeta
 	if _, err := os.Stat(tablesJsonPath); os.IsNotExist(err) {
 		// Lege leeres Array an, falls Datei nicht existiert
 		_ = os.WriteFile(tablesJsonPath, []byte("[]"), 0644)

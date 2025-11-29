@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/table"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 func setupEditTestDir(t *testing.T) string {
@@ -31,9 +32,9 @@ func TestHandleEditTable_Success(t *testing.T) {
 	tableDir := filepath.Join(dbDir, tableName)
 	os.MkdirAll(tableDir, 0755)
 	// Lege initiale meta.json an
-	initMeta := table.TableMeta{
+	initMeta := fields.TableMeta{
 		TableName: tableName,
-		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+		Fields:    []fields.FieldMeta{{Name: "id", Type: "string"}},
 	}
 	metaPath := filepath.Join(tableDir, "meta.json")
 	f, err := os.Create(metaPath)
@@ -44,9 +45,9 @@ func TestHandleEditTable_Success(t *testing.T) {
 	f.Close()
 
 	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	newMeta := table.TableMeta{
+	newMeta := fields.TableMeta{
 		TableName: tableName,
-		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}, {Name: "email", Type: "string"}},
+		Fields:    []fields.FieldMeta{{Name: "id", Type: "string"}, {Name: "email", Type: "string"}},
 	}
 	resp := tu.HandleEditTable(dbName, tableName, newMeta)
 	if resp == nil || !resp.Success || resp.HttpCode != 200 {
@@ -57,7 +58,7 @@ func TestHandleEditTable_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("meta.json nicht lesbar: %v", err)
 	}
-	var gotMeta table.TableMeta
+	var gotMeta fields.TableMeta
 	if err := json.Unmarshal(content, &gotMeta); err != nil {
 		t.Fatalf("meta.json nicht parsebar: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestHandleEditTable_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tables.json nicht lesbar: %v", err)
 	}
-	var tablesMeta []table.TableMeta
+	var tablesMeta []fields.TableMeta
 	if err := json.Unmarshal(tablesContent, &tablesMeta); err != nil {
 		t.Fatalf("tables.json nicht parsebar: %v", err)
 	}
@@ -89,9 +90,9 @@ func TestHandleEditTable_TableNotFound(t *testing.T) {
 	testDir := setupEditTestDir(t)
 	defer teardownEditTestDir(testDir)
 	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	meta := table.TableMeta{
+	meta := fields.TableMeta{
 		TableName: "users",
-		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+		Fields:    []fields.FieldMeta{{Name: "id", Type: "string"}},
 	}
 	resp := tu.HandleEditTable("testdb", "users", meta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_TABLE_NOT_FOUND" {
@@ -107,9 +108,9 @@ func TestHandleEditTable_InvalidFields(t *testing.T) {
 	dbDir := filepath.Join(testDir, dbName)
 	tableDir := filepath.Join(dbDir, tableName)
 	os.MkdirAll(tableDir, 0755)
-	initMeta := table.TableMeta{
+	initMeta := fields.TableMeta{
 		TableName: tableName,
-		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+		Fields:    []fields.FieldMeta{{Name: "id", Type: "string"}},
 	}
 	metaPath := filepath.Join(tableDir, "meta.json")
 	f, err := os.Create(metaPath)
@@ -120,13 +121,12 @@ func TestHandleEditTable_InvalidFields(t *testing.T) {
 	f.Close()
 
 	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	invalidMeta := table.TableMeta{
+	invalidMeta := fields.TableMeta{
 		TableName: tableName,
-		Fields:    []table.FieldMeta{}, // keine Felder
+		Fields:    []fields.FieldMeta{}, // keine Felder
 	}
 	resp := tu.HandleEditTable(dbName, tableName, invalidMeta)
 	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_FIELD_INVALID" {
 		t.Errorf("Ungültige Felder nicht korrekt erkannt: %+v", resp)
 	}
 }
-

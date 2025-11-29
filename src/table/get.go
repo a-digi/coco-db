@@ -9,6 +9,7 @@ import (
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/table/fields"
 )
 
 // TableListMeta kapselt die Abhängigkeiten für das Listen von Tabellen-Metadaten
@@ -28,7 +29,7 @@ func (tlm *TableListMeta) HandleGetTable(dbname, tableName string) *response.API
 	}
 	dbDir := filepath.Join(tlm.DataDir, dbname)
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	var tablesMeta []TableMeta
+	var tablesMeta []fields.TableMeta
 	if _, err := os.Stat(tablesJsonPath); os.IsNotExist(err) {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(404, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
