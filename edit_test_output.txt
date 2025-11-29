@@ -1,0 +1,12 @@
+=== RUN   TestEditEntry_Success
+    edit_test.go:95: Versionierung nicht korrekt: [{EntryID:test-entry-1 CreatedAt:2025-11-29T16:44:36Z VersionedAt:2025-11-29T16:44:36Z VersionNumber:1} {EntryID:test-entry-1 CreatedAt:2025-11-29T16:44:36Z VersionedAt: VersionNumber:3}]
+--- FAIL: TestEditEntry_Success (0.00s)
+=== RUN   TestEditEntry_NotFound
+--- PASS: TestEditEntry_NotFound (0.00s)
+=== RUN   TestEditEntry_InvalidField
+--- PASS: TestEditEntry_InvalidField (0.00s)
+=== RUN   TestEditEntry_FuncVariant
+--- PASS: TestEditEntry_FuncVariant (0.00s)
+FAIL
+FAIL	command-line-arguments	0.184s
+FAIL
