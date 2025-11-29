@@ -121,7 +121,7 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 	return &response.APIResponse{
 		HttpCode:      201,
 		Success:       true,
-		Data:          entry,
+		Data:          map[string]interface{}{ "entryId": entryId },
 		ExecutionTime: time.Since(start).String(),
 	}
 }
