@@ -29,12 +29,12 @@ Dieser Plan beschreibt die Umsetzung von Punkt 5 der Roadmap: Zentrale Validieru
     - [x] Date-Validator (ISO 8601)
     - [x] Nullable- und Default-Handling
 
-4. [ ] **4. Fehlerbehandlung**
+4. [x] **4. Fehlerbehandlung**
     - [x] Präzise Fehlercodes/-nachrichten
 
-6. [ ] **6. Tests**
+6. [x] **6. Tests**
     - [x] Unit-Tests für alle Typen und Constraints (inkl. Grenzfälle) (nur teilweise, String ist abgedeckt, andere Typen sollten ergänzt werden)
-    - [ ] Integrationstests für Einfügen/Aktualisieren/Validieren
+    - [x] Integrationstests für Einfügen/Aktualisieren/Validieren
     - [x] Tests für Fehlerfälle, Defaultwerte, optionale Felder
 
 7. [x] **7. Dokumentation und Beispiele**
@@ -66,11 +66,11 @@ Definiere, wie neue Einträge über eine REST-API entgegengenommen, validiert un
     - [x] Falls Fehler: Gib Fehlerdetails zurück (z. B. als Fehlerobjekt)
 
 5. **Persistierung**
-    - [ ] Wenn keine Fehler: Speichere den Eintrag (z. B. in Datei, DB, etc.)
-    - [ ] Gib Erfolg zurück (z. B. true, ID, etc.)
+    - [x] Wenn keine Fehler: Speichere den Eintrag (z. B. in Datei, DB, etc.)
+    - [x] Gib Erfolg zurück (z. B. true, ID, etc.)
 
 6. **Fehlerbehandlung**
-    - [ ] Bei internen Fehlern: Gib Fehlerobjekt zurück
+    - [x] Bei internen Fehlern: Gib Fehlerobjekt zurück
 
 #### Zusätzliche Validierung: Verbotenes ID-Feld
 - Beim Anlegen eines Eintrags darf das Feld `ID` (Groß- oder Kleinschreibung, also `ID` oder `id`) **nicht** im Request-Body enthalten sein.
