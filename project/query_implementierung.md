@@ -78,7 +78,7 @@ Content-Type: application/json
 ## 2. Request-Parsing & Validierung
 
 ### Parsing
-- [ ] Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (z.B. Go-Struct oder Map).
+- [x] Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (Go-Struct QueryRequest in src/query/query.go).
 - [ ] Beispielstruktur:
   ```go
   type QueryRequest struct {
@@ -89,6 +89,8 @@ Content-Type: application/json
     Join   []JoinDef              `json:"join"` // optional
   }
   ```
+- [x] Funktion ParseQueryRequest implementiert (liest und prüft JSON-Body, gibt QueryRequest zurück).
+- [x] Funktion ValidateQueryRequest implementiert (prüft Basisregeln wie Filter vorhanden, Limit/Offset >= 0).
 
 ### Validierung
 - Prüfe, ob alle im Filter verwendeten Felder in meta.json der Tabelle existieren.
