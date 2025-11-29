@@ -40,9 +40,6 @@ Dieser Plan beschreibt die Umsetzung von Punkt 5 der Roadmap: Zentrale Validieru
 7. [x] **7. Dokumentation und Beispiele**
     - [x] Dokumentation der Validierungslogik und Beispiele für meta.json
 
-8. [ ] **8. (Optional) Schema-Migration und Versionierung**
-    - [ ] Unterstützung für schemaVersion und Migration bestehender Einträge
-
 ---
 
 ## Hinweise
