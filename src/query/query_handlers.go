@@ -6,6 +6,8 @@ import (
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"github.com/a-digi/coco-db/src/logger"
+	"os"
+	"path/filepath"
 )
 
 // QueryHandler kapselt DataDir und Logger für Query-Endpunkte
@@ -46,17 +48,26 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_QUERY", err.Error(), execTime)
 	}
-	// Dummy: Nur users-Tabelle, TODO: alle Tabellen iterieren
-	meta, err := fields.LoadTableMeta(h.DataDir, dbName, "users")
+	// Alle Tabellen der Datenbank iterieren
+	tableDir := filepath.Join(h.DataDir, dbName)
+	dirs, err := os.ReadDir(tableDir)
 	if err != nil {
 		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), execTime)
+		return response.WriteErrorInternal(http.StatusNotFound, "ERR_DB_NOT_FOUND", err.Error(), execTime)
 	}
-	entries, err := FilterEngine(h.DataDir, dbName, "users", queryObj, meta)
-	if err != nil {
-		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), execTime)
+	allResults := []interface{}{}
+	for _, dir := range dirs {
+		if !dir.IsDir() { continue }
+		tableName := dir.Name()
+		meta, err := fields.LoadTableMeta(h.DataDir, dbName, tableName)
+		if err != nil { continue }
+		entries, err := FilterEngine(h.DataDir, dbName, tableName, queryObj, meta)
+		if err != nil { continue }
+		allResults = append(allResults, map[string]interface{}{
+			"table": tableName,
+			"entries": entries,
+		})
 	}
 	execTime := time.Since(start).String()
-	return response.WriteSuccess(entries, execTime)
+	return response.WriteSuccess(allResults, execTime)
 }

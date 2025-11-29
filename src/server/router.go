@@ -274,12 +274,9 @@ func SetupRouter() http.Handler {
 		w.WriteHeader(resp.HttpCode)
 		_ = json.NewEncoder(w).Encode(resp)
 	})
-	// Query-Endpunkt: POST /api/query
-	pr.HandleFunc("POST", "/api/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		dbName := r.URL.Query().Get("dbname")
-		if dbName == "" {
-			dbName = "testdb" // Default für Demo, TODO: dynamisch
-		}
+	// Query-Endpunkt: POST /api/{dbname}/query
+	pr.HandleFunc("POST", "/api/{dbname}/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		dbName := params["dbname"]
 		resp := queryHandler.QueryHandler(dbName, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)

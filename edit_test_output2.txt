@@ -1,5 +1,0 @@
-# github.com/a-digi/coco-db/src/table/entries
-src/table/entries/edit.go:39:13: assignment mismatch: 1 variable but versioningObj.VersionActiveEntry returns 2 values
-src/table/entries/edit.go:102:13: assignment mismatch: 1 variable but versioningObj.VersionActiveEntry returns 2 values
-FAIL	command-line-arguments [build failed]
-FAIL

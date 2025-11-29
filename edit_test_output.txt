@@ -1,5 +1,0 @@
-# github.com/a-digi/coco-db/src/table/entries
-src/table/entries/edit.go:10:2: "github.com/a-digi/coco-db/src/response" imported and not used
-src/table/entries/edit.go:11:2: "time" imported and not used
-FAIL	github.com/a-digi/coco-db/src/table/entries/test [build failed]
-FAIL

@@ -60,12 +60,12 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables/users/query \
 
 ### Endpunkt
 ```
-POST /api/query
+POST /api/{dbname}/query
 ```
 
 ### Beispiel-Request
 ```bash
-curl -X POST http://localhost:2022/api/query \
+curl -X POST http://localhost:2022/api/testdb/query \
   -H "Content-Type: application/json" \
   -d '{
     "filter": { "email": { "like": "max" } },
@@ -147,4 +147,3 @@ curl -X POST http://localhost:2022/api/query \
 ## 7. Weitere Hinweise
 - Die API ist für POST-Requests mit JSON-Body ausgelegt.
 - Für produktive Nutzung: Siehe Hinweise zu Joins und globaler Query in der Hauptdokumentation.
-
