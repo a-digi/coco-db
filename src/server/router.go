@@ -261,6 +261,24 @@ func SetupRouter() http.Handler {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
+	// Query-Endpunkt: POST /api/databases/{dbname}/tables/{tablename}/query
+	pr.HandleFunc("POST", "/api/databases/{dbname}/tables/{tablename}/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		// TODO: Tabellen-Query implementieren
+		resp := response.WriteErrorInternal(http.StatusNotImplemented, "ERR_NOT_IMPLEMENTED", "Tabellen-Query ist noch nicht implementiert", "")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	// Query-Endpunkt: POST /api/query
+	pr.HandleFunc("POST", "/api/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		// TODO: Globale Query implementieren
+		resp := response.WriteErrorInternal(http.StatusNotImplemented, "ERR_NOT_IMPLEMENTED", "Globale Query ist noch nicht implementiert", "")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
 	// Kombiniere Health-Mux und ParamRouter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {

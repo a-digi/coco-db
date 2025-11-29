@@ -4,9 +4,9 @@
 
 ### Endpunkte
 - **Tabellen-Query:**
-  - [ ] `POST /api/databases/{dbname}/tables/{tablename}/query`
+  - [x] `POST /api/databases/{dbname}/tables/{tablename}/query`
 - **Globale Query:**
-  - [ ] `POST /api/query`
+  - [x] `POST /api/query`
 
 ### Request-Body (für beide Endpunkte)
 ```json
