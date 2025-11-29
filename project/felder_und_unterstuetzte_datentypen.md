@@ -9,23 +9,23 @@ Dieser Plan beschreibt die Umsetzung von Punkt 5 der Roadmap: Zentrale Validieru
 
 ### Aufgabenübersicht mit Checklisten
 
-1. [ ] **1. Definition der Datenstrukturen**
-    - [ ] Erweiterung/Definition von `FieldMeta` und ggf. `TableMeta` für alle Typen und Constraints
-    - [ ] Dokumentation der unterstützten Typen und Constraints
+1. [x] **1. Definition der Datenstrukturen**
+    - [x] Erweiterung/Definition von `FieldMeta` und ggf. `TableMeta` für alle Typen und Constraints
+    - [x] Dokumentation der unterstützten Typen und Constraints
 
 2. [ ] **2. Zentrale Validierungsfunktion**
     - [ ] Funktion `ValidateEntry(entry map[string]interface{}, meta TableMeta) error`
     - [ ] Prüfung auf Pflichtfelder (`required`)
-    - [ ] Typprüfung (`string`, `int`, `float`, `bool`, `object`, `array`, `date`)
-    - [ ] Prüfung aller Constraints (`minLength`, `maxLength`, `min`, `max`, `pattern`, `enum`, `nullable`, `default`)
+    - [ ] Typprüfung (`string`, `number`, `boolean`, `json`, `date`)
+    - [ ] Prüfung aller Constraints (`minLength`, `maxLength`, `pattern`, `enum`, `nullable`, `default`, `description`)
     - [ ] Prüfung auf zusätzliche Felder (`allowAdditionalFields`)
     - [ ] Fehlercodes/-nachrichten
 
 3. [ ] **3. Einzelne Typ- und Constraint-Validatoren**
     - [ ] String-Validator (inkl. minLength, maxLength, pattern, enum)
-    - [ ] Int-/Float-Validator (inkl. min, max, enum)
-    - [ ] Bool-Validator
-    - [ ] Object-/Array-Validator (rekursiv, falls nötig)
+    - [ ] Number-Validator (inkl. minLength, maxLength, enum)
+    - [ ] Boolean-Validator (inkl. enum)
+    - [ ] JSON-Validator (inkl. maxLength, minLength)
     - [ ] Date-Validator (ISO 8601)
     - [ ] Nullable- und Default-Handling
 
