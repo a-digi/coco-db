@@ -76,7 +76,7 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
     - [x] Unit- und Integrationstests für Indexaufbau, -aktualisierung und -abfrage
 
 - [ ] **7. Dokumentation**
-    - [ ] Dokumentation der Index-Engine, Indexdefinitionen und API
+    - [x] Dokumentation der Index-Engine, Indexdefinitionen und API
 
 ---
 
