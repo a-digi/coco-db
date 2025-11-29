@@ -24,9 +24,9 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [x] Anlegen der Verzeichnisstruktur `/data/{datenbankname}/`
 
 ## 4. Tabellen
-- [ ] Implementierung der Verwaltung von Tabellen innerhalb einer Datenbank (Anlegen, Löschen, Auflisten)
-- [ ] Anlegen der Verzeichnisstruktur `/data/{datenbankname}/{tabellenname}/`
-- [ ] Speichern und Laden der Metadaten-Datei `meta.json`
+- [x] Implementierung der Verwaltung von Tabellen innerhalb einer Datenbank (Anlegen, Löschen, Auflisten)
+- [x] Anlegen der Verzeichnisstruktur `/data/{datenbankname}/{tabellenname}/`
+- [x] Speichern und Laden der Metadaten-Datei `meta.json`
 
 ## 5. Felder und unterstützte Datentypen
 - [ ] Validierung von Einträgen anhand der in `meta.json` definierten Felder und Typen
