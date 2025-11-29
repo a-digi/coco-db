@@ -72,8 +72,8 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
     - [x] Unterstützung für unique/sparse-Index
 
 - [ ] **6. Fehlerbehandlung und Tests**
-    - [ ] Fehlerfälle (z.B. Indexverletzung, Inkonsistenz) behandeln
-    - [ ] Unit- und Integrationstests für Indexaufbau, -aktualisierung und -abfrage
+    - [x] Fehlerfälle (z.B. Indexverletzung, Inkonsistenz) behandeln
+    - [x] Unit- und Integrationstests für Indexaufbau, -aktualisierung und -abfrage
 
 - [ ] **7. Dokumentation**
     - [ ] Dokumentation der Index-Engine, Indexdefinitionen und API
