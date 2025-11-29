@@ -127,7 +127,16 @@ func SetupRouter() http.Handler {
 			_ = json.NewEncoder(w).Encode(resp)
 		}
 	})
-	// Hier können weitere Table-Endpunkte ergänzt werden
+	// Tabellen-Endpunkt: PUT /api/databases/{dbname}/tables/{tablename}
+	pr.HandleFunc("PUT", "/api/databases/{dbname}/tables/{tablename}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		tu := &table.TableUpdate{
+			DataDir: "./data",
+			Logger:  &logger.NoopLogger{},
+		}
+		dbname := params["dbname"]
+		tablename := params["tablename"]
+		tu.HandleEditTable(w, r, dbname, tablename)
+	})
 
 	// Kombiniere Health-Mux und ParamRouter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

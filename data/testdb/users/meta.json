@@ -1,0 +1,33 @@
+{
+  "tableName": "users",
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "active",
+      "type": "bool"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "primary",
+      "type": "primary",
+      "fields": [
+        "id"
+      ],
+      "unique": true
+    }
+  ],
+  "options": {
+    "documentLimit": 1000
+  }
+}

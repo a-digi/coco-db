@@ -65,6 +65,6 @@ curl -X PUT http://localhost:2022/api/databases/testdb/tables/users \
 ## Hinweise
 - Der Datenbankname und Tabellenname werden aus der URL extrahiert.
 - Die neuen Metadaten werden im JSON-Body übergeben und ersetzen die bestehende meta.json der Tabelle.
-- Die Metadaten werden in `{datadir}/{db}/tables.json` aktualisiert.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
 - Die Felder `httpCode` und `executionTime` sind immer enthalten.
+

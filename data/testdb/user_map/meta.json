@@ -1,0 +1,29 @@
+{
+  "tableName": "user_map",
+  "schemaVersion": 1,
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "indexes": [
+    {
+      "name": "primary",
+      "type": "primary",
+      "fields": [
+        "id"
+      ],
+      "unique": true
+    }
+  ],
+  "options": {
+    "documentLimit": 1000
+  }
+}
