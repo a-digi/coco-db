@@ -19,7 +19,16 @@ func ValidateEntry(entry map[string]interface{}, meta types.TableMeta) []types.V
 		fieldsByName[f.Name] = f
 	}
 
-	// 1. Pflichtfelder prüfen
+	// 1. Defaultwerte setzen, falls Feld fehlt oder nil ist
+	for _, f := range meta.Fields {
+		if _, ok := entry[f.Name]; !ok || entry[f.Name] == nil {
+			if f.Default != nil {
+				entry[f.Name] = f.Default
+			}
+		}
+	}
+
+	// 2. Pflichtfelder prüfen
 	for _, f := range meta.Fields {
 		if f.Required {
 			if _, ok := entry[f.Name]; !ok {
@@ -32,7 +41,7 @@ func ValidateEntry(entry map[string]interface{}, meta types.TableMeta) []types.V
 		}
 	}
 
-	// 2. Felder prüfen
+	// 3. Felder prüfen
 	for k, v := range entry {
 		f, ok := fieldsByName[k]
 		if !ok {

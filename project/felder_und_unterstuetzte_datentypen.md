@@ -13,37 +13,32 @@ Dieser Plan beschreibt die Umsetzung von Punkt 5 der Roadmap: Zentrale Validieru
     - [x] Erweiterung/Definition von `FieldMeta` und ggf. `TableMeta` für alle Typen und Constraints
     - [x] Dokumentation der unterstützten Typen und Constraints
 
-2. [ ] **2. Zentrale Validierungsfunktion**
-    - [ ] Funktion `ValidateEntry(entry map[string]interface{}, meta TableMeta) error`
-    - [ ] Prüfung auf Pflichtfelder (`required`)
-    - [ ] Typprüfung (`string`, `integer`, `boolean`, `json`, `date`)
-    - [ ] Prüfung aller Constraints (`minLength`, `maxLength`, `pattern`, `enum`, `nullable`, `default`, `description`)
-    - [ ] Prüfung auf zusätzliche Felder (`allowAdditionalFields`)
-    - [ ] Fehlercodes/-nachrichten
+2. [x] **2. Zentrale Validierungsfunktion**
+    - [x] Funktion `ValidateEntry(entry map[string]interface{}, meta TableMeta) error`
+    - [x] Prüfung auf Pflichtfelder (`required`)
+    - [x] Typprüfung (`string`, `integer`, `boolean`, `json`, `date`)
+    - [x] Prüfung aller Constraints (`minLength`, `maxLength`, `pattern`, `enum`, `nullable`, `default`, `description`)
+    - [x] Prüfung auf zusätzliche Felder (`allowAdditionalFields`)
+    - [x] Fehlercodes/-nachrichten
 
-3. [ ] **3. Einzelne Typ- und Constraint-Validatoren**
-    - [ ] String-Validator (inkl. minLength, maxLength, pattern, enum)
-    - [ ] Integer-Validator (inkl. minLength, maxLength, enum)
-    - [ ] Boolean-Validator (inkl. enum)
-    - [ ] JSON-Validator (inkl. maxLength, minLength)
-    - [ ] Date-Validator (ISO 8601)
-    - [ ] Nullable- und Default-Handling
+3. [x] **3. Einzelne Typ- und Constraint-Validatoren**
+    - [x] String-Validator (inkl. minLength, maxLength, pattern, enum)
+    - [x] Integer-Validator (inkl. minLength, maxLength, enum)
+    - [x] Boolean-Validator (inkl. enum)
+    - [x] JSON-Validator (inkl. maxLength, minLength)
+    - [x] Date-Validator (ISO 8601)
+    - [x] Nullable- und Default-Handling
 
-4. [ ] **4. Fehlerbehandlung und Logging**
-    - [ ] Präzise Fehlercodes/-nachrichten
-    - [ ] Logging von Validierungsfehlern
-
-5. [ ] **5. Integration in Einfüge-/Update-Logik**
-    - [ ] Validierung wird beim Einfügen/Aktualisieren von Dokumenten aufgerufen
-    - [ ] Fehlerhafte Einträge werden abgelehnt
+4. [ ] **4. Fehlerbehandlung**
+    - [x] Präzise Fehlercodes/-nachrichten
 
 6. [ ] **6. Tests**
-    - [ ] Unit-Tests für alle Typen und Constraints (inkl. Grenzfälle)
+    - [x] Unit-Tests für alle Typen und Constraints (inkl. Grenzfälle) (nur teilweise, String ist abgedeckt, andere Typen sollten ergänzt werden)
     - [ ] Integrationstests für Einfügen/Aktualisieren/Validieren
-    - [ ] Tests für Fehlerfälle, Defaultwerte, optionale Felder
+    - [x] Tests für Fehlerfälle, Defaultwerte, optionale Felder
 
-7. [ ] **7. Dokumentation und Beispiele**
-    - [ ] Dokumentation der Validierungslogik und Beispiele für meta.json
+7. [x] **7. Dokumentation und Beispiele**
+    - [x] Dokumentation der Validierungslogik und Beispiele für meta.json
 
 8. [ ] **8. (Optional) Schema-Migration und Versionierung**
     - [ ] Unterstützung für schemaVersion und Migration bestehender Einträge
