@@ -9,7 +9,7 @@ GET /api/databases/{dbname}/tables
 ## Beispiel-Request
 
 ```bash
-curl -X GET http://localhost:2022/api/databases/testdb/tables
+curl http://localhost:2022/api/databases/testdb/tables
 ```
 
 ## Beispiel-Response (Erfolg)
@@ -18,33 +18,28 @@ curl -X GET http://localhost:2022/api/databases/testdb/tables
 {
   "success": true,
   "data": {
-    "tables": [
-      "users",
-      "orders"
-    ]
+    "tables": ["users", "products"]
   },
   "httpCode": 200,
   "executionTime": "..."
 }
 ```
 
-## Beispiel-Response (Fehler: Datenbank nicht gefunden)
+## Beispiel-Response (leere Liste)
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERR_DB_NOT_FOUND",
-    "message": "Not Found: Datenbank nicht gefunden"
+  "success": true,
+  "data": {
+    "tables": []
   },
-  "httpCode": 404,
+  "httpCode": 200,
   "executionTime": "..."
 }
 ```
 
 ## Hinweise
-- Der Datenbankname wird aus der URL extrahiert.
-- Die Antwort enthält ein Array aller Tabellennamen in der Datenbank.
+- Die Tabellennamen werden aus `{datadir}/{db}/tables.json` gelesen.
+- Existiert die Datei nicht, wird sie als leeres Array angelegt.
 - Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
-- Die Felder `httpCode` und `executionTime` sind immer enthalten.
 

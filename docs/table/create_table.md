@@ -1,4 +1,4 @@
-# Tabellen anlegen (Create Table)
+# Tabelle anlegen (Create Table)
 
 ## Endpunkt
 
@@ -46,7 +46,7 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables \
 }
 ```
 
-## Beispiel-Response (Fehler: Tabelle existiert)
+## Beispiel-Response (Fehler: Tabelle existiert bereits)
 
 ```json
 {
@@ -61,7 +61,6 @@ curl -X POST http://localhost:2022/api/databases/testdb/tables \
 ```
 
 ## Hinweise
-- Der Datenbankname wird aus der URL extrahiert.
-- Die vollständige meta.json wird im Erfolgsfall zurückgegeben.
-- Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
+- Die Metadaten der Tabelle werden in `{datadir}/{db}/tables.json` gespeichert.
 - Die Felder `httpCode` und `executionTime` sind immer enthalten.
+- Fehler werden als JSON mit success: false und error-Objekt zurückgegeben.
