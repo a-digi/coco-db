@@ -235,6 +235,31 @@ func SetupRouter() http.Handler {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
+	// Delete-Endpunkt: DELETE /api/databases/{dbname}/tables/{tablename}/entries/{entryid}
+	pr.HandleFunc("DELETE", "/api/databases/{dbname}/tables/{tablename}/entries/{entryid}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		dbname := params["dbname"]
+		tablename := params["tablename"]
+		entryid := params["entryid"]
+		deleter := &entries.EntryDeleter{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		err := deleter.DeleteEntry(dbname, tablename, entryid)
+		var resp *response.APIResponse
+		if err != nil {
+			if err.Error() == "Eintrag nicht gefunden" {
+				resp = response.WriteErrorInternal(404, "ERR_ENTRY_NOT_FOUND", err.Error(), "")
+			} else {
+				resp = response.WriteErrorInternal(400, "ERR_DELETE_ENTRY", err.Error(), "")
+			}
+		} else {
+			resp = response.WriteSuccess(map[string]interface{}{
+				"entryId": entryid,
+				"deleted_at": time.Now().UTC().Format(time.RFC3339),
+			}, "")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
 	// Kombiniere Health-Mux und ParamRouter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
