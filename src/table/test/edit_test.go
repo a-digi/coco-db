@@ -1,4 +1,4 @@
- package test
+package test
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/a-digi/coco-db/src/logger"
@@ -51,13 +50,9 @@ func TestHandleEditTable_Success(t *testing.T) {
 		TableName: tableName,
 		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}, {Name: "email", Type: "string"}},
 	}
-	body, _ := json.Marshal(newMeta)
-	r := httptest.NewRequest("PUT", "/", strings.NewReader(string(body)))
-	w := httptest.NewRecorder()
-	tu.HandleEditTable(w, r, dbName, tableName)
-	resp := w.Result()
-	if resp.StatusCode != 200 {
-		t.Fatalf("Erwartet: Status 200, erhalten: %d", resp.StatusCode)
+	resp := tu.HandleEditTable(dbName, tableName, newMeta)
+	if resp == nil || !resp.Success || resp.HttpCode != 200 {
+		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
 	}
 	// Prüfe, ob meta.json aktualisiert wurde
 	content, err := ioutil.ReadFile(metaPath)
@@ -91,4 +86,3 @@ func TestHandleEditTable_Success(t *testing.T) {
 		t.Errorf("Tabelle nicht korrekt in tables.json aktualisiert")
 	}
 }
-
