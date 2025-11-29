@@ -35,6 +35,7 @@ func (ec *EntryCreator) InsertEntry(dbName, tableName string, entry map[string]i
 		ec.Logger.Error(fmt.Sprintf("Fehler beim Anlegen des entry-Ordners: %v", err))
 		return fmt.Errorf("Fehler beim Anlegen des entry-Ordners: %v", err)
 	}
+
 	entryPath := filepath.Join(entryDir, entryId+".json")
 
 	// 2. Versionierung vorbereiten
