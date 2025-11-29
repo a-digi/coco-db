@@ -74,8 +74,17 @@ Definiere, wie neue Einträge über eine REST-API entgegengenommen, validiert un
 
 #### Zusätzliche Validierung: Verbotenes ID-Feld
 - Beim Anlegen eines Eintrags darf das Feld `ID` (Groß- oder Kleinschreibung, also `ID` oder `id`) **nicht** im Request-Body enthalten sein.
-- Wird das Feld `ID` oder `id` im Eintrag gefunden, wird der Request mit einem Validierungsfehler (z. B. Fehlercode `ERR_FORBIDDEN_ID_FIELD`) abgelehnt.
+- Wird das Feld `ID` oder `id` im Eintrag gefunden, wird der Request mit einem Validierungsfehler (Fehlercode `ERR_FORBIDDEN_ID_FIELD`) abgelehnt.
 - Die ID wird ausschließlich vom System generiert und dem Eintrag zugewiesen.
+- Die Implementierung prüft explizit auf das Vorhandensein von `ID` oder `id` auf Top-Level-Ebene des Eintragsobjekts.
+- Beispiel für eine Fehlerantwort:
+
+```json
+{
+  "error": "ERR_FORBIDDEN_ID_FIELD",
+  "message": "Das Feld 'ID' darf beim Anlegen nicht gesetzt werden. Es wird vom System vergeben."
+}
+```
 
 ### Beispiel: Pseudocode für die Einfügefunktion
 

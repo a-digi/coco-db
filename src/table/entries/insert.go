@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	fields "github.com/a-digi/coco-db/src/table/fields"
+	validate "github.com/a-digi/coco-db/src/table/fields/validate"
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
 )
@@ -81,6 +82,9 @@ func (ec *EntryCreator) InsertEntry(dbName, tableName string, entry map[string]i
 
 // Funktionsbasierte Variante für direkten Aufruf
 func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir string, log logger.Logger) *response.APIResponse {
+	if resp := validate.ValidateNoIDField(entry); resp != nil {
+		return resp
+	}
 	tableDir := filepath.Join(dataDir, dbName, tableName)
 	entriesDir := filepath.Join(tableDir, "entries")
 	if err := os.MkdirAll(entriesDir, 0755); err != nil {
