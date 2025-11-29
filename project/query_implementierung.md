@@ -76,11 +76,10 @@ Content-Type: application/json
 - Die globale Query sucht über alle Datenbanken und Tabellen und kann Joins enthalten.
 
 ## 2. Request-Parsing & Validierung
-- [ ] Erledigt
 
 ### Parsing
-- Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (z.B. Go-Struct oder Map).
-- Beispielstruktur:
+- [ ] Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (z.B. Go-Struct oder Map).
+- [ ] Beispielstruktur:
   ```go
   type QueryRequest struct {
     Filter map[string]interface{} `json:"filter"`
