@@ -118,3 +118,17 @@ func (v *Versioning) AddNewVersion(entryId string, versionNumber int) error {
 	})
 	return v.SaveVersions(versions)
 }
+
+// Entferne MarkDeleted (Soft Delete) und implementiere stattdessen Hard Delete
+// Hard Delete: Lösche alle Dateien und den Ordner des Eintrags inklusive aller Versionen und Metadaten
+func (v *Versioning) HardDelete() error {
+	// Lösche das gesamte Verzeichnis (inkl. version.json, Versionen, JSON-Dateien)
+	return os.RemoveAll(v.Dir)
+}
+
+// VersionEntryWithDelete erweitert VersionEntry um deleted_at
+// (für Soft Delete, falls benötigt)
+type VersionEntryWithDelete struct {
+	VersionEntry
+	DeletedAt string `json:"deleted_at,omitempty"`
+}
