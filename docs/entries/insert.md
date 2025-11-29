@@ -59,7 +59,7 @@ Legt einen neuen Eintrag in der angegebenen Tabelle einer Datenbank an. Der Eint
 
 ```
 curl -X POST \
-  http://localhost:2022/api/databases/testdb/tables/user_map/entries \
+  http://localhost:2022/api/databases/testdb/tables/users/entries \
   -H 'Content-Type: application/json' \
   -d '{"username": "alice", "age": 30}'
 ```
