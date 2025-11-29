@@ -1,0 +1,33 @@
+=== RUN   TestFilterEntries_Basic
+=== RUN   TestFilterEntries_Basic/eq_filter
+=== RUN   TestFilterEntries_Basic/gt_filter
+=== RUN   TestFilterEntries_Basic/and_logic
+=== RUN   TestFilterEntries_Basic/like_filter
+=== RUN   TestFilterEntries_Basic/partial_filter
+2025/11/29 21:59:16 isPartial: MATCH (contains) - a=foo@bar.de, b=foo
+2025/11/29 21:59:16 isPartial: MATCH (contains) - a=bar@foo.de, b=foo
+2025/11/29 21:59:16 isPartial: MATCH (contains) - a=baz@foo.de, b=foo
+    filter_test.go:61: expected 2 results for PARTIAL, got [map[age:20 email:foo@bar.de isActive:true] map[age:17 email:bar@foo.de isActive:false] map[age:30 email:baz@foo.de isActive:true]]
+=== RUN   TestFilterEntries_Basic/fulltext_filter
+--- FAIL: TestFilterEntries_Basic (0.00s)
+    --- PASS: TestFilterEntries_Basic/eq_filter (0.00s)
+    --- PASS: TestFilterEntries_Basic/gt_filter (0.00s)
+    --- PASS: TestFilterEntries_Basic/and_logic (0.00s)
+    --- PASS: TestFilterEntries_Basic/like_filter (0.00s)
+    --- FAIL: TestFilterEntries_Basic/partial_filter (0.00s)
+    --- PASS: TestFilterEntries_Basic/fulltext_filter (0.00s)
+=== RUN   TestValidateQuery_Basics
+=== RUN   TestValidateQuery_Basics/valid_simple_query
+=== RUN   TestValidateQuery_Basics/missing_filter
+=== RUN   TestValidateQuery_Basics/unknown_field
+=== RUN   TestValidateQuery_Basics/type_mismatch
+=== RUN   TestValidateQuery_Basics/invalid_operator
+--- PASS: TestValidateQuery_Basics (0.00s)
+    --- PASS: TestValidateQuery_Basics/valid_simple_query (0.00s)
+    --- PASS: TestValidateQuery_Basics/missing_filter (0.00s)
+    --- PASS: TestValidateQuery_Basics/unknown_field (0.00s)
+    --- PASS: TestValidateQuery_Basics/type_mismatch (0.00s)
+    --- PASS: TestValidateQuery_Basics/invalid_operator (0.00s)
+FAIL
+FAIL	github.com/a-digi/coco-db/src/query/test	0.232s
+FAIL
