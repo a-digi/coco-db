@@ -1,71 +1,162 @@
 # Schritt-für-Schritt-Implementierung: Query-API (ab Roadmap-Punkt 7)
 
 ## 1. API-Design und Endpunkte
-- [ ] Erledigt
-- Definiere POST-Endpunkte:
-  - `/api/databases/{dbname}/tables/{tablename}/query` (Tabellen-Query)
-  - `/api/query` (globale Query)
-- Request-Body: JSON mit `filter`, `limit`, `offset`, `sort`, optional `join`
+
+### Endpunkte
+- **Tabellen-Query:**
+  - [ ] `POST /api/databases/{dbname}/tables/{tablename}/query`
+- **Globale Query:**
+  - [ ] `POST /api/query`
+
+### Request-Body (für beide Endpunkte)
+```json
+{
+  "filter": { ... },
+  "limit": 10,
+  "offset": 0,
+  "sort": ["field1", "-field2"],
+  "join": [ ... ] // optional, nur für globale Query
+}
+```
+- `filter`: Objekt mit Feldnamen und Operatoren
+- `limit`, `offset`: Paginierung
+- `sort`: Sortierreihenfolge, `-` für absteigend
+- `join`: Array von Join-Definitionen (nur globale Query)
+
+### Beispiel-Request (Tabellen-Query)
+```http
+POST /api/databases/testdb/tables/users/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "email": "foo@bar.de",
+    "age": { "gte": 18 }
+  },
+  "limit": 5,
+  "sort": ["-age"]
+}
+```
+
+### Beispiel-Request (Globale Query mit Join)
+```http
+POST /api/query
+Content-Type: application/json
+
+{
+  "filter": { "email": "foo@bar.de" },
+  "join": [
+    {
+      "table": "orders",
+      "on": { "id": "user_id" },
+      "filter": { "status": "open" }
+    }
+  ],
+  "limit": 5
+}
+```
+
+### Response-Format (beide Endpunkte)
+```json
+{
+  "success": true,
+  "data": [ ... ],
+  "httpCode": 200,
+  "meta": {
+    "totalCount": 42,
+    "limit": 5,
+    "offset": 0
+  }
+}
+```
+- Bei globaler Query enthält jedes Ergebnis zusätzlich `database` und `table`.
+
+### Unterschiede
+- Die Tabellen-Query gibt nur Einträge aus einer Tabelle zurück.
+- Die globale Query sucht über alle Datenbanken und Tabellen und kann Joins enthalten.
 
 ## 2. Request-Parsing & Validierung
 - [ ] Erledigt
-- Implementiere das Parsen des JSON-Bodys in eine interne Query-Struktur
-- Validiere:
-  - Existenz und Typ der Felder (gegen meta.json)
-  - Gültigkeit der Operatoren (`eq`, `neq`, `gt`, `lt`, `like`, `fulltext`, `partial`, ...)
-  - Werteformate (z.B. Datum, Zahl, String)
+
+### Parsing
+- Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (z.B. Go-Struct oder Map).
+- Beispielstruktur:
+  ```go
+  type QueryRequest struct {
+    Filter map[string]interface{} `json:"filter"`
+    Limit  int                    `json:"limit"`
+    Offset int                    `json:"offset"`
+    Sort   []string               `json:"sort"`
+    Join   []JoinDef              `json:"join"` // optional
+  }
+  ```
+
+### Validierung
+- Prüfe, ob alle im Filter verwendeten Felder in meta.json der Tabelle existieren.
+- Prüfe, ob die Typen der Filterwerte mit dem Feldtyp in meta.json übereinstimmen (z.B. string, int, bool, date, json).
+- Prüfe, ob alle verwendeten Operatoren (`eq`, `neq`, `gt`, `lt`, `like`, `fulltext`, `partial`, etc.) unterstützt werden.
+- Prüfe Werteformate (z.B. Datumsformat `YYYY-MM-DD`, Zahlen, Strings).
+- Optional: Prüfe, ob limit/offset/sort gültig sind (z.B. limit > 0, sort nur erlaubte Felder).
+
+### Fehlerfälle
+- Ungültiges JSON → Fehlercode 400, "Malformed JSON"
+- Unbekanntes Feld im Filter → Fehlercode 400, "Unknown field: ..."
+- Typfehler im Filterwert → Fehlercode 400, "Type mismatch for field ..."
+- Ungültiger Operator → Fehlercode 400, "Unknown operator: ..."
+- Ungültiges Werteformat (z.B. Datum) → Fehlercode 400, "Invalid value for field ..."
+
+### Beispiel für Fehler-Response
+```json
+{
+  "success": false,
+  "error": "Unknown field: foobar",
+  "httpCode": 400
+}
+```
 
 ## 3. Filter-Engine
-- [ ] Erledigt
-- Für jedes Filterfeld prüfen:
-  - Existiert ein Index? Falls ja, nutze ihn für Vorauswahl
-  - Sonst: Iteriere alle Einträge der Tabelle
-- Wende alle Filterbedingungen (AND-Logik) auf die Einträge an
-- Unterstütze Bereichsfilter, LIKE, Wildcards, Partial, Fulltext
+- [ ] Für jedes Filterfeld prüfen:
+  - [ ] Existiert ein Index? Falls ja, nutze ihn für Vorauswahl
+  - [ ] Sonst: Iteriere alle Einträge der Tabelle
+- [ ] Wende alle Filterbedingungen (AND-Logik) auf die Einträge an
+- [ ] Unterstütze Bereichsfilter, LIKE, Wildcards, Partial, Fulltext
 
 ## 4. LIKE, Wildcards, Partial, Fulltext
-- [ ] Erledigt
-- LIKE: Unterstütze Platzhalter (*, ?)
-- Partial: Teilstring-Matching ohne Wildcards
-- Fulltext: Tokenisierung und Suche nach mehreren Begriffen (optional, vorbereiten)
+- [ ] LIKE: Unterstütze Platzhalter (*, ?)
+- [ ] Partial: Teilstring-Matching ohne Wildcards
+- [ ] Fulltext: Tokenisierung und Suche nach mehreren Begriffen (optional, vorbereiten)
 
 ## 5. Joins (nur globale Query)
-- [ ] Erledigt
-- Implementiere rekursive Joins (maxJoinDepth = 64)
-- Für jeden Join:
-  - Lade die Zieltabelle
-  - Führe Filter und ggf. weitere Joins aus
-  - Verknüpfe die Ergebnisse als verschachtelte Objekte
+- [ ] Implementiere rekursive Joins (maxJoinDepth = 64)
+- [ ] Für jeden Join:
+  - [ ] Lade die Zieltabelle
+  - [ ] Führe Filter und ggf. weitere Joins aus
+  - [ ] Verknüpfe die Ergebnisse als verschachtelte Objekte
 
 ## 6. Paginierung & Sortierung
-- [ ] Erledigt
-- Unterstütze `limit` und `offset` im Request
-- Sortiere die Ergebnisse nach den angegebenen Feldern
+- [ ] Unterstütze `limit` und `offset` im Request
+- [ ] Sortiere die Ergebnisse nach den angegebenen Feldern
 
 ## 7. Fehlerbehandlung
-- [ ] Erledigt
-- Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
-- Begrenze die maximale Anzahl zurückgegebener Einträge
+- [ ] Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
+- [ ] Begrenze die maximale Anzahl zurückgegebener Einträge
 
 ## 8. Response-Format
-- [ ] Erledigt
-- Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
-- Bei globaler Query: Jeder Treffer enthält `database` und `table`
+- [ ] Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
+- [ ] Bei globaler Query: Jeder Treffer enthält `database` und `table`
 
 ## 9. Tests
-- [ ] Erledigt
-- Schreibe Unit- und Integrationstests für:
-  - Einfache und kombinierte Filter
-  - Bereichsanfragen, LIKE, Partial, Fulltext
-  - Fehlerfälle (ungültige Felder, Operatoren, Werte)
-  - Index- und Nicht-Index-Felder
-  - Paginierung, Sortierung
-  - Joins (inkl. Verschachtelung)
+- [ ] Schreibe Unit- und Integrationstests für:
+  - [ ] Einfache und kombinierte Filter
+  - [ ] Bereichsanfragen, LIKE, Partial, Fulltext
+  - [ ]Fehlerfälle (ungültige Felder, Operatoren, Werte)
+  - [ ] Index- und Nicht-Index-Felder
+  - [ ] Paginierung, Sortierung
+  - [ ] Joins (inkl. Verschachtelung)
 
 ## 10. Dokumentation
-- [ ] Erledigt
-- Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
-- Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
+- [ ] Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
+- [ ] Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
 
 ## Beispiele für Query-JSONs
 
