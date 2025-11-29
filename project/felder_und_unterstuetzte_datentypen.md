@@ -16,14 +16,14 @@ Dieser Plan beschreibt die Umsetzung von Punkt 5 der Roadmap: Zentrale Validieru
 2. [ ] **2. Zentrale Validierungsfunktion**
     - [ ] Funktion `ValidateEntry(entry map[string]interface{}, meta TableMeta) error`
     - [ ] Prüfung auf Pflichtfelder (`required`)
-    - [ ] Typprüfung (`string`, `number`, `boolean`, `json`, `date`)
+    - [ ] Typprüfung (`string`, `integer`, `boolean`, `json`, `date`)
     - [ ] Prüfung aller Constraints (`minLength`, `maxLength`, `pattern`, `enum`, `nullable`, `default`, `description`)
     - [ ] Prüfung auf zusätzliche Felder (`allowAdditionalFields`)
     - [ ] Fehlercodes/-nachrichten
 
 3. [ ] **3. Einzelne Typ- und Constraint-Validatoren**
     - [ ] String-Validator (inkl. minLength, maxLength, pattern, enum)
-    - [ ] Number-Validator (inkl. minLength, maxLength, enum)
+    - [ ] Integer-Validator (inkl. minLength, maxLength, enum)
     - [ ] Boolean-Validator (inkl. enum)
     - [ ] JSON-Validator (inkl. maxLength, minLength)
     - [ ] Date-Validator (ISO 8601)
