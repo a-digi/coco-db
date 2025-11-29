@@ -60,6 +60,54 @@ func ValidateFieldValue(value interface{}, meta types.FieldMeta) *types.Validati
 	return validateFieldValue(value, meta)
 }
 
+// ValidatorHandler ist eine Funktion, die prüft, ob sie für den Typ zuständig ist und ggf. validiert
+// Gibt nil zurück, wenn sie nicht zuständig ist
+// Gibt *types.ValidationError zurück, wenn sie zuständig ist (Fehler oder nil bei Erfolg)
+type ValidatorHandler func(value interface{}, meta types.FieldMeta) *types.ValidationError
+
+func stringHandler(value interface{}, meta types.FieldMeta) *types.ValidationError {
+	if meta.Type == "string" {
+		return validate.ValidateString(value, meta)
+	}
+	return nil
+}
+
+func integerHandler(value interface{}, meta types.FieldMeta) *types.ValidationError {
+	if meta.Type == "integer" {
+		return validate.ValidateInteger(value, meta)
+	}
+	return nil
+}
+
+func booleanHandler(value interface{}, meta types.FieldMeta) *types.ValidationError {
+	if meta.Type == "boolean" {
+		return validate.ValidateBoolean(value, meta)
+	}
+	return nil
+}
+
+func jsonHandler(value interface{}, meta types.FieldMeta) *types.ValidationError {
+	if meta.Type == "json" {
+		return validate.ValidateJSON(value, meta)
+	}
+	return nil
+}
+
+func dateHandler(value interface{}, meta types.FieldMeta) *types.ValidationError {
+	if meta.Type == "date" {
+		return validate.ValidateDate(value, meta)
+	}
+	return nil
+}
+
+var validatorChain = []ValidatorHandler{
+	stringHandler,
+	integerHandler,
+	booleanHandler,
+	jsonHandler,
+	dateHandler,
+}
+
 // validateFieldValue prüft Typ und Constraints für ein Feld
 // Gibt nil zurück, wenn alles gültig ist, sonst ValidationError
 func validateFieldValue(value interface{}, meta types.FieldMeta) *types.ValidationError {
@@ -75,22 +123,19 @@ func validateFieldValue(value interface{}, meta types.FieldMeta) *types.Validati
 		}
 	}
 
-	switch meta.Type {
-	case "string":
-		return validate.ValidateString(value, meta)
-	case "integer":
-		return validate.ValidateInteger(value, meta)
-	case "boolean":
-		return validate.ValidateBoolean(value, meta)
-	case "json":
-		return validate.ValidateJSON(value, meta)
-	case "date":
-		return validate.ValidateDate(value, meta)
-	default:
-		return &types.ValidationError{
-			Field:   meta.Name,
-			Code:    "ERR_TYPE_UNKNOWN",
-			Message: "Unbekannter Feldtyp",
+	for _, handler := range validatorChain {
+		err := handler(value, meta)
+		// Handler ist zuständig, gibt Fehler oder nil zurück
+		if meta.Type == "string" || meta.Type == "integer" || meta.Type == "boolean" || meta.Type == "json" || meta.Type == "date" {
+			return err
 		}
+		if err != nil {
+			return err
+		}
+	}
+	return &types.ValidationError{
+		Field:   meta.Name,
+		Code:    "ERR_TYPE_UNKNOWN",
+		Message: "Unbekannter Feldtyp",
 	}
 }
