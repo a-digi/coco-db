@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	fields "github.com/a-digi/coco-db/src/table/fields"
-	versioning "github.com/a-digi/coco-db/src/table/entries/versioning"
 	"github.com/a-digi/coco-db/src/logger"
 )
 
@@ -35,11 +34,10 @@ func (ec *EntryCreator) InsertEntry(dbName, tableName string, entry map[string]i
 		ec.Logger.Error(fmt.Sprintf("Fehler beim Anlegen des entry-Ordners: %v", err))
 		return fmt.Errorf("Fehler beim Anlegen des entry-Ordners: %v", err)
 	}
-
 	entryPath := filepath.Join(entryDir, entryId+".json")
 
 	// 2. Versionierung vorbereiten
-	versioningObj := versioning.Versioning{Dir: entryDir}
+	versioningObj := Versioning{Dir: entryDir}
 	var versionNumber int
 	versions, err := versioningObj.LoadVersions()
 	if err != nil {
@@ -103,7 +101,7 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 	entryPath := filepath.Join(entryDir, entryId+".json")
 
 	// 2. Versionierung vorbereiten
-	versioningObj := versioning.Versioning{Dir: entryDir}
+	versioningObj := Versioning{Dir: entryDir}
 	var versionNumber int
 	versions, err := versioningObj.LoadVersions()
 	if err != nil {
@@ -143,4 +141,3 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 	log.Info(fmt.Sprintf("Eintrag erfolgreich gespeichert: %s (Version %d)", entryPath, versionNumber))
 	return nil
 }
-
