@@ -2,8 +2,6 @@ package test
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,40 +40,34 @@ func TestHandleGetTable_Success(t *testing.T) {
 	f.Close()
 
 	tlm := &table.TableListMeta{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	r := httptest.NewRequest("GET", "/?db=testdb&table=users", nil)
-	w := httptest.NewRecorder()
-	tlm.HandleGetTable(w, r)
-	resp := w.Result()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Erwartet: Status 200, erhalten: %d", resp.StatusCode)
+	resp := tlm.HandleGetTable(dbName, tableName)
+	if resp == nil || !resp.Success || resp.HttpCode != 200 {
+		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
 	}
-	var apiResp map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		t.Fatalf("Antwort nicht parsebar: %v", err)
-	}
-	if success, ok := apiResp["success"].(bool); !ok || !success {
-		t.Errorf("Erwartet: success true, erhalten: %+v", apiResp)
-	}
-	if data, ok := apiResp["data"].(map[string]interface{}); !ok || data["tableName"] != tableName {
-		t.Errorf("Tabellenname nicht korrekt: %+v", apiResp)
+	meta, ok := resp.Data.(table.TableMeta)
+	if !ok || meta.TableName != tableName {
+		t.Errorf("Tabellenname nicht korrekt: %+v", resp.Data)
 	}
 }
 
-func TestHandleGetTable_NotFound(t *testing.T) {
+func TestHandleGetTable_TableNotFound(t *testing.T) {
 	testDir := setupGetTestDir(t)
 	defer teardownGetTestDir(testDir)
 	tlm := &table.TableListMeta{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	r := httptest.NewRequest("GET", "/?db=testdb&table=notfound", nil)
-	w := httptest.NewRecorder()
-	tlm.HandleGetTable(w, r)
-	resp := w.Result()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Erwartet: Status 404, erhalten: %d", resp.StatusCode)
+	resp := tlm.HandleGetTable("testdb", "notfound")
+	if resp == nil || resp.Success || resp.Error == nil {
+		t.Errorf("Nicht vorhandene Tabelle nicht korrekt erkannt: %+v", resp)
 	}
-	var apiResp map[string]interface{}
-	_ = json.NewDecoder(resp.Body).Decode(&apiResp)
-	if success, ok := apiResp["success"].(bool); ok && success {
-		t.Errorf("Erwartet: success false, erhalten: %+v", apiResp)
+	if resp.Error != nil {
+		if resp.Error.Code != "ERR_TABLE_NOT_FOUND" && resp.Error.Code != "ERR_TABLES_NOT_FOUND" {
+			t.Errorf("Falscher Fehlercode: %v", resp.Error.Code)
+		}
+		if resp.HttpCode != 404 {
+			t.Errorf("Falscher HttpCode: %v", resp.HttpCode)
+		}
+		if resp.Error.Message == "" {
+			t.Errorf("Fehlermeldung fehlt: %+v", resp.Error)
+		}
 	}
 }
 
@@ -83,16 +75,8 @@ func TestHandleGetTable_MissingParams(t *testing.T) {
 	testDir := setupGetTestDir(t)
 	defer teardownGetTestDir(testDir)
 	tlm := &table.TableListMeta{DataDir: testDir, Logger: &logger.NoopLogger{}}
-	r := httptest.NewRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
-	tlm.HandleGetTable(w, r)
-	resp := w.Result()
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Erwartet: Status 400, erhalten: %d", resp.StatusCode)
-	}
-	var apiResp map[string]interface{}
-	_ = json.NewDecoder(resp.Body).Decode(&apiResp)
-	if success, ok := apiResp["success"].(bool); ok && success {
-		t.Errorf("Erwartet: success false, erhalten: %+v", apiResp)
+	resp := tlm.HandleGetTable("", "")
+	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_PARAM_MISSING" {
+		t.Errorf("Fehlende Parameter nicht korrekt erkannt: %+v", resp)
 	}
 }

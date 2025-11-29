@@ -2,7 +2,6 @@ package table
 
 import (
 	"encoding/json"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,59 +20,34 @@ type TableListMeta struct {
 }
 
 // HandleGetTable verarbeitet das Abrufen der Metadaten einer Tabelle (GET /api/databases/{dbname}/tables/{tname})
-func (tlm *TableListMeta) HandleGetTable(w http.ResponseWriter, r *http.Request) {
+func (tlm *TableListMeta) HandleGetTable(dbname, tableName string) *response.APIResponse {
 	start := time.Now()
-	dbname := r.URL.Query().Get("db")
-	tableName := r.URL.Query().Get("table")
 	if dbname == "" || tableName == "" {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_PARAM_MISSING", "Datenbank- oder Tabellenname fehlt", execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(400, "ERR_PARAM_MISSING", "Datenbank- oder Tabellenname fehlt", execTime)
 	}
 	dbDir := filepath.Join(tlm.DataDir, dbname)
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
 	var tablesMeta []TableMeta
 	if _, err := os.Stat(tablesJsonPath); os.IsNotExist(err) {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(404, "ERR_TABLES_NOT_FOUND", "tables.json nicht gefunden", execTime)
 	}
 	content, err := os.ReadFile(tablesJsonPath)
 	if err != nil {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusInternalServerError, "ERR_IO", err.Error(), execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(500, "ERR_IO", err.Error(), execTime)
 	}
 	if err := json.Unmarshal(content, &tablesMeta); err != nil {
 		execTime := time.Since(start).String()
-		resp := response.WriteErrorInternal(http.StatusInternalServerError, "ERR_JSON", err.Error(), execTime)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(resp.HttpCode)
-		_ = json.NewEncoder(w).Encode(resp)
-		return
+		return response.WriteErrorInternal(500, "ERR_JSON", err.Error(), execTime)
 	}
 	for _, meta := range tablesMeta {
 		if strings.EqualFold(meta.TableName, tableName) {
 			execTime := time.Since(start).String()
-			resp := response.WriteSuccess(meta, execTime)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(resp.HttpCode)
-			_ = json.NewEncoder(w).Encode(resp)
-			return
+			return response.WriteSuccess(meta, execTime)
 		}
 	}
 	execTime := time.Since(start).String()
-	resp := response.WriteErrorInternal(http.StatusNotFound, "ERR_TABLE_NOT_FOUND", "Tabelle nicht gefunden", execTime)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(resp.HttpCode)
-	_ = json.NewEncoder(w).Encode(resp)
+	return response.WriteErrorInternal(404, "ERR_TABLE_NOT_FOUND", "Tabelle nicht gefunden", execTime)
 }

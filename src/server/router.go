@@ -135,7 +135,35 @@ func SetupRouter() http.Handler {
 		}
 		dbname := params["dbname"]
 		tablename := params["tablename"]
-		tu.HandleEditTable(w, r, dbname, tablename)
+		var meta table.TableMeta
+		if err := json.NewDecoder(r.Body).Decode(&meta); err != nil {
+			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+		resp := tu.HandleEditTable(dbname, tablename, meta)
+		w.Header().Set("Content-Type", "application/json")
+		if resp != nil {
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+		}
+	})
+	// Tabellen-Endpunkt: DELETE /api/databases/{dbname}/tables/{tablename}
+	pr.HandleFunc("DELETE", "/api/databases/{dbname}/tables/{tablename}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		td := &table.TableDelete{
+			DataDir: "./data",
+			Logger:  &logger.NoopLogger{},
+		}
+		dbname := params["dbname"]
+		tablename := params["tablename"]
+		resp := td.HandleDeleteTable(dbname, tablename)
+		w.Header().Set("Content-Type", "application/json")
+		if resp != nil {
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+		}
 	})
 
 	// Kombiniere Health-Mux und ParamRouter
