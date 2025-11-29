@@ -83,6 +83,105 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 Jeder Schritt sollte einzeln umgesetzt und getestet werden. Die Reihenfolge ist empfohlen, kann aber je nach Architektur angepasst werden.
 
 ## 7. Filter & Query
+
+### Übersicht: Query-Typen
+
+**Tabellen-Query (Table Query):**
+- Endpunkt: `/api/databases/{dbname}/tables/{tablename}/query`
+- Beispiel: `POST /api/databases/testdb/tables/users/query` mit JSON-Body
+- Parameter: Feldfilter, Bereichsanfragen, LIKE, Paginierung, Sortierung
+- Antwort: Liste der passenden Einträge aus einer Tabelle
+
+**Globale Query (Global Query):**
+- Endpunkt: `/api/query`
+- Beispiel: `POST /api/query` mit JSON-Body
+- Sucht über alle Datenbanken und Tabellen hinweg nach passenden Einträgen
+- Antwort: Liste der passenden Einträge inkl. Datenbank- und Tabellennamen
+
+---
+
+### Beispiele für alle unterstützten Datentypen im Query-JSON
+
+| Datentyp | Beispiel-Filter im JSON-Body |
+|----------|------------------------------|
+| **string** | `{"filter": {"email": "foo@bar.de"}}` |
+| **int**    | `{"filter": {"age": {"gte": 18, "lt": 65}}}` |
+| **bool**   | `{"filter": {"isActive": true}}` |
+| **date**   | `{"filter": {"created_at": {"gte": "2025-01-01", "lt": "2025-12-31"}}}` |
+| **date (BETWEEN)** | `{"filter": {"created_at": {"gte": "2025-01-01", "lte": "2025-01-31"}}}` |
+| **json**   | `{"filter": {"profile": {"like": "\"city\":\"Berlin\""}}}` |
+| **LIKE/Pattern** | `{"filter": {"name": {"like": "Max*"}}}` |
+| **LIKE/Wildcard** | `{"filter": {"name": {"like": "*mann"}}}` |
+| **Fulltext** | `{"filter": {"description": {"fulltext": "Berlin Startup"}}}` |
+| **Partial/Substring** | `{"filter": {"bio": {"partial": "engineer"}}}` |
+
+**Hinweis:** Im like-Operator können Wildcards wie * (beliebige Zeichen) und ? (ein Zeichen) verwendet werden. Für Volltextsuche kann der Operator "fulltext" genutzt werden (z.B. für mehrere Wörter, Tokenizer, Ranking). Für Teilstring-/Partial-Matching kann der Operator "partial" genutzt werden (z.B. für beliebige Teilstrings ohne Wildcards). Die Unterstützung für fulltext/partial ist optional und kann je nach Implementierung variieren.
+
+**Kombiniertes Beispiel:**
+```json
+{
+  "filter": {
+    "email": "foo@bar.de",
+    "age": { "gte": 18 },
+    "name": { "like": "Max" },
+    "isActive": true,
+    "created_at": { "gte": "2025-01-01", "lte": "2025-01-31" },
+    "profile": { "like": "\"city\":\"Berlin\"" }
+  },
+  "limit": 10,
+  "offset": 0,
+  "sort": ["age"]
+}
+```
+
+---
+
+### Joins zwischen Tabellen (nur für globale Query /api/query)
+
+**Beschreibung:**
+- Ermöglicht das Verknüpfen von Einträgen aus mehreren Tabellen über gemeinsame Felder (z.B. Fremdschlüssel).
+- Die Join-Logik ist rekursiv und unterstützt eine maximale Tiefe (maxJoinDepth = 64).
+
+**JSON-Format für Joins:**
+```json
+{
+  "filter": { ... },
+  "join": [
+    {
+      "database": "testdb",         // optional, wenn join über DB-Grenzen
+      "table": "orders",            // Ziel-Tabelle
+      "on": { "user_id": "id" },   // Join-Bedingung: Quellfeld -> Zielfeld
+      "filter": { "status": "open" }, // optional: Filter auf Join-Tabelle
+      "join": [ ... ]                // optional: weitere verschachtelte Joins
+    }
+  ],
+  "limit": 10
+}
+```
+
+**Beispiel:**
+```json
+{
+  "filter": { "email": "foo@bar.de" },
+  "join": [
+    {
+      "table": "orders",
+      "on": { "id": "user_id" },
+      "filter": { "status": "open" }
+    }
+  ],
+  "limit": 5
+}
+```
+
+**Hinweise:**
+- Joins können beliebig verschachtelt werden (maxJoinDepth = 64).
+- Jeder Join kann eigene Filter und weitere Joins enthalten.
+- Die Antwort enthält für jeden Treffer die verknüpften Einträge als verschachtelte Objekte.
+- Performance-Hinweis: Viele oder tiefe Joins können langsam sein.
+
+---
+
 - [ ] Implementierung von Abfrage- und Filtermechanismen auf Basis der Indizes und/oder vollständiger Iteration
 - [ ] Unterstützung rekursiver Joins (maxJoinDepth = 64)
 - [ ] Substring/Pattern-Suche (LIKE), optionale Vorbereitung für Tokenizer/Volltextsuche
