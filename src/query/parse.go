@@ -31,5 +31,21 @@ func ParseQuery(r *http.Request, defaultLimit, maxLimit int) (*Query, error) {
 	if qr.Offset < 0 {
 		return nil, fmt.Errorf("Offset must be >= 0")
 	}
+	// Sort prüfen (falls vorhanden)
+	if qr.Sort != nil {
+		for i, s := range qr.Sort {
+			if s == "" {
+				return nil, fmt.Errorf("Sort[%d] must be a non-empty string", i)
+			}
+		}
+	}
+	// Join prüfen (falls vorhanden)
+	if qr.Join != nil {
+		for i, j := range qr.Join {
+			if j == nil {
+				return nil, fmt.Errorf("Join[%d] must be an object", i)
+			}
+		}
+	}
 	return &qr, nil
 }
