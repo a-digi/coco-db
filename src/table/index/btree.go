@@ -1,11 +1,17 @@
 package index
 
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+)
+
 // BTreeIndex ist eine einfache In-Memory-Baumstruktur für Indexzwecke.
 // Für Produktivbetrieb sollte eine bewährte B+Tree-Bibliothek verwendet werden.
 type BTreeIndex struct {
 	meta   IndexMeta
 	root   *btreeNode
-	// TODO: Für echte Performance: Externe B+Tree-Bibliothek einbinden
+	stub   map[string][]string // Nur für Persistenz-Test, bis echte BTree-Logik steht
 }
 
 type btreeNode struct {
@@ -19,6 +25,7 @@ func NewBTreeIndex(meta IndexMeta) *BTreeIndex {
 	return &BTreeIndex{
 		meta: meta,
 		root: &btreeNode{leaf: true},
+		stub: map[string][]string{},
 	}
 }
 
@@ -47,3 +54,43 @@ func (b *BTreeIndex) Range(start, end interface{}) ([]string, error) {
 	return nil, nil
 }
 
+// SaveToFile speichert den Index als JSON-Objekt in eine Datei (z.B. index_{name}.json)
+func (b *BTreeIndex) SaveToFile(dir string) error {
+	indexPath := filepath.Join(dir, "index_"+b.meta.Name+".json")
+	data := b.toMap()
+	f, err := os.Create(indexPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(data)
+}
+
+// LoadFromFile lädt den Index aus einer Datei (JSON-Objekt)
+func (b *BTreeIndex) LoadFromFile(dir string) error {
+	indexPath := filepath.Join(dir, "index_"+b.meta.Name+".json")
+	f, err := os.Open(indexPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	var data map[string][]string
+	dec := json.NewDecoder(f)
+	if err := dec.Decode(&data); err != nil {
+		return err
+	}
+	b.fromMap(data)
+	return nil
+}
+
+// toMap serialisiert den Index als map[string][]string (Stub, da BTree-Logik fehlt)
+func (b *BTreeIndex) toMap() map[string][]string {
+	return b.stub
+}
+
+// fromMap lädt die Daten in den Index (Stub, da BTree-Logik fehlt)
+func (b *BTreeIndex) fromMap(m map[string][]string) {
+	b.stub = m
+}
