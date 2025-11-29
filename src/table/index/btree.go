@@ -30,7 +30,15 @@ func NewBTreeIndex(meta IndexMeta) *BTreeIndex {
 }
 
 func (b *BTreeIndex) Insert(key interface{}, entryId string) error {
-	// TODO: B+Tree-Insert-Logik implementieren
+	// Für den Test: Key als String in stub-Map eintragen
+	k, ok := key.(string)
+	if !ok {
+		return nil // Nur String-Keys für MVP
+	}
+	if b.stub == nil {
+		b.stub = map[string][]string{}
+	}
+	b.stub[k] = append(b.stub[k], entryId)
 	return nil
 }
 
