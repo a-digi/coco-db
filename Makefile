@@ -49,4 +49,4 @@ stop-dev:
 	fi
 
 faker-test:
-	go run ./scripts/faker.go --table testdb/users --amount 100
+	go run ./scripts/faker.go --table poseidon/items --amount 10000
