@@ -41,9 +41,6 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [ ] unique (optional, für spätere Index-Validierung)
 - [x] required (Pflichtfeld)
 - [x] allowAdditionalFields (ob zusätzliche Felder erlaubt sind)
-- [ ] meta.json enthält ein Feld schemaVersion
-- [ ] Bei Änderung des Schemas: Migration bestehender Einträge auf das neue Schema ermöglichen
-- [ ] Optional: Migrationsskripte oder automatische Anpassung der Einträge
 - [x] Fehlerhafte Einträge werden mit präzisen Fehlercodes und -nachrichten abgelehnt (z. B. ERR_FIELD_MISSING, ERR_TYPE_MISMATCH, ERR_CONSTRAINT_FAILED)
 - [x] Fehler werden geloggt und in der API-Response zurückgegeben
 - [x] Unit-Tests für alle Feldtypen und Constraints (inkl. Grenzfälle) (für String, Integer, Boolean, Date, JSON)
@@ -88,3 +85,13 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 
 **Empfohlene Reihenfolge:**
 Starte mit Initialisierung & Installation, dann Server, Datenbanken, Tabellen, Felder, Index Engine, Speicherstruktur & ACID, gefolgt von Filter & Query, Event Sourcing und Server/API. Jeder Schritt sollte durch Tests und Dokumentation begleitet werden.
+
+---
+
+## ToDo: Schema-Versionierung und Migration
+
+- [ ] meta.json enthält ein Feld `schemaVersion` (Pflichtfeld für jede Tabelle)
+- [ ] Bei Änderung von `schemaVersion`: Migration bestehender Einträge auf das neue Schema ermöglichen
+- [ ] Optional: Migrationsskripte oder automatische Anpassung der Einträge implementieren
+
+Diese Punkte sind für die Zukunft vorgesehen und noch nicht umgesetzt. Sie sind essenziell für Wartbarkeit und Weiterentwicklung des Systems.
