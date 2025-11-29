@@ -50,20 +50,20 @@ Definiere, wie neue Einträge über eine REST-API entgegengenommen, validiert un
 ### Schritt-für-Schritt-Checkliste
 
 1. **API-Endpunkt definieren**
-    - [ ] POST /api/v1/db/{dbName}/tables/{tableName}/entries
-    - [ ] Erwartet ein JSON-Objekt im Request-Body
+    - [x] POST /api/v1/db/{dbName}/tables/{tableName}/entries
+    - [x] Erwartet ein JSON-Objekt im Request-Body
 
 2. **Router-Handler implementieren**
-    - [ ] Lese dbName und tableName aus der URL
-    - [ ] Lese und parse den Request-Body in ein map[string]interface{} (JSON-Decoding findet im Routing statt)
-    - [ ] Rufe InsertEntry(dbName, tableName, entry) auf
+    - [x] Lese dbName und tableName aus der URL
+    - [x] Lese und parse den Request-Body in ein map[string]interface{} (JSON-Decoding findet im Routing statt)
+    - [x] Rufe InsertEntry(dbName, tableName, entry) auf
 
 3. **Schema laden**
-    - [ ] Lade das TableMeta-Schema für dbName und tableName
+    - [x] Lade das TableMeta-Schema für dbName und tableName
 
 4. **Validierung**
-    - [ ] Rufe ValidateEntry(entry, schema) auf
-    - [ ] Falls Fehler: Gib Fehlerdetails zurück (z. B. als Fehlerobjekt)
+    - [x] Rufe ValidateEntry(entry, schema) auf
+    - [x] Falls Fehler: Gib Fehlerdetails zurück (z. B. als Fehlerobjekt)
 
 5. **Persistierung**
     - [ ] Wenn keine Fehler: Speichere den Eintrag (z. B. in Datei, DB, etc.)
@@ -97,3 +97,52 @@ func InsertEntry(dbName string, tableName string, entry map[string]interface{}) 
 - Defaultwerte werden durch ValidateEntry gesetzt.
 - Fehlerhafte Einträge werden abgelehnt und mit Fehlerdetails beantwortet.
 - Die Persistierung ist austauschbar (Datei, DB, etc.).
+
+---
+
+## Persistierung und Versionierung von Einträgen
+
+- **Ablagepfad für Einträge:**
+  - Jeder Eintrag wird unter folgendem Pfad gespeichert:
+    `<DataDir>/<dbName>/<tableName>/entries/<entryId>/{entryId}.json`
+  - `<entryId>` ist ein eindeutiger Identifier für den Eintrag (z. B. UUID oder generierter Wert).
+
+- **Versionierung:**
+  - Für jeden Eintrag gibt es im Ordner `<DataDir>/<dbName>/<tableName>/entries/<entryId>/` eine Datei `version.json`.
+  - Die Datei `version.json` enthält ein Array von Versionseinträgen.
+  - Ein Versionseintrag besteht aus:
+    - `entryId`: ID des Eintrags
+    - `created_at`: Zeitstempel der Erstellung
+    - `versioned_at`: Zeitstempel, wann diese Version durch eine neue ersetzt wurde (für die aktuelle Version leer)
+    - `version_number`: fortlaufende Nummer (beginnend bei 1, wird bei jeder neuen Version erhöht)
+  - **Wird ein aktiver Eintrag versioniert, wird die bisherige Datei `{entryId}.json` nach `<DataDir>/<dbName>/<tableName>/entries/<entryId>/version/{versionNumber}.json` verschoben.**
+
+- **Ablauf beim Hinzufügen eines Eintrags:**
+  1. Existiert der Ordner `<entryId>` nicht, wird er angelegt und eine neue `version.json` mit dem ersten Versionseintrag erstellt.
+  2. Existiert bereits ein aktiver Eintrag (d. h. ein Eintrag ohne `versioned_at`), wird dieser vor dem Hinzufügen des neuen Eintrags versioniert:
+     - Das Feld `versioned_at` des bisherigen Eintrags wird mit dem aktuellen Zeitstempel gefüllt.
+     - Der neue Eintrag erhält die nächste `version_number` und ein leeres `versioned_at`.
+  3. Die Versionseinträge in `version.json` sind chronologisch sortiert und die `version_number` ist immer eindeutig und aufsteigend.
+
+- **Beispiel für version.json:**
+
+```json
+[
+  {
+    "entryId": "abc123",
+    "created_at": "2025-11-29T12:00:00Z",
+    "versioned_at": "2025-11-29T13:00:00Z",
+    "version_number": 1
+  },
+  {
+    "entryId": "abc123",
+    "created_at": "2025-11-29T13:00:00Z",
+    "versioned_at": "",
+    "version_number": 2
+  }
+]
+```
+
+- **Hinweis:**
+  - Die Versionierung wird in einer eigenen Datei `src/table/entries/version.go` implementiert.
+  - Die Versionierung ist Pflicht, bevor ein neuer Eintrag als aktiv gespeichert wird.
