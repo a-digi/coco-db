@@ -2,8 +2,6 @@ package test
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,7 +53,7 @@ func TestHandleEditTable_Success(t *testing.T) {
 		t.Fatalf("Erwartet: Success true und HttpCode 200, erhalten: %+v", resp)
 	}
 	// Prüfe, ob meta.json aktualisiert wurde
-	content, err := ioutil.ReadFile(metaPath)
+	content, err := os.ReadFile(metaPath)
 	if err != nil {
 		t.Fatalf("meta.json nicht lesbar: %v", err)
 	}
@@ -68,7 +66,7 @@ func TestHandleEditTable_Success(t *testing.T) {
 	}
 	// Prüfe, ob tables.json aktualisiert wurde
 	tablesJsonPath := filepath.Join(dbDir, "tables.json")
-	tablesContent, err := ioutil.ReadFile(tablesJsonPath)
+	tablesContent, err := os.ReadFile(tablesJsonPath)
 	if err != nil {
 		t.Fatalf("tables.json nicht lesbar: %v", err)
 	}
@@ -86,3 +84,49 @@ func TestHandleEditTable_Success(t *testing.T) {
 		t.Errorf("Tabelle nicht korrekt in tables.json aktualisiert")
 	}
 }
+
+func TestHandleEditTable_TableNotFound(t *testing.T) {
+	testDir := setupEditTestDir(t)
+	defer teardownEditTestDir(testDir)
+	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	meta := table.TableMeta{
+		TableName: "users",
+		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+	}
+	resp := tu.HandleEditTable("testdb", "users", meta)
+	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_TABLE_NOT_FOUND" {
+		t.Errorf("Nicht vorhandene Tabelle nicht korrekt erkannt: %+v", resp)
+	}
+}
+
+func TestHandleEditTable_InvalidFields(t *testing.T) {
+	testDir := setupEditTestDir(t)
+	defer teardownEditTestDir(testDir)
+	dbName := "testdb"
+	tableName := "users"
+	dbDir := filepath.Join(testDir, dbName)
+	tableDir := filepath.Join(dbDir, tableName)
+	os.MkdirAll(tableDir, 0755)
+	initMeta := table.TableMeta{
+		TableName: tableName,
+		Fields:    []table.FieldMeta{{Name: "id", Type: "string"}},
+	}
+	metaPath := filepath.Join(tableDir, "meta.json")
+	f, err := os.Create(metaPath)
+	if err != nil {
+		t.Fatalf("Fehler beim Anlegen von meta.json: %v", err)
+	}
+	_ = json.NewEncoder(f).Encode(initMeta)
+	f.Close()
+
+	tu := &table.TableUpdate{DataDir: testDir, Logger: &logger.NoopLogger{}}
+	invalidMeta := table.TableMeta{
+		TableName: tableName,
+		Fields:    []table.FieldMeta{}, // keine Felder
+	}
+	resp := tu.HandleEditTable(dbName, tableName, invalidMeta)
+	if resp == nil || resp.Success || resp.Error == nil || resp.Error.Code != "ERR_FIELD_INVALID" {
+		t.Errorf("Ungültige Felder nicht korrekt erkannt: %+v", resp)
+	}
+}
+
