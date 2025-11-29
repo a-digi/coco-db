@@ -4,6 +4,13 @@
 
 package fields
 
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
 // FieldMeta beschreibt ein Feld in meta.json gemäß Projektanforderungen.
 type FieldMeta struct {
 	// Name des Feldes (Pflichtfeld)
@@ -54,3 +61,17 @@ type TableMeta struct {
 	AllowAdditionalFields *bool                  `json:"allowAdditionalFields,omitempty"`
 }
 
+// LoadTableMeta lädt meta.json als types.TableMeta
+func LoadTableMeta(dataDir, dbName, tableName string) (*TableMeta, error) {
+	metaPath := filepath.Join(dataDir, dbName, tableName, "meta.json")
+	f, err := os.Open(metaPath)
+	if err != nil {
+		return nil, fmt.Errorf("meta.json nicht gefunden: %w", err)
+	}
+	defer f.Close()
+	var meta TableMeta
+	if err := json.NewDecoder(f).Decode(&meta); err != nil {
+		return nil, fmt.Errorf("meta.json ungültig: %w", err)
+	}
+	return &meta, nil
+}

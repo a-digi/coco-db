@@ -14,6 +14,7 @@ import (
 	"github.com/a-digi/coco-db/src/table/fields"
 	entries "github.com/a-digi/coco-db/src/table/entries"
 	"time"
+	"github.com/a-digi/coco-db/src/query"
 )
 
 // apiHandler ist ein Wrapper, der Handler mit APIResponse-Signatur in http.HandlerFunc umwandelt
@@ -261,19 +262,25 @@ func SetupRouter() http.Handler {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
+	// QueryHandler-Instanz für Query-Endpunkte
+	queryHandler := &query.QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+
 	// Query-Endpunkt: POST /api/databases/{dbname}/tables/{tablename}/query
 	pr.HandleFunc("POST", "/api/databases/{dbname}/tables/{tablename}/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// TODO: Tabellen-Query implementieren
-		resp := response.WriteErrorInternal(http.StatusNotImplemented, "ERR_NOT_IMPLEMENTED", "Tabellen-Query ist noch nicht implementiert", "")
+		dbName := params["dbname"]
+		tableName := params["tablename"]
+		resp := queryHandler.TableQueryHandler(dbName, tableName, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)
 		_ = json.NewEncoder(w).Encode(resp)
 	})
-
 	// Query-Endpunkt: POST /api/query
 	pr.HandleFunc("POST", "/api/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// TODO: Globale Query implementieren
-		resp := response.WriteErrorInternal(http.StatusNotImplemented, "ERR_NOT_IMPLEMENTED", "Globale Query ist noch nicht implementiert", "")
+		dbName := r.URL.Query().Get("dbname")
+		if dbName == "" {
+			dbName = "testdb" // Default für Demo, TODO: dynamisch
+		}
+		resp := queryHandler.QueryHandler(dbName, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)
 		_ = json.NewEncoder(w).Encode(resp)
