@@ -64,7 +64,7 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
 - [ ] **4. Indexaufbau und -aktualisierung**
     - [x] Indexaufbau beim Start (Initialisierung aus bestehenden Einträgen)
     - [x] Indexaktualisierung bei Insert, Update, Delete von Einträgen
-    - [ ] Konsistenzprüfung zwischen Index und Daten
+    - [~] Konsistenzprüfung zwischen Index und Daten
 
 - [ ] **5. Indexabfragen**
     - [ ] API/Methoden für schnelle Suche nach Einträgen über Index (z.B. GetByField, RangeQuery)
