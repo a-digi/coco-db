@@ -1,36 +1,17 @@
 package query
 
 import (
-	"github.com/a-digi/coco-db/src/table/fields"
 	"log"
 	"regexp"
 	"strings"
 )
 
-// FilterEntries filtert die Einträge einer Tabelle anhand der Query-Filterbedingungen (AND-Logik)
-// entries: alle Einträge der Tabelle (z.B. aus JSON geladen)
-// query: die Query mit Filterbedingungen
-// meta: das TableMeta der Tabelle
-// Rückgabe: alle Einträge, die die Filterbedingungen erfüllen
-func FilterEntries(entries []map[string]interface{}, query *Query, meta *fields.TableMeta) []map[string]interface{} {
-	var result []map[string]interface{}
-	for _, entry := range entries {
-		if matchesAllFilters(entry, query.Filter, meta) {
-			result = append(result, entry)
-		}
-	}
-	return result
-}
+// ACHTUNG: Die In-Memory-Filterung ist deaktiviert.
+// Für alle Filteroperationen muss ab sofort ausschließlich die speicheroptimierte FilterEngine (siehe filter_engine.go) verwendet werden.
+// Die Operatorfunktionen (isEqual, isLike, etc.) werden weiterhin von FilterEngine genutzt.
 
-// matchesAllFilters prüft, ob ein Eintrag alle Filterbedingungen erfüllt (AND-Logik)
-func matchesAllFilters(entry map[string]interface{}, filter map[string]interface{}, meta *fields.TableMeta) bool {
-	for field, cond := range filter {
-		if !matchesFilter(entry, field, cond, meta) {
-			return false
-		}
-	}
-	return true
-}
+// --- KEINE FilterEntries- oder matchesAllFilters/matchesFilter-Logik mehr hier! ---
+// Nur noch Hilfsfunktionen für Operatoren:
 
 // Operator-Dispatch-Map für Vergleichsoperatoren
 var operatorFuncs = map[string]func(a, b interface{}) bool{
@@ -43,33 +24,6 @@ var operatorFuncs = map[string]func(a, b interface{}) bool{
 	"like": isLike,
 	"partial": isPartial,
 	"fulltext": isFulltext,
-}
-
-// matchesFilter prüft, ob ein Eintrag eine einzelne Filterbedingung erfüllt
-// Unterstützt eq/neq und Bereichsoperatoren (gt, gte, lt, lte) für int/float/string/date
-func matchesFilter(entry map[string]interface{}, field string, cond interface{}, meta *fields.TableMeta) bool {
-	val, ok := entry[field]
-	if !ok {
-		return false
-	}
-	// Operatoren-Map (z.B. {"gte": 18})
-	switch c := cond.(type) {
-	case map[string]interface{}:
-		for op, opVal := range c {
-			fn, found := operatorFuncs[op]
-			if !found {
-				// Noch nicht implementiert (z.B. LIKE, Partial, Fulltext)
-				continue
-			}
-			if !fn(val, opVal) {
-				return false
-			}
-		}
-		return true
-	default:
-		// Direkter Vergleich (implizit eq)
-		return isEqual(val, c)
-	}
 }
 
 // Hilfsfunktionen für Vergleiche (int/float/string)

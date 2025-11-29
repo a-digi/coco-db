@@ -79,7 +79,7 @@ Content-Type: application/json
 
 ### Parsing
 - [x] Lese den JSON-Body des Requests und parse ihn in eine interne Query-Struktur (Go-Struct QueryRequest in src/query/query.go).
-- [ ] Beispielstruktur:
+- [x] Beispielstruktur:
   ```go
   type QueryRequest struct {
     Filter map[string]interface{} `json:"filter"`
@@ -116,23 +116,44 @@ Content-Type: application/json
 ```
 
 ## 3. Filter-Engine
-- [ ] Für jedes Filterfeld prüfen:
-  - [ ] Existiert ein Index? Falls ja, nutze ihn für Vorauswahl
-  - [ ] Sonst: Iteriere alle Einträge der Tabelle
-- [ ] Wende alle Filterbedingungen (AND-Logik) auf die Einträge an
-- [ ] Unterstütze Bereichsfilter, LIKE, Wildcards, Partial, Fulltext
+- [x] Für jedes Filterfeld prüfen:
+  - [x] Existiert ein Index? Falls ja, nutze ihn für Vorauswahl
+  - [x] Sonst: Iteriere alle Einträge der Tabelle
+- [x] Wende alle Filterbedingungen (AND-Logik) auf die Einträge an
+- [x] Unterstütze Bereichsfilter, LIKE, Wildcards, Partial, Fulltext
+
+### Speicheroptimierte Filter-Engine (ab 2025-11-29)
+- [x] **Nur Indexdaten werden in den Speicher geladen.**
+- [x] **Nicht indizierte Properties werden per sequentiellem Scan direkt von der Festplatte (Dateien) gelesen und gefiltert.**
+- [x] **Es werden niemals vollständige Tabellen in den Speicher geladen, wenn kein Index existiert.**
+- [x] **Kombiniere die Ergebnisse aller Filterbedingungen (AND-Logik) und gib nur die passenden Einträge zurück.**
+
+**Vorgehen:**
+1. Für jedes Filterfeld prüfen, ob ein Index existiert.
+2. Falls ja: Nur Indexdaten in den Speicher laden, passende Eintrags-IDs ermitteln.
+3. Falls nein: Sequentieller Scan – Einträge einzeln von der Festplatte lesen und direkt filtern.
+4. Ergebnisse kombinieren (AND-Logik).
+
+**Vorteile:**
+- Sehr geringer Speicherverbrauch, auch bei großen Tabellen.
+- Skalierbar für große Datenmengen, solange Index vorhanden ist.
+- Keine Gefahr von Out-of-Memory durch große Tabellen ohne Index.
+
+**Hinweis:**
+- Diese Architektur ist ab sofort verbindlich für alle Query- und Filteroperationen.
+- Die Implementierung muss bestehende Filter- und Index-APIs entsprechend anpassen.
 
 ## 4. LIKE, Wildcards, Partial, Fulltext
-- [ ] LIKE: Unterstütze Platzhalter (*, ?)
-- [ ] Partial: Teilstring-Matching ohne Wildcards
-- [ ] Fulltext: Tokenisierung und Suche nach mehreren Begriffen (optional, vorbereiten)
+- [x] LIKE: Unterstütze Platzhalter (*, ?)
+- [x] Partial: Teilstring-Matching ohne Wildcards
+- [x] Fulltext: Tokenisierung und Suche nach mehreren Begriffen (optional, vorbereiten)
 
 ## 5. Joins (nur globale Query)
-- [ ] Implementiere rekursive Joins (maxJoinDepth = 64)
-- [ ] Für jeden Join:
-  - [ ] Lade die Zieltabelle
-  - [ ] Führe Filter und ggf. weitere Joins aus
-  - [ ] Verknüpfe die Ergebnisse als verschachtelte Objekte
+- [x] Implementiere rekursive Joins (maxJoinDepth = 64)
+- [x] Für jeden Join:
+  - [x] Lade die Zieltabelle
+  - [x] Führe Filter und ggf. weitere Joins aus
+  - [x] Verknüpfe die Ergebnisse als verschachtelte Objekte
 
 ## 6. Paginierung & Sortierung
 - [ ] Unterstütze `limit` und `offset` im Request
