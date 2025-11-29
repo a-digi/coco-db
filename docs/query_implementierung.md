@@ -1,12 +1,14 @@
 # Schritt-für-Schritt-Implementierung: Query-API (ab Roadmap-Punkt 7)
 
 ## 1. API-Design und Endpunkte
+- [ ] Erledigt
 - Definiere POST-Endpunkte:
   - `/api/databases/{dbname}/tables/{tablename}/query` (Tabellen-Query)
   - `/api/query` (globale Query)
 - Request-Body: JSON mit `filter`, `limit`, `offset`, `sort`, optional `join`
 
 ## 2. Request-Parsing & Validierung
+- [ ] Erledigt
 - Implementiere das Parsen des JSON-Bodys in eine interne Query-Struktur
 - Validiere:
   - Existenz und Typ der Felder (gegen meta.json)
@@ -14,6 +16,7 @@
   - Werteformate (z.B. Datum, Zahl, String)
 
 ## 3. Filter-Engine
+- [ ] Erledigt
 - Für jedes Filterfeld prüfen:
   - Existiert ein Index? Falls ja, nutze ihn für Vorauswahl
   - Sonst: Iteriere alle Einträge der Tabelle
@@ -21,11 +24,13 @@
 - Unterstütze Bereichsfilter, LIKE, Wildcards, Partial, Fulltext
 
 ## 4. LIKE, Wildcards, Partial, Fulltext
+- [ ] Erledigt
 - LIKE: Unterstütze Platzhalter (*, ?)
 - Partial: Teilstring-Matching ohne Wildcards
 - Fulltext: Tokenisierung und Suche nach mehreren Begriffen (optional, vorbereiten)
 
 ## 5. Joins (nur globale Query)
+- [ ] Erledigt
 - Implementiere rekursive Joins (maxJoinDepth = 64)
 - Für jeden Join:
   - Lade die Zieltabelle
@@ -33,18 +38,22 @@
   - Verknüpfe die Ergebnisse als verschachtelte Objekte
 
 ## 6. Paginierung & Sortierung
+- [ ] Erledigt
 - Unterstütze `limit` und `offset` im Request
 - Sortiere die Ergebnisse nach den angegebenen Feldern
 
 ## 7. Fehlerbehandlung
+- [ ] Erledigt
 - Gib bei ungültigen Parametern, Feldern oder Operatoren klare Fehlercodes und -nachrichten zurück
 - Begrenze die maximale Anzahl zurückgegebener Einträge
 
 ## 8. Response-Format
+- [ ] Erledigt
 - Rückgabe: `success`, `data` (Array der Einträge), `httpCode`, optional `meta` (z.B. `totalCount`)
 - Bei globaler Query: Jeder Treffer enthält `database` und `table`
 
 ## 9. Tests
+- [ ] Erledigt
 - Schreibe Unit- und Integrationstests für:
   - Einfache und kombinierte Filter
   - Bereichsanfragen, LIKE, Partial, Fulltext
@@ -54,6 +63,7 @@
   - Joins (inkl. Verschachtelung)
 
 ## 10. Dokumentation
+- [ ] Erledigt
 - Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
 - Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
 
