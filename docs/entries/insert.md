@@ -68,3 +68,4 @@ curl -X POST \
 - Der Eintrag wird automatisch versioniert und mit einer eindeutigen ID gespeichert.
 - Die Validierung erfolgt anhand des Tabellenschemas (meta.json).
 - Bei Fehlern wird eine strukturierte Fehlermeldung zurückgegeben.
+

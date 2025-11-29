@@ -199,6 +199,25 @@ func SetupRouter() http.Handler {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
+	// Edit-Endpunkt: PUT /api/databases/{dbname}/tables/{tablename}/entries/{entryid}
+	pr.HandleFunc("PUT", "/api/databases/{dbname}/tables/{tablename}/entries/{entryid}", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		dbname := params["dbname"]
+		tablename := params["tablename"]
+		entryid := params["entryid"]
+		var entry map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
+			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+		resp := entries.EditEntry(dbname, tablename, entryid, entry, "./data", &logger.NoopLogger{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
 	// Kombiniere Health-Mux und ParamRouter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
