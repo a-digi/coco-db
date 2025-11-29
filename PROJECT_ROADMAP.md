@@ -57,9 +57,9 @@ Diese Roadmap orientiert sich an der Struktur und den Begrifflichkeiten der PROJ
     - [x] Erweiterung von meta.json um Indexdefinitionen (z.B. Primär-/Sekundärindex, unique, sparse)
     - [x] Validierung der Indexdefinitionen beim Anlegen/Ändern einer Tabelle
 
-- [ ] **3. Indexdateien persistieren**
-    - [ ] Format und Speicherort für Indexdateien festlegen (`index.jsonl`, `index_{feldname}.jsonl`)
-    - [ ] Routinen zum Laden und Speichern der Indexdateien implementieren
+- [x] **3. Indexdateien persistieren**
+    - [x] Format und Speicherort für Indexdateien festlegen (`index.jsonl`, `index_{feldname}.jsonl`)
+    - [x] Routinen zum Laden und Speichern der Indexdateien implementieren
 
 - [ ] **4. Indexaufbau und -aktualisierung**
     - [ ] Indexaufbau beim Start (Initialisierung aus bestehenden Einträgen)
