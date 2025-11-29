@@ -10,36 +10,34 @@ import (
 	entries "github.com/a-digi/coco-db/src/table/entries"
 )
 
-func TestEntryCreator_InsertEntry_CreatesEntryAndVersion(t *testing.T) {
+func TestInsertEntry_APIResponse(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "entrycreator_test")
 	if err != nil {
 		t.Fatalf("TempDir error: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	ec := &entries.EntryCreator{
-		DataDir: tmpDir,
-		Logger:  &logger.NoopLogger{},
-	}
 	dbName := "testdb"
 	tableName := "testtable"
 	entry := map[string]interface{}{"foo": "bar", "num": 42}
 
-	err = ec.InsertEntry(dbName, tableName, entry)
-	if err != nil {
-		t.Fatalf("InsertEntry error: %v", err)
+	resp := entries.InsertEntry(dbName, tableName, entry, tmpDir, &logger.NoopLogger{})
+	if resp == nil {
+		t.Fatalf("InsertEntry gibt nil zurück")
 	}
-
-	// Suche das entries-Verzeichnis
+	if resp.HttpCode != 201 {
+		t.Errorf("Erwartet HttpCode 201, erhalten: %d", resp.HttpCode)
+	}
+	data, ok := resp.Data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Data ist nicht vom Typ map[string]interface{}")
+	}
+	entryId, ok := data["entryId"].(string)
+	if !ok || entryId == "" {
+		t.Errorf("entryId fehlt oder ist leer: %+v", data)
+	}
+	// Prüfe, ob Datei existiert
 	entriesDir := filepath.Join(tmpDir, dbName, tableName, "entries")
-	files, err := os.ReadDir(entriesDir)
-	if err != nil {
-		t.Fatalf("ReadDir error: %v", err)
-	}
-	if len(files) == 0 {
-		t.Fatalf("Kein entryId-Ordner gefunden")
-	}
-	entryId := files[0].Name()
 	entryDir := filepath.Join(entriesDir, entryId)
 	entryFile := filepath.Join(entryDir, entryId+".json")
 	if _, err := os.Stat(entryFile); err != nil {
@@ -47,12 +45,12 @@ func TestEntryCreator_InsertEntry_CreatesEntryAndVersion(t *testing.T) {
 	}
 	// Prüfe version.json
 	versionFile := filepath.Join(entryDir, "version.json")
-	data, err := os.ReadFile(versionFile)
+	fileData, err := os.ReadFile(versionFile)
 	if err != nil {
 		t.Errorf("version.json nicht gefunden: %v", err)
 	}
 	var versions []entries.VersionEntry
-	if err := json.Unmarshal(data, &versions); err != nil {
+	if err := json.Unmarshal(fileData, &versions); err != nil {
 		t.Errorf("Fehler beim Unmarshal von version.json: %v", err)
 	}
 	if len(versions) != 1 {

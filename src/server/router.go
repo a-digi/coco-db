@@ -11,6 +11,7 @@ import (
 	"github.com/a-digi/coco-db/src/logger"
 	paramrouter "github.com/a-digi/coco-db/src/server/router"
 	"encoding/json"
+	entries "github.com/a-digi/coco-db/src/table/entries"
 )
 
 // apiHandler ist ein Wrapper, der Handler mit APIResponse-Signatur in http.HandlerFunc umwandelt
@@ -182,10 +183,8 @@ func SetupRouter() http.Handler {
 	})
 	// Einfüge-Endpunkt: POST /api/databases/{dbname}/tables/{tablename}/entries
 	pr.HandleFunc("POST", "/api/databases/{dbname}/tables/{tablename}/entries", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
-		// 1. Parameter auslesen
 		dbname := params["dbname"]
 		tablename := params["tablename"]
-		// 2. JSON-Body dekodieren
 		var entry map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
 			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
@@ -194,17 +193,10 @@ func SetupRouter() http.Handler {
 			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
-		// 3. Einfüge-Logik aufrufen (Platzhalter, z. B. table.InsertEntry)
-		// TODO: Implementiere table.InsertEntry(dbname, tablename, entry)
-		// Beispiel:
-		// err := table.InsertEntry(dbname, tablename, entry)
-		// if err != nil {
-		//   w.WriteHeader(http.StatusBadRequest)
-		//   _ = json.NewEncoder(w).Encode(err)
-		//   return
-		// }
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		resp := entries.InsertEntry(dbname, tablename, entry, "./data", &logger.NoopLogger{})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	// Kombiniere Health-Mux und ParamRouter
