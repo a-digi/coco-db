@@ -1,5 +1,28 @@
 # Tabelle aktualisieren (Update Table)
 
+## Hinweise zu unterstützten Datentypen für Felder
+
+- Die folgenden Datentypen sind laut Projektanforderung erlaubt:
+  - **string** (Text)
+  - **number** (Ganzzahlen und Fließkommazahlen)
+  - **boolean** (true/false)
+  - **json** (JSON-Objekte)
+  - **date** (ISO 8601, als string gespeichert)
+
+### Beispiel für Felder mit allen erlaubten Datentypen
+
+```json
+[
+  { "name": "username", "type": "string", "required": true, "minLength": 3, "maxLength": 20, "nullable": false },
+  { "name": "age", "type": "number", "minLength": 1, "maxLength": 3, "nullable": true },
+  { "name": "isActive", "type": "boolean", "default": false, "nullable": false },
+  { "name": "address", "type": "json", "maxLength": 5, "nullable": true },
+  { "name": "created_at", "type": "date", "nullable": false }
+]
+```
+
+# Tabelle aktualisieren (Update Table)
+
 ## Endpunkt
 
 ```
