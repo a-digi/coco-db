@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"regexp"
 )
 
 // ParseQuery liest und parst den JSON-Body in ein Query-Objekt und prüft Pflichtfelder/Defaults
@@ -107,12 +108,22 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 	}
 	fieldsBlock := queryStr[paramsStart+paramsEnd+fieldsStart+1 : fieldsEnd]
 
-	// 3. Parameter-Block in JSON-ähnliches Format umwandeln (vereinfachte Annahme)
+	// 3. Parameter-Block in JSON-ähnliches Format umwandeln (robuster)
 	paramsBlock = strings.ReplaceAll(paramsBlock, "\n", " ")
 	paramsBlock = strings.ReplaceAll(paramsBlock, "\t", " ")
 	paramsBlock = strings.ReplaceAll(paramsBlock, "'", "\"")
-	paramsBlock = strings.ReplaceAll(paramsBlock, ":", ": ")
 	paramsBlock = strings.ReplaceAll(paramsBlock, ",", ", ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "  ", " ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "=", ": ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "True", "true")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "False", "false")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "None", "null")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "\r", " ")
+	paramsBlock = strings.TrimSpace(paramsBlock)
+	// Versuche, fehlende Anführungszeichen um Keys zu ergänzen (rudimentär)
+	paramsBlock = regexp.MustCompile(`([a-zA-Z0-9_]+)\s*:`).ReplaceAllString(paramsBlock, `"$1":`)
+	paramsBlock = regexp.MustCompile(`: ([a-zA-Z0-9_]+)`).ReplaceAllString(paramsBlock, `: "$1"`)
+	paramsBlock = replaceColonsAndCommasOutsideStrings(paramsBlock)
 
 	// 4. Felder extrahieren (durch Komma getrennt, ggf. mit Subfeldern)
 	fields := []string{}
@@ -127,9 +138,40 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 	paramsJSON := "{" + paramsBlock + "}"
 	var qr Query
 	if err := json.Unmarshal([]byte(paramsJSON), &qr); err != nil {
-		return nil, "", fmt.Errorf("Parameterblock konnte nicht geparst werden: %w", err)
+		return nil, "", fmt.Errorf("Parameterblock konnte nicht geparst werden: %w\nparamsBlock: %s\nparamsJSON: %s", err, paramsBlock, paramsJSON)
 	}
 	qr.Fields = fields
 
 	return &qr, tableName, nil
+}
+
+// Verbesserte Hilfsfunktion: Ersetze Doppelpunkte und Kommas nur außerhalb von Strings und Arrays
+func replaceColonsAndCommasOutsideStrings(s string) string {
+	var result strings.Builder
+	inString := false
+	bracketDepth := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '"' {
+			inString = !inString
+		}
+		if !inString {
+			if c == '{' || c == '[' {
+				bracketDepth++
+			}
+			if c == '}' || c == ']' {
+				bracketDepth--
+			}
+			if c == ':' {
+				result.WriteString(": ")
+				continue
+			}
+			if c == ',' {
+				result.WriteString(", ")
+				continue
+			}
+		}
+		result.WriteByte(c)
+	}
+	return result.String()
 }

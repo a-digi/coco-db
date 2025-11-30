@@ -13,6 +13,7 @@ import (
 )
 
 func TestQueryHandler_GraphQLLikeQuery(t *testing.T) {
+	t.Error("Test gestartet")
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
 	os.RemoveAll("./testdata")
 	setupTestTable("./testdata", "testdb", "users", t)
@@ -49,7 +50,10 @@ func TestQueryHandler_GraphQLLikeQuery(t *testing.T) {
 	r := httptest.NewRequest("POST", "/api/databases/testdb/search", strings.NewReader(graphqlQuery))
 	resp := h.QueryHandler("testdb", r)
 	if !resp.Success || resp.HttpCode != 200 {
-		t.Fatalf("Erwartet Success und Status 200, bekommen: %+v", resp)
+		if resp.Error != nil {
+			panic(resp.Error)
+		}
+		panic("Unbekannter Fehler im GraphQL-Test")
 	}
 	// Weitere Assertions je nach gewünschtem Ergebnis
 }

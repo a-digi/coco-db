@@ -1,5 +1,60 @@
-# command-line-arguments [command-line-arguments.test]
-src/table/index/build_test.go:32:9: undefined: BuildIndexesFromEntries
-src/table/index/consistency_test.go:38:14: undefined: CheckIndexConsistency
-FAIL	command-line-arguments [build failed]
+=== RUN   TestFilterEngine_IndexAndNonIndex
+--- PASS: TestFilterEngine_IndexAndNonIndex (0.00s)
+=== RUN   TestFilterEngine_DeepJoins
+--- PASS: TestFilterEngine_DeepJoins (0.01s)
+=== RUN   TestFilterEngine_Basic
+=== RUN   TestFilterEngine_Basic/eq_filter
+=== RUN   TestFilterEngine_Basic/gt_filter
+=== RUN   TestFilterEngine_Basic/and_logic
+=== RUN   TestFilterEngine_Basic/like_filter
+=== RUN   TestFilterEngine_Basic/partial_filter
+2025/11/30 16:42:36 isPartial: MATCH (local==b) - a=foo@bar.de, b=foo
+2025/11/30 16:42:36 isPartial: MATCH (domain==b && local==bar) - a=bar@foo.de, b=foo
+2025/11/30 16:42:36 isPartial: NO MATCH - a=baz@foo.de, b=foo
+=== RUN   TestFilterEngine_Basic/fulltext_filter
+--- PASS: TestFilterEngine_Basic (0.00s)
+    --- PASS: TestFilterEngine_Basic/eq_filter (0.00s)
+    --- PASS: TestFilterEngine_Basic/gt_filter (0.00s)
+    --- PASS: TestFilterEngine_Basic/and_logic (0.00s)
+    --- PASS: TestFilterEngine_Basic/like_filter (0.00s)
+    --- PASS: TestFilterEngine_Basic/partial_filter (0.00s)
+    --- PASS: TestFilterEngine_Basic/fulltext_filter (0.00s)
+=== RUN   TestQueryHandler_GraphQLLikeQuery
+    query_handlers_graphql_test.go:52: Erwartet Success und Status 200, bekommen: &{Success:false Data:<nil> Error:0x14000092c80 ExecutionTime:0.034707999999999996ms HttpCode:400}
+        Fehler: &{ERR_INVALID_QUERY Parameterblock konnte nicht geparst werden: invalid character '0' after object key:value pair
+        paramsBlock: "filter":  { "created_at":  { "gte":  "2025-11-"01T00":"00":00Z", "lte":  "2025-11-"30T23":"59":59Z" }, "email":  { "like":  "*@gmail.com" }, "age":  { "gte":  "18" } }, "limit":  "10", "offset":  "0", "sort":  ["created_at", "age"], "join":  [ { "table":  "orders", "on":  { "user_id":  "id" }, "filter":  { "status":  "open" }, "fields":  ["id", "amount", "status"] } ], "fields":  ["id", "name", "email", "created_at", "age", "orders"]
+        paramsJSON: {"filter":  { "created_at":  { "gte":  "2025-11-"01T00":"00":00Z", "lte":  "2025-11-"30T23":"59":59Z" }, "email":  { "like":  "*@gmail.com" }, "age":  { "gte":  "18" } }, "limit":  "10", "offset":  "0", "sort":  ["created_at", "age"], "join":  [ { "table":  "orders", "on":  { "user_id":  "id" }, "filter":  { "status":  "open" }, "fields":  ["id", "amount", "status"] } ], "fields":  ["id", "name", "email", "created_at", "age", "orders"]}}
+--- FAIL: TestQueryHandler_GraphQLLikeQuery (0.00s)
+=== RUN   TestTableQueryHandler_Success
+    query_handlers_test.go:36: Erwartet ein Eintrag-Array, bekommen: []
+--- FAIL: TestTableQueryHandler_Success (0.00s)
+=== RUN   TestTableQueryHandler_InvalidJSON
+--- PASS: TestTableQueryHandler_InvalidJSON (0.00s)
+=== RUN   TestTableQueryHandler_NotFound
+--- PASS: TestTableQueryHandler_NotFound (0.00s)
+=== RUN   TestQueryHandler_Success
+    query_handlers_test.go:81: Erwartet Success und Status 200, bekommen: &{Success:false Data:<nil> Error:0x14000092ec0 ExecutionTime:292ns HttpCode:400}
+    query_handlers_test.go:85: Erwartet mindestens ein Tabellenergebnis, bekommen: <nil>
+--- FAIL: TestQueryHandler_Success (0.00s)
+=== RUN   TestQueryHandler_NotFound
+    query_handlers_test.go:141: Erwartet Fehler bei fehlender Tabelle, bekommen: &{Success:false Data:<nil> Error:0x14000092f40 ExecutionTime:125ns HttpCode:400}
+--- FAIL: TestQueryHandler_NotFound (0.00s)
+=== RUN   TestQueryHandler_Join_Success
+    query_handlers_test.go:195: Erwartet Success und Status 200, bekommen: &{Success:false Data:<nil> Error:0x14000092fc0 ExecutionTime:250ns HttpCode:400}
+    query_handlers_test.go:199: Erwartet mindestens ein Tabellenergebnis, bekommen: <nil>
+--- FAIL: TestQueryHandler_Join_Success (0.00s)
+=== RUN   TestValidateQuery_Basics
+=== RUN   TestValidateQuery_Basics/valid_simple_query
+=== RUN   TestValidateQuery_Basics/missing_filter
+=== RUN   TestValidateQuery_Basics/unknown_field
+=== RUN   TestValidateQuery_Basics/type_mismatch
+=== RUN   TestValidateQuery_Basics/invalid_operator
+--- PASS: TestValidateQuery_Basics (0.00s)
+    --- PASS: TestValidateQuery_Basics/valid_simple_query (0.00s)
+    --- PASS: TestValidateQuery_Basics/missing_filter (0.00s)
+    --- PASS: TestValidateQuery_Basics/unknown_field (0.00s)
+    --- PASS: TestValidateQuery_Basics/type_mismatch (0.00s)
+    --- PASS: TestValidateQuery_Basics/invalid_operator (0.00s)
+FAIL
+FAIL	github.com/a-digi/coco-db/src/query/test	0.186s
 FAIL
