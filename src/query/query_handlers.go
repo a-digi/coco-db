@@ -76,6 +76,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		}
 		// Baue in-Filter für Join-Feld
 		joinFilter := map[string]interface{}{}
+
 		for dst := range join.On {
 			var idList []interface{}
 			for id := range joinIDs {
@@ -87,10 +88,12 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				joinFilter[dst] = map[string]interface{}{"in": idList}
 			}
 		}
+
 		// Filter kombinieren
 		for k, v := range join.Filter {
 			joinFilter[k] = v
 		}
+
 		joinQuery := &Query{
 			Filter: joinFilter,
 			Limit:  0,
@@ -98,6 +101,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			Sort:   nil,
 			Join:   join.Join,
 		}
+
 		// Rekursiver Join mit aktualisiertem joinPath
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
 		if err != nil {
