@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
 
 type IndexData map[string]interface{}
@@ -57,7 +56,6 @@ func (r *IndexRegistry) Keys() []string {
 // Lädt alle index_*.json Dateien rekursiv aus dataDir und misst Zeit/Speicher
 func LoadAllIndexes(dataDir string) error {
 	reg := GetRegistry()
-	start := time.Now()
 	count := 0
 	err := filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -78,10 +76,9 @@ func LoadAllIndexes(dataDir string) error {
 		}
 		return nil
 	})
-	dur := time.Since(start)
-	log.Printf("[IndexRegistry] %d Indexe in %.2fs geladen.", count, dur.Seconds())
 	// Zähle alle Einträge in allen RAM-Indizes
 	totalEntries := reg.CountAllEntries()
+
 	log.Printf("[IndexRegistry] Insgesamt %d Einträge in allen RAM-Indizes nach Initialisierung.", totalEntries)
 	return err
 }
@@ -126,10 +123,9 @@ func (r *IndexRegistry) DebugPrintIndex(key string, n int) {
 	defer r.mu.RUnlock()
 	idx, ok := r.cache[key]
 	if !ok {
-		fmt.Printf("[DEBUG] Kein Index für %s im RAM\n", key)
 		return
 	}
-	fmt.Printf("[DEBUG] Index %s im RAM: (erste %d Einträge)\n", key, n)
+
 	count := 0
 	for k, v := range idx {
 		fmt.Printf("  %s: %v\n", k, v)
@@ -149,4 +145,3 @@ func (r *IndexRegistry) CountAllEntries() int {
 	}
 	return total
 }
-
