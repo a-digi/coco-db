@@ -30,17 +30,17 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), execTime)
 	}
-	entries, err := FilterEngine(h.DataDir, dbName, tableName, queryObj, meta)
+	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, queryObj, meta)
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), execTime)
 	}
 	execTime := time.Since(start).String()
-	return response.WriteSuccess(entries, execTime)
+	return response.WriteSuccess(filterResult, execTime)
 }
 
 // joinDepth gibt die aktuelle Verschachtelungstiefe an (für Begrenzung)
-func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) ([]map[string]interface{}, error) {
+func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) (*FilterResult, error) {
 	if joinDepth > maxJoinDepth {
 		return nil, fmt.Errorf("Maximale Join-Tiefe (%d) überschritten", maxJoinDepth)
 	}
@@ -52,10 +52,13 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		return nil, fmt.Errorf("Zyklischer Join erkannt: %s", pathKey)
 	}
 	joinPath[pathKey] = struct{}{}
-	entries, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
+	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
 	if err != nil {
 		return nil, err
 	}
+	entries := filterResult.Entries
+	fileOpens := filterResult.FileOpens
+	ramHits := filterResult.RAMHits
 	for i := range entries {
 		for _, join := range joinDefs {
 			joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
@@ -87,17 +90,17 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			}
 			joinQuery.Filter = joinFilter
 			// Rekursiver Join mit aktualisiertem joinPath
-			joinResults, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
+			joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
 			if err != nil {
-				joinResults = []map[string]interface{}{} // Fehler: leeres Array statt null
+				joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 			}
-			if joinResults == nil {
-				joinResults = []map[string]interface{}{}
+			if joinResult == nil {
+				joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 			}
 			if join.Fields != nil && len(join.Fields) > 0 {
 				// Nur gewünschte Felder übernehmen
-				for j := range joinResults {
-					for k := range joinResults[j] {
+				for j := range joinResult.Entries {
+					for k := range joinResult.Entries[j] {
 						found := false
 						for _, f := range join.Fields {
 							if k == f {
@@ -106,19 +109,25 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 							}
 						}
 						if !found {
-							delete(joinResults[j], k)
+							delete(joinResult.Entries[j], k)
 						}
 					}
 				}
 			}
 			// Debug: Logge Join-Filter und Ergebnis-Anzahl
 			if h.Logger != nil {
-				h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResults)))
+				h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
 			}
-			entries[i][join.Table] = joinResults
+			entries[i][join.Table] = joinResult.Entries
+			fileOpens += joinResult.FileOpens
+			ramHits += joinResult.RAMHits
 		}
 	}
-	return entries, nil
+	return &FilterResult{
+		Entries:   entries,
+		FileOpens: fileOpens,
+		RAMHits:   ramHits,
+	}, nil
 }
 
 func copyJoinPath(orig map[string]struct{}) map[string]struct{} {
@@ -144,16 +153,20 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), execTime)
 	}
-	entries, err := h.queryWithJoins(dbName, tableName, queryObj, meta, queryObj.Join, 1, 8, nil)
+	filterResult, err := h.queryWithJoins(dbName, tableName, queryObj, meta, queryObj.Join, 1, 8, nil)
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), execTime)
 	}
 	execTime := time.Since(start).String()
-	return response.WriteSuccess(entries, execTime)
+	return response.WriteSuccess(filterResult, execTime)
 }
 
 // Exportiere die Funktion, damit sie im Router verwendet werden kann
 func (h *QueryHandler) QueryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) ([]map[string]interface{}, error) {
-	return h.queryWithJoins(dbName, tableName, query, meta, joinDefs, joinDepth, maxJoinDepth, joinPath)
+	result, err := h.queryWithJoins(dbName, tableName, query, meta, joinDefs, joinDepth, maxJoinDepth, joinPath)
+	if err != nil {
+		return nil, err
+	}
+	return result.Entries, nil
 }

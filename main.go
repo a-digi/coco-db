@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/a-digi/coco-db/src/index"
 	"github.com/a-digi/coco-db/src/server"
 	"os"
 	"os/exec"
@@ -114,6 +115,11 @@ func init() {
 	if len(os.Args) > 1 && os.Args[1] == "_run" {
 		config := server.LoadConfig("config.json")
 		server.StartServerWithConfig(config)
+
+		// Nach dem Laden der Indizes: RAM-Debug-Ausgabe für wichtige Indizes
+		index.GetRegistry().DebugPrintIndex("poseidon.users.age", 10)
+		index.GetRegistry().DebugPrintIndex("poseidon.users.date", 10)
+
 		os.Exit(0)
 	}
 }

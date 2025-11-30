@@ -2,6 +2,7 @@ package index
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -42,6 +43,17 @@ func (r *IndexRegistry) Get(key string) (IndexData, bool) {
 	return data, ok
 }
 
+// Keys gibt alle Keys der Registry zurück (thread-safe)
+func (r *IndexRegistry) Keys() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	keys := make([]string, 0, len(r.cache))
+	for k := range r.cache {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // Lädt alle index_*.json Dateien rekursiv aus dataDir und misst Zeit/Speicher
 func LoadAllIndexes(dataDir string) error {
 	reg := GetRegistry()
@@ -68,26 +80,21 @@ func LoadAllIndexes(dataDir string) error {
 	})
 	dur := time.Since(start)
 	log.Printf("[IndexRegistry] %d Indexe in %.2fs geladen.", count, dur.Seconds())
+	// Zähle alle Einträge in allen RAM-Indizes
+	totalEntries := reg.CountAllEntries()
+	log.Printf("[IndexRegistry] Insgesamt %d Einträge in allen RAM-Indizes nach Initialisierung.", totalEntries)
 	return err
 }
 
 func buildIndexKeyFromPath(path, dataDir string) string {
 	rel, _ := filepath.Rel(dataDir, path)
-	// Annahme: dataDir/db/table/index_*.json
-	partsFS := filepath.ToSlash(rel)
-	partsArr := make([]string, 0)
-	for _, p := range strings.Split(partsFS, "/") {
-		if p != "" {
-			partsArr = append(partsArr, p)
-		}
-	}
-	if len(partsArr) >= 3 {
-		db := partsArr[0]
-		table := partsArr[1]
-		if len(partsArr[2]) >= 11 && strings.HasPrefix(partsArr[2], "index_") && strings.HasSuffix(partsArr[2], ".json") {
-			index := partsArr[2][6 : len(partsArr[2])-5] // index_xxx.json → xxx
-			return db + "." + table + "." + index
-		}
+	// Annahme: dataDir/db/table/indexes/index_xxx.json
+	parts := strings.Split(filepath.ToSlash(rel), "/")
+	if len(parts) == 4 && parts[2] == "indexes" && strings.HasPrefix(parts[3], "index_") && strings.HasSuffix(parts[3], ".json") {
+		db := parts[0]
+		table := parts[1]
+		index := parts[3][6 : len(parts[3])-5] // index_xxx.json → xxx
+		return db + "." + table + "." + index
 	}
 	return path
 }
@@ -112,3 +119,34 @@ func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value 
 		delete(idx, key)
 	}
 }
+
+// DebugPrintIndex gibt die ersten n Einträge eines Index im RAM aus
+func (r *IndexRegistry) DebugPrintIndex(key string, n int) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	idx, ok := r.cache[key]
+	if !ok {
+		fmt.Printf("[DEBUG] Kein Index für %s im RAM\n", key)
+		return
+	}
+	fmt.Printf("[DEBUG] Index %s im RAM: (erste %d Einträge)\n", key, n)
+	count := 0
+	for k, v := range idx {
+		fmt.Printf("  %s: %v\n", k, v)
+		count++
+		if count >= n {
+			break
+		}
+	}
+}
+
+func (r *IndexRegistry) CountAllEntries() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	total := 0
+	for _, idx := range r.cache {
+		total += len(idx)
+	}
+	return total
+}
+

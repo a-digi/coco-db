@@ -3,7 +3,6 @@ package query
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/a-digi/coco-db/src/query/filter"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"github.com/a-digi/coco-db/src/index"
 	"os"
@@ -13,10 +12,26 @@ import (
 	"time"
 )
 
+// FilterResult enthält die Query-Ergebnisse und die Zähler für Dateiöffnungen und RAM-Zugriffe
+// Wird für API-Aggregate-Logik genutzt
+//
+type FilterResult struct {
+	Entries      []map[string]interface{} `json:"results"`
+	FileOpens    int                      `json:"fileOpens"`
+	RAMHits      int                      `json:"ramHits"`
+}
+
 // Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
 // Gibt die gefilterten Einträge als Array von map[string]interface{} zurück
-func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) ([]map[string]interface{}, error) {
-	// 1. Indexfelder und Nicht-Indexfelder trennen
+func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) (*FilterResult, error) {
+	var fileOpenCount int
+	var ramHitCount int
+
+	loadEntryCounted := func(entriesDir, id string) (map[string]interface{}, error) {
+		fileOpenCount++
+		return loadEntry(entriesDir, id)
+	}
+
 	indexedFields := map[string]fields.IndexMeta{}
 	nonIndexedFields := map[string]struct{}{}
 	for _, idx := range meta.Indexes {
@@ -30,11 +45,10 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		}
 	}
 
-	// 2. Indexnutzung: IDs für alle Indexfilter sammeln (Schnittmenge)
+	// 1. IDs aus allen Indexfiltern sammeln
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
-			// Index aus RAM-Registry laden
 			idxKey := dbName + "." + tableName + "." + idxMeta.Name
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
@@ -42,14 +56,14 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				// Bereichsfilter erkennen
 				switch c := cond.(type) {
 				case map[string]interface{}:
-					ids := filterIDsByRangeFromIndex(idxObj, c)
+					ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
 					if len(ids) > 0 {
 						idSets = append(idSets, ids)
-						continue
 					}
 				default:
 					key := fmt.Sprint(cond)
 					if idsRaw, found := idxObj[key]; found {
+						ramHitCount++
 						if ids, ok := idsRaw.([]interface{}); ok {
 							strIDs := make([]string, 0, len(ids))
 							for _, id := range ids {
@@ -58,77 +72,90 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 								}
 							}
 							idSets = append(idSets, strIDs)
-							continue
-						}
-						if ids, ok := idsRaw.([]string); ok {
+						} else if ids, ok := idsRaw.([]string); ok {
 							idSets = append(idSets, ids)
-							continue
 						}
 					}
 				}
 			}
-			// Fallback: Indexdatei von Disk laden (Legacy/Fehlerfall)
-			idxPath := filepath.Join(dataDir, dbName, tableName, "indexes", fields.GetIndexFileName(idxMeta.Name))
-			ids, err := loadIDsFromIndex(idxPath, cond)
-			if err != nil {
-				return nil, err
-			}
-			idSets = append(idSets, ids)
 		}
 	}
+
+	// 2. Schnittmenge aller Index-IDs bilden
 	ids := intersectIDSets(idSets)
 
-	// 3. Sequentieller Scan für nicht indizierte Filter
 	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
 	var result []map[string]interface{}
-	sequentialScans := 0
-	sequentialEntries := 0
-	if query.IsSearchQuery {
-		// Eigene Filter-Logik für SearchQuery
-		files, _ := os.ReadDir(entriesDir)
-		sequentialScans++
-		for _, f := range files {
-			if f.IsDir() {
-				id := f.Name()
-				entry, err := loadEntry(entriesDir, id)
 
-				if err == nil && filter.MatchesAllFiltersSearch(entry, query.Filter, operatorFuncs, isEqual) {
-					result = append(result, entry)
+	// 3. Wenn Index-IDs vorhanden, prüfe nur diese, sonst vollständiger Scan
+	if len(ids) > 0 {
+		for _, id := range ids {
+			entry, err := loadEntryCounted(entriesDir, id)
+			if err != nil {
+				continue
+			}
+			// Prüfe nicht-indexierte Filter
+			match := true
+			for f := range nonIndexedFields {
+				cond := query.Filter[f]
+				val, ok := entry[f]
+				if !ok {
+					match = false
+					break
 				}
-
-				sequentialEntries++
+				switch c := cond.(type) {
+				case map[string]interface{}:
+					for op, opVal := range c {
+						fn, found := operatorFuncs[op]
+						if !found || !fn(val, opVal) {
+							match = false
+							break
+						}
+					}
+					if !match {
+						break
+					}
+				default:
+					if !isEqual(val, c) {
+						match = false
+						break
+					}
+				}
+				if !match {
+					break
+				}
+			}
+			if match {
+				result = append(result, entry)
 			}
 		}
 	} else {
-		if len(ids) > 0 {
-			for _, id := range ids {
-				entry, err := loadEntry(entriesDir, id)
-				if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
-					result = append(result, entry)
+		// Kein Index nutzbar: vollständiger Scan
+		files, _ := os.ReadDir(entriesDir)
+		for _, f := range files {
+			if f.IsDir() {
+				id := f.Name()
+				entry, err := loadEntryCounted(entriesDir, id)
+				if err != nil {
+					continue
 				}
-			}
-		} else {
-			files, _ := os.ReadDir(entriesDir)
-			sequentialScans++
-			for _, f := range files {
-				if f.IsDir() {
-					id := f.Name()
-					entry, err := loadEntry(entriesDir, id)
-					if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
-						result = append(result, entry)
-					}
-					sequentialEntries++
+				if matchesAllFiltersEngine(entry, query.Filter) {
+					result = append(result, entry)
 				}
 			}
 		}
 	}
 
-	// Nach dem Filtern: Sortierung und Paginierung
 	if len(query.Sort) > 0 {
 		sortEntries(result, query.Sort)
 	}
 	result = applyPagination(result, query.Limit, query.Offset)
-	return result, nil
+
+	return &FilterResult{
+		Entries:   result,
+		FileOpens: fileOpenCount,
+		RAMHits:   ramHitCount,
+	}, nil
 }
 
 // matchesAllFiltersEngine prüft, ob ein Eintrag alle Filterbedingungen erfüllt (AND-Logik)
@@ -294,12 +321,10 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 	return entries[offset:end]
 }
 
-// Hilfsfunktion: Bereichsfilter auf Index anwenden
-func filterIDsByRangeFromIndex(idxObj map[string]interface{}, cond map[string]interface{}) []string {
+// Hilfsfunktion: Bereichsfilter auf Index anwenden (mit RAM-Zähler)
+func filterIDsByRangeFromIndexCounted(idxObj map[string]interface{}, cond map[string]interface{}, ramHitCount *int) []string {
 	var result []string
 	for k, v := range idxObj {
-		// k ist der Index-Key (z.B. Datum oder Zahl als String)
-		// v ist []string oder []interface{}
 		match := true
 		for op, opVal := range cond {
 			switch op {
@@ -326,7 +351,7 @@ func filterIDsByRangeFromIndex(idxObj map[string]interface{}, cond map[string]in
 			}
 		}
 		if match {
-			// IDs extrahieren
+			*ramHitCount++
 			switch ids := v.(type) {
 			case []interface{}:
 				for _, id := range ids {
