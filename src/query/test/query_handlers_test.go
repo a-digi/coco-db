@@ -15,7 +15,14 @@ import (
 	"github.com/a-digi/coco-db/src/table/fields"
 )
 
-// Entferne setupTestTable aus dieser Datei, da sie jetzt in test_helpers.go liegt
+// Hilfsfunktion für RAM-Index-Setup (korrektes Test-Package!)
+func setupTestRegistryForUsers() {
+	idxKey := "testdb.users.id_idx"
+	reg := query.GetTestRegistry()
+	reg.Set(idxKey, map[string]interface{}{
+		"1": []string{"1"},
+	})
+}
 
 func TestTableQueryHandler_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
@@ -43,8 +50,8 @@ func TestTableQueryHandler_Success(t *testing.T) {
 		return
 	}
 	t.Logf("Entry: %+v", entry)
-	if entry["id"] != "1" || entry["name"] != "Test" || fmt.Sprintf("%v", entry["age"]) != "42" {
-		t.Errorf("Erwartet einen Eintrag mit id=1, name=Test, age=42, bekommen: %+v", entry)
+	if entry["id"] != "1" || entry["name"] != "Test User" || fmt.Sprintf("%v", entry["age"]) != "25" {
+		t.Errorf("Erwartet einen Eintrag mit id=1, name=Test User, age=25, bekommen: %+v", entry)
 	}
 }
 
@@ -129,7 +136,7 @@ func TestQueryHandler_Success(t *testing.T) {
 		}
 	} else {
 		// Erwarte, dass der Eintrag alle Felder enthält
-		if foundEntry["name"] != "Test" || fmt.Sprintf("%v", foundEntry["age"]) != "42" {
+		if foundEntry["name"] != "Test User" || fmt.Sprintf("%v", foundEntry["age"]) != "25" {
 			t.Errorf("Gefundener Eintrag stimmt nicht: %+v", foundEntry)
 		}
 	}
