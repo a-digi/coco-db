@@ -1,6 +1,0 @@
-=== RUN   TestQueryHandler_GraphQLLikeQuery
-    query_handlers_graphql_test.go:16: Test gestartet
---- FAIL: TestQueryHandler_GraphQLLikeQuery (0.00s)
-FAIL
-FAIL	command-line-arguments	0.158s
-FAIL

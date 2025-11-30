@@ -87,3 +87,6 @@ fake-existing-relations:
 		AMOUNT=$(amount); \
 	fi; \
 	go run ./scripts/faker/fake_existing_relations.go --db $(db) --targetTable $(targetTable) --relationTable $(relationTable) --secondRelationTable $(secondRelationTable) --amount $$AMOUNT
+
+faker-user-roles:
+	$(MAKE) fake-existing-relations db=poseidon targetTable=user_roles relationTable='users:user_id' secondRelationTable='roles:role_id' amount=300
