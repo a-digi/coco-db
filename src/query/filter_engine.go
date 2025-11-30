@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/a-digi/coco-db/src/query/filter"
 	"github.com/a-digi/coco-db/src/table/fields"
+	"github.com/a-digi/coco-db/src/index"
 	"os"
 	"path/filepath"
 	"sort"
@@ -31,7 +32,30 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
-			// Index laden (Stub: Annahme BTree)
+			// Index aus RAM-Registry laden
+			idxKey := dbName + "." + tableName + "." + idxMeta.Name
+			reg := index.GetRegistry()
+			idxObj, ok := reg.Get(idxKey)
+			if ok {
+				key := fmt.Sprint(cond)
+				if idsRaw, found := idxObj[key]; found {
+					if ids, ok := idsRaw.([]interface{}); ok {
+						strIDs := make([]string, 0, len(ids))
+						for _, id := range ids {
+							if s, ok := id.(string); ok {
+								strIDs = append(strIDs, s)
+							}
+						}
+						idSets = append(idSets, strIDs)
+						continue
+					}
+					if ids, ok := idsRaw.([]string); ok {
+						idSets = append(idSets, ids)
+						continue
+					}
+				}
+			}
+			// Fallback: Indexdatei von Disk laden (Legacy/Fehlerfall)
 			idxPath := filepath.Join(dataDir, dbName, tableName, "indexes", fields.GetIndexFileName(idxMeta.Name))
 			ids, err := loadIDsFromIndex(idxPath, cond)
 			if err != nil {

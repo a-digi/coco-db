@@ -59,6 +59,15 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 	// Indexdatei (Dummy: alle IDs)
 	_ = os.WriteFile(idxPath, []byte(`["48dece68-4380-4f82-92e3-8fdb7da2b8bd","2","3"]`), 0644)
 
+	// RAM-Index für FilterEngine bereitstellen
+	idxKey := dbName + "." + tableName + "." + "email_idx"
+	reg := query.GetTestRegistry() // Hilfsfunktion für Test, ruft index.GetRegistry() auf
+	reg.Set(idxKey, map[string]interface{}{
+		"foo@bar.de": []string{"48dece68-4380-4f82-92e3-8fdb7da2b8bd"},
+		"bar@foo.de": []string{"2"},
+		"baz@foo.de": []string{"3"},
+	})
+
 	t.Cleanup(func() {
 		os.RemoveAll(filepath.Join(dataDir, dbName))
 	})

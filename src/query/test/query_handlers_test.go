@@ -21,6 +21,7 @@ func TestTableQueryHandler_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
 	// Nutze die importierte Funktion zum Setup der Testtabelle
 	setupTestTable("./testdata", "testdb", "users", t)
+	setupTestRegistryForUsers() // RAM-Index für Users-Tabelle setzen
 	t.Cleanup(func() { os.RemoveAll("./testdata") })
 	queryBody := map[string]interface{}{
 		"filter": map[string]interface{}{"id": "1"},
@@ -70,6 +71,7 @@ func TestQueryHandler_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
 	// Nutze die importierte Funktion zum Setup der Testtabelle
 	setupTestTable("./testdata", "testdb", "users", t)
+	setupTestRegistryForUsers() // RAM-Index für Users-Tabelle setzen
 	t.Cleanup(func() { os.RemoveAll("./testdata") })
 	queryBody := map[string]interface{}{
 		"filter": map[string]interface{}{"id": "1"},
@@ -146,7 +148,7 @@ func TestQueryHandler_Join_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
 	// Setup users-Tabelle
 	setupTestTable("./testdata", "testdb", "users", t)
-	// Setup orders-Tabelle mit Join-Feld user_id
+	// Setup orders-Tabelle with Join-Feld user_id
 	meta := &fields.TableMeta{
 		TableName: "orders",
 		Fields: []fields.FieldMeta{
@@ -175,6 +177,19 @@ func TestQueryHandler_Join_Success(t *testing.T) {
 	idxObj := map[string][]string{"1": {"1"}}
 	idxBytes, _ := json.Marshal(idxObj)
 	_ = os.WriteFile(idxPath, idxBytes, 0644)
+
+	// RAM-Index für users-Tabelle bereitstellen
+	userIdxKey := "testdb.users.id_idx"
+	userReg := query.GetTestRegistry()
+	userReg.Set(userIdxKey, map[string]interface{}{
+		"1": []string{"1"},
+	})
+	// RAM-Index für orders-Tabelle bereitstellen
+	orderIdxKey := "testdb.orders.id_idx"
+	orderReg := query.GetTestRegistry()
+	orderReg.Set(orderIdxKey, map[string]interface{}{
+		"1": []string{"1"},
+	})
 
 	t.Cleanup(func() { os.RemoveAll("./testdata") })
 
