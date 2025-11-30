@@ -135,6 +135,7 @@ func (tc *TableCreator) HandleCreateTable(dbname string, meta fields.TableMeta) 
 	if meta.SchemaVersion == 0 {
 		meta.SchemaVersion = 1
 	}
+	meta.TotalEntries = 0 // Setze totalEntries beim Anlegen auf 0 (auch für meta.json)
 	f, err := os.Create(metaPath)
 	if err != nil {
 		execTime := time.Since(start).String()

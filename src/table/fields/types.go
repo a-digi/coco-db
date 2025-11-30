@@ -60,6 +60,7 @@ type TableMeta struct {
 	Indexes               []IndexMeta            `json:"indexes,omitempty"`
 	Options               map[string]interface{} `json:"options,omitempty"`
 	AllowAdditionalFields *bool                  `json:"allowAdditionalFields,omitempty"`
+	TotalEntries          int                    `json:"totalEntries"`
 }
 
 // LoadTableMeta lädt meta.json als types.TableMeta
