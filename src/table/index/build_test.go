@@ -34,7 +34,7 @@ func TestBuildIndexesFromEntries_SingleField(t *testing.T) {
 		t.Fatalf("Fehler beim Indexaufbau: %v", err)
 	}
 	// Prüfe, ob Indexdatei existiert und beide Einträge enthält
-	indexPath := filepath.Join(dir, "index_email_idx.json")
+	indexPath := filepath.Join(dir, "indexes", "index_email_idx.json")
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
 		t.Fatalf("Indexdatei nicht gefunden: %v", err)
@@ -47,4 +47,3 @@ func TestBuildIndexesFromEntries_SingleField(t *testing.T) {
 		t.Errorf("Indexdaten stimmen nicht: %+v", idxMap)
 	}
 }
-

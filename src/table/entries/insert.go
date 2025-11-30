@@ -99,7 +99,7 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 					key, ok := entry[idxField]
 					if ok {
 						// Index laden oder neu anlegen
-						idxPath := filepath.Join(tableDir, "index_"+idxMeta.Name+".json")
+						idxPath := filepath.Join(tableDir, "indexes", "index_"+idxMeta.Name+".json")
 						var idxObj map[string][]string
 						idxObj = map[string][]string{}
 						if idxData, err := os.ReadFile(idxPath); err == nil {

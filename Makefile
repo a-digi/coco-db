@@ -48,5 +48,5 @@ stop-dev:
 		echo "Keine coco-db.pid gefunden. Kein laufender dev-Server."; \
 	fi
 
-faker-test:
-	go run ./scripts/faker.go --table poseidon/items --amount 100
+fake-data:
+	go run ./scripts/faker.go --table poseidon/users --amount 10000

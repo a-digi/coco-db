@@ -54,7 +54,7 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 						_ = json.Unmarshal(oldData, &oldEntry)
 					}
 					// Index laden
-					idxPath := filepath.Join(tableDir, "index_"+idxName+".json")
+					idxPath := filepath.Join(tableDir, "indexes", "index_"+idxName+".json")
 					var idxObj map[string][]string
 					idxObj = map[string][]string{}
 					if idxData, err := os.ReadFile(idxPath); err == nil {

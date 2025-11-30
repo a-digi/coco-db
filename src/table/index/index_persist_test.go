@@ -26,9 +26,8 @@ func TestBTreeIndex_SaveAndLoadToFile(t *testing.T) {
 		t.Errorf("Indexdaten nach Laden stimmen nicht: %+v", m)
 	}
 	// Prüfe, ob Datei existiert
-	indexPath := filepath.Join(dir, "index_email.json")
+	indexPath := filepath.Join(dir, "indexes", "index_email.json")
 	if _, err := os.Stat(indexPath); err != nil {
 		t.Errorf("Indexdatei nicht gefunden: %v", err)
 	}
 }
-

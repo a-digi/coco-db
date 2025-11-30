@@ -22,7 +22,7 @@ type ConsistencyReport struct {
 // CheckIndexConsistency prüft für einen Single-Field-Index die Konsistenz zwischen Daten und Indexdatei
 func CheckIndexConsistency(tableDir string, meta fields.TableMeta, idxMeta fields.IndexMeta) (*ConsistencyReport, error) {
 	entriesDir := filepath.Join(tableDir, "entries")
-	idxPath := filepath.Join(tableDir, "index_"+idxMeta.Name+".json")
+	idxPath := filepath.Join(tableDir, "indexes", "index_"+idxMeta.Name+".json")
 	// 1. Alle EntryIDs aus Daten sammeln
 	entryIds := map[string]string{} // entryId -> key
 	files, err := os.ReadDir(entriesDir)
@@ -104,4 +104,3 @@ func CheckAllIndexesConsistency(tableDir string, meta fields.TableMeta) ([]*Cons
 	}
 	return reports, nil
 }
-

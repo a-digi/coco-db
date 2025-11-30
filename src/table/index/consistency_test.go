@@ -25,7 +25,7 @@ func TestCheckIndexConsistency_SingleField(t *testing.T) {
 	}
 	// Lege Indexdatei an (nur einen Eintrag absichtlich)
 	idxObj := map[string][]string{"foo@bar.de": {"id1"}}
-	idxPath := filepath.Join(dir, "index_email_idx.json")
+	idxPath := filepath.Join(dir, "indexes", "index_email_idx.json")
 	f, _ := os.Create(idxPath)
 	_ = json.NewEncoder(f).Encode(idxObj)
 	f.Close()
@@ -48,4 +48,3 @@ func TestCheckIndexConsistency_SingleField(t *testing.T) {
 		t.Errorf("Duplikate falsch: %+v", rep.Duplicates)
 	}
 }
-

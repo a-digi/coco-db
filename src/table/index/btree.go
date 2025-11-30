@@ -64,7 +64,7 @@ func (b *BTreeIndex) Range(start, end interface{}) ([]string, error) {
 
 // SaveToFile speichert den Index als JSON-Objekt in eine Datei (z.B. index_{name}.json)
 func (b *BTreeIndex) SaveToFile(dir string) error {
-	indexPath := filepath.Join(dir, "index_"+b.meta.Name+".json")
+	indexPath := filepath.Join(dir, "indexes", "index_"+b.meta.Name+".json")
 	data := b.toMap()
 	f, err := os.Create(indexPath)
 	if err != nil {
