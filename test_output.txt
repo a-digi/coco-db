@@ -1,0 +1,5 @@
+# command-line-arguments [command-line-arguments.test]
+src/table/index/build_test.go:32:9: undefined: BuildIndexesFromEntries
+src/table/index/consistency_test.go:38:14: undefined: CheckIndexConsistency
+FAIL	command-line-arguments [build failed]
+FAIL

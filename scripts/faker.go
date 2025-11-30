@@ -74,7 +74,7 @@ func randomValue(f FieldMeta, i int) interface{} {
 			return randomStringWithLength(minLen, maxLen)
 		}
 		return randomStringWithLength(minLen, maxLen)
-	case "int":
+	case "int", "integer":
 		min, max := 0, 100
 		if f.Min != nil {
 			min = int(*f.Min)

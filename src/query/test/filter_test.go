@@ -43,11 +43,17 @@ func setupTestData(t *testing.T) (dataDir, dbName, tableName string, meta *field
 		b, _ := json.Marshal(entry)
 		_ = os.WriteFile(filepath.Join(entryDir, e.ID+".json"), b, 0644)
 	}
-	// Indexdatei (Dummy: alle IDs)
+	// Indexdatei (Objekt: email -> [ID])
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
 	idxPath := filepath.Join(idxDir, "email_idx.json")
-	_ = os.WriteFile(idxPath, []byte(`["1","2","3"]`), 0644)
+	idxObj := map[string][]string{
+		"foo@bar.de": {"1"},
+		"bar@foo.de": {"2"},
+		"baz@foo.de": {"3"},
+	}
+	b, _ := json.Marshal(idxObj)
+	_ = os.WriteFile(idxPath, b, 0644)
 
 	cleanup = func() {
 		os.RemoveAll(filepath.Join(dataDir, dbName))
