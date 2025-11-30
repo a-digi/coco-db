@@ -328,38 +328,75 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 	return entries[offset:end]
 }
 
-// Hilfsfunktion: Bereichsfilter auf Index anwenden (mit RAM-Zähler)
+// Hilfsfunktion: Bereichsfilter auf Index anwenden (mit RAM-Zähler, optimiert für sortierte Keys)
 func filterIDsByRangeFromIndexCounted(idxObj map[string]interface{}, cond map[string]interface{}, ramHitCount *int) []string {
 	var result []string
-	for k, v := range idxObj {
+	if len(idxObj) == 0 {
+		return result
+	}
+
+	// Versuche, ob die Keys als Datum oder Zahl sortierbar sind
+	var keys []string
+	for k := range idxObj {
+		keys = append(keys, k)
+	}
+
+	isDate := false
+	isNumber := false
+	if _, err := time.Parse(time.RFC3339, keys[0]); err == nil {
+		isDate = true
+	} else if _, err := strconv.ParseFloat(keys[0], 64); err == nil {
+		isNumber = true
+	}
+
+	if isDate {
+		sort.Slice(keys, func(i, j int) bool {
+			t1, _ := time.Parse(time.RFC3339, keys[i])
+			t2, _ := time.Parse(time.RFC3339, keys[j])
+			return t1.Before(t2)
+		})
+	} else if isNumber {
+		sort.Slice(keys, func(i, j int) bool {
+			f1, _ := strconv.ParseFloat(keys[i], 64)
+			f2, _ := strconv.ParseFloat(keys[j], 64)
+			return f1 < f2
+		})
+	} else {
+		sort.Strings(keys)
+	}
+
+	// Bereichsgrenzen bestimmen
+	var gte, lte, gt, lt interface{}
+	for op, opVal := range cond {
+		switch op {
+		case "gte":
+			gte = opVal
+		case "lte":
+			lte = opVal
+		case "gt":
+			gt = opVal
+		case "lt":
+			lt = opVal
+		}
+	}
+
+	for _, k := range keys {
 		match := true
-		for op, opVal := range cond {
-			switch op {
-			case "gte":
-				if !compareIndexKey(k, opVal, ">=", false) {
-					match = false
-				}
-			case "lte":
-				if !compareIndexKey(k, opVal, "<=", false) {
-					match = false
-				}
-			case "gt":
-				if !compareIndexKey(k, opVal, ">", false) {
-					match = false
-				}
-			case "lt":
-				if !compareIndexKey(k, opVal, "<", false) {
-					match = false
-				}
-			case "eq":
-				if !compareIndexKey(k, opVal, "==", false) {
-					match = false
-				}
-			}
+		if gte != nil && !compareIndexKey(k, gte, ">=", isDate) {
+			match = false
+		}
+		if lte != nil && !compareIndexKey(k, lte, "<=", isDate) {
+			match = false
+		}
+		if gt != nil && !compareIndexKey(k, gt, ">", isDate) {
+			match = false
+		}
+		if lt != nil && !compareIndexKey(k, lt, "<", isDate) {
+			match = false
 		}
 		if match {
 			*ramHitCount++
-			switch ids := v.(type) {
+			switch ids := idxObj[k].(type) {
 			case []interface{}:
 				for _, id := range ids {
 					if s, ok := id.(string); ok {
