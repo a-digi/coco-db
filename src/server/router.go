@@ -275,6 +275,16 @@ func SetupRouter() http.Handler {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
+	// Search-Endpunkt: POST /api/databases/{dbname}/search
+	pr.HandleFunc("POST", "/api/databases/{dbname}/search", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		dbName := params["dbname"]
+		queryHandler := &query.QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		resp := queryHandler.QueryHandler(dbName, r)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.HttpCode)
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
 	// Kombiniere Health-Mux und ParamRouter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {

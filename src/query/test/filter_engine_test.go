@@ -178,7 +178,7 @@ func TestFilterEngine_DeepJoins(t *testing.T) {
 
 	// Dummy-Implementierung: Wir prüfen nur, ob die Join-Struktur korrekt erzeugt werden kann
 	// (Die eigentliche Join-Engine muss in der API implementiert sein)
-	// Hier simulieren wir, dass die Join-Tiefe nicht zu einem Stackoverflow oder Fehler führt
+	// Hier simulieren wir, dass die Join- Tiefe nicht zu einem Stackoverflow oder Fehler führt
 	// und dass die Join-Definitionen korrekt verarbeitet werden
 	if len(q.Join) != joinDepth {
 		t.Errorf("Erwartet %d Joins, bekommen: %d", joinDepth, len(q.Join))

@@ -3,51 +3,23 @@ package query_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
+	"fmt"
+	"path/filepath"
 
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/query"
 	"github.com/a-digi/coco-db/src/table/fields"
 )
 
-func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
-	meta := &fields.TableMeta{
-		TableName: tableName,
-		Fields: []fields.FieldMeta{
-			{Name: "id", Type: "string"},
-			{Name: "name", Type: "string"},
-			{Name: "age", Type: "int"},
-		},
-		Indexes: []fields.IndexMeta{
-			{Name: "id_idx", Fields: []string{"id"}, Type: "primary", Unique: true},
-		},
-	}
-	metaPath := filepath.Join(dataDir, dbName, tableName, "meta.json")
-	_ = os.MkdirAll(filepath.Dir(metaPath), 0755)
-	metaBytes, _ := json.Marshal(meta)
-	_ = os.WriteFile(metaPath, metaBytes, 0644)
-	// Ein Eintrag
-	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
-	_ = os.MkdirAll(entriesDir, 0755)
-	entry := map[string]interface{}{"id": "1", "name": "Test", "age": 42}
-	entryBytes, _ := json.Marshal(entry)
-	_ = os.WriteFile(filepath.Join(entriesDir, "1.json"), entryBytes, 0644)
-	// Indexdatei als Objekt anlegen (id → [id])
-	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
-	_ = os.MkdirAll(idxDir, 0755)
-	idxPath := filepath.Join(idxDir, "index_id_idx.json")
-	idxObj := map[string][]string{"1": {"1"}}
-	idxBytes, _ := json.Marshal(idxObj)
-	_ = os.WriteFile(idxPath, idxBytes, 0644)
-}
+// Entferne setupTestTable aus dieser Datei, da sie jetzt in test_helpers.go liegt
 
 func TestTableQueryHandler_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
+	// Nutze die importierte Funktion zum Setup der Testtabelle
 	setupTestTable("./testdata", "testdb", "users", t)
 	t.Cleanup(func() { os.RemoveAll("./testdata") })
 	queryBody := map[string]interface{}{
@@ -96,6 +68,7 @@ func TestTableQueryHandler_NotFound(t *testing.T) {
 
 func TestQueryHandler_Success(t *testing.T) {
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
+	// Nutze die importierte Funktion zum Setup der Testtabelle
 	setupTestTable("./testdata", "testdb", "users", t)
 	t.Cleanup(func() { os.RemoveAll("./testdata") })
 	queryBody := map[string]interface{}{

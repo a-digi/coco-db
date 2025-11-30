@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"fmt"
+	"errors"
+	"io"
+	"strings"
 )
 
 // ParseQuery liest und parst den JSON-Body in ein Query-Objekt und prüft Pflichtfelder/Defaults
@@ -62,4 +65,71 @@ func ParseQuery(r *http.Request, defaultLimit, maxLimit int) (*Query, error) {
 		}
 	}
 	return &qr, nil
+}
+
+// ParseSearchQuery parst eine Query im GraphQL-ähnlichen Format wie:
+// query { users( ... ) { ... } }
+// und wandelt sie in ein Query-Objekt um.
+func ParseSearchQuery(r *http.Request) (*Query, string, error) {
+	// 1. Body als String einlesen
+	var bodyBytes []byte
+	if r.Body != nil {
+		bodyBytes, _ = io.ReadAll(r.Body)
+	}
+	queryStr := string(bodyBytes)
+
+	// 2. Query-String parsen (explizit für das Format: query { users( ... ) { ... } })
+	queryStr = strings.TrimSpace(queryStr)
+	if !strings.HasPrefix(queryStr, "query {") {
+		return nil, "", errors.New("Query muss mit 'query {' beginnen")
+	}
+	// Extrahiere Tabellennamen
+	tableStart := strings.Index(queryStr, "{") + 1
+	tableEnd := strings.Index(queryStr[tableStart:], "(")
+	if tableEnd == -1 {
+		return nil, "", errors.New("Tabellenname und Parameter erwartet (users(...)")
+	}
+	tableName := strings.TrimSpace(queryStr[tableStart : tableStart+tableEnd])
+
+	// Extrahiere Parameter (zwischen erstem '(' und erstem ')')
+	paramsStart := tableStart + tableEnd + 1
+	paramsEnd := strings.Index(queryStr[paramsStart:], ")")
+	if paramsEnd == -1 {
+		return nil, "", errors.New("Parameterblock nicht gefunden")
+	}
+	paramsBlock := queryStr[paramsStart : paramsStart+paramsEnd]
+
+	// Extrahiere Felder (zwischen erstem '{' nach ')' und passender '}')
+	fieldsStart := strings.Index(queryStr[paramsStart+paramsEnd:], "{")
+	fieldsEnd := strings.LastIndex(queryStr, "}")
+	if fieldsStart == -1 || fieldsEnd == -1 {
+		return nil, "", errors.New("Feldblock nicht gefunden")
+	}
+	fieldsBlock := queryStr[paramsStart+paramsEnd+fieldsStart+1 : fieldsEnd]
+
+	// 3. Parameter-Block in JSON-ähnliches Format umwandeln (vereinfachte Annahme)
+	paramsBlock = strings.ReplaceAll(paramsBlock, "\n", " ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "\t", " ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, "'", "\"")
+	paramsBlock = strings.ReplaceAll(paramsBlock, ":", ": ")
+	paramsBlock = strings.ReplaceAll(paramsBlock, ",", ", ")
+
+	// 4. Felder extrahieren (durch Komma getrennt, ggf. mit Subfeldern)
+	fields := []string{}
+	for _, f := range strings.Split(fieldsBlock, "\n") {
+		f = strings.TrimSpace(f)
+		if f != "" && !strings.HasSuffix(f, "{") && !strings.HasSuffix(f, "}") {
+			fields = append(fields, f)
+		}
+	}
+
+	// 5. Parameter-Block als JSON parsen
+	paramsJSON := "{" + paramsBlock + "}"
+	var qr Query
+	if err := json.Unmarshal([]byte(paramsJSON), &qr); err != nil {
+		return nil, "", fmt.Errorf("Parameterblock konnte nicht geparst werden: %w", err)
+	}
+	qr.Fields = fields
+
+	return &qr, tableName, nil
 }

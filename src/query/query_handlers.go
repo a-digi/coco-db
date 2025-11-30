@@ -7,8 +7,6 @@ import (
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"github.com/a-digi/coco-db/src/logger"
-	"os"
-	"path/filepath"
 )
 
 // QueryHandler kapselt DataDir und Logger für Query-Endpunkte
@@ -123,33 +121,25 @@ func copyJoinPath(orig map[string]struct{}) map[string]struct{} {
 // QueryHandler verarbeitet eine globale Query und gibt eine APIResponse zurück
 func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.APIResponse {
 	start := time.Now()
-	queryObj, err := ParseQuery(r, 100, 1000)
+	// Nutze ParseSearchQuery für GraphQL-ähnliche Queries
+	queryObj, tableName, err := ParseSearchQuery(r)
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_QUERY", err.Error(), execTime)
 	}
-	tableDir := filepath.Join(h.DataDir, dbName)
-	dirs, err := os.ReadDir(tableDir)
+
+	meta, err := fields.LoadTableMeta(h.DataDir, dbName, tableName)
 	if err != nil {
 		execTime := time.Since(start).String()
-		return response.WriteErrorInternal(http.StatusNotFound, "ERR_DB_NOT_FOUND", err.Error(), execTime)
+		return response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), execTime)
 	}
-	allResults := []interface{}{}
-	maxJoinDepth := 8
-	for _, dir := range dirs {
-		if !dir.IsDir() { continue }
-		tableName := dir.Name()
-		meta, err := fields.LoadTableMeta(h.DataDir, dbName, tableName)
-		if err != nil { continue }
-		entries, err := h.queryWithJoins(dbName, tableName, queryObj, meta, queryObj.Join, 1, maxJoinDepth, nil)
-		if err != nil { continue }
-		allResults = append(allResults, map[string]interface{}{
-			"table": tableName,
-			"entries": entries,
-		})
+	entries, err := h.queryWithJoins(dbName, tableName, queryObj, meta, queryObj.Join, 1, 8, nil)
+	if err != nil {
+		execTime := time.Since(start).String()
+		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), execTime)
 	}
 	execTime := time.Since(start).String()
-	return response.WriteSuccess(allResults, execTime)
+	return response.WriteSuccess(entries, execTime)
 }
 
 // Exportiere die Funktion, damit sie im Router verwendet werden kann

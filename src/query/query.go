@@ -22,5 +22,6 @@ type Query struct {
 	Limit  int                    `json:"limit"`
 	Offset int                    `json:"offset"`
 	Sort   []string               `json:"sort"`
-	Join   []JoinDef              `json:"join"` // optional, für globale Query
+	Join   []JoinDef              `json:"join"`
+	Fields []string               `json:"fields"`
 }
