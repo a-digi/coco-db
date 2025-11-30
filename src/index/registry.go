@@ -3,7 +3,6 @@ package index
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,10 +74,7 @@ func LoadAllIndexes(dataDir string) error {
 		}
 		return nil
 	})
-	// Zähle alle Einträge in allen RAM-Indizes
-	totalEntries := reg.CountAllEntries()
 
-	log.Printf("[IndexRegistry] Insgesamt %d Einträge in allen RAM-Indizes nach Initialisierung.", totalEntries)
 	return err
 }
 

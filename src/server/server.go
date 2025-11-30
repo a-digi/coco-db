@@ -98,7 +98,6 @@ func StartServerWithConfig(cfg ServerConfig) {
 	}()
 
 	fileLogger.Info("Server läuft auf http://localhost" + addr)
-	fmt.Printf("[DEBUG] Server läuft auf http://localhost%s\n", addr)
 	log.Printf("Server läuft auf http://localhost%s\n", addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		fileLogger.Error("ListenAndServe():", err)
