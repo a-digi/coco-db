@@ -151,6 +151,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else {
+	    /*
 		fmt.Printf("[DEBUG] Kein Index nutzbar, vollständiger Scan für Tabelle %s.%s!\n", dbName, tableName)
 		// Kein Index nutzbar: vollständiger Scan
 		files, _ := os.ReadDir(entriesDir)
@@ -168,6 +169,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				}
 			}
 		}
+        */
 	}
 
 	if len(query.Sort) > 0 {
