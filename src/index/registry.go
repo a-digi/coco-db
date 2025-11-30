@@ -84,8 +84,10 @@ func buildIndexKeyFromPath(path, dataDir string) string {
 	if len(partsArr) >= 3 {
 		db := partsArr[0]
 		table := partsArr[1]
-		index := partsArr[2][6 : len(partsArr[2])-5] // index_xxx.json → xxx
-		return db + "." + table + "." + index
+		if len(partsArr[2]) >= 11 && strings.HasPrefix(partsArr[2], "index_") && strings.HasSuffix(partsArr[2], ".json") {
+			index := partsArr[2][6 : len(partsArr[2])-5] // index_xxx.json → xxx
+			return db + "." + table + "." + index
+		}
 	}
 	return path
 }

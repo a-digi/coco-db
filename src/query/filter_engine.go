@@ -37,6 +37,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {
+				fmt.Printf("[INDEX-REGISTRY] Treffer für %s: %v\n", idxKey, cond)
 				key := fmt.Sprint(cond)
 				if idsRaw, found := idxObj[key]; found {
 					if ids, ok := idsRaw.([]interface{}); ok {
@@ -54,8 +55,11 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 						continue
 					}
 				}
+				// Wenn Key nicht im RAM-Index: explizit loggen
+				fmt.Printf("[INDEX-REGISTRY] Kein Treffer für Key %v in %s\n", key, idxKey)
 			}
 			// Fallback: Indexdatei von Disk laden (Legacy/Fehlerfall)
+			fmt.Printf("[INDEX-FILE] Lade Indexdatei für %s (Fallback)\n", idxKey)
 			idxPath := filepath.Join(dataDir, dbName, tableName, "indexes", fields.GetIndexFileName(idxMeta.Name))
 			ids, err := loadIDsFromIndex(idxPath, cond)
 			if err != nil {

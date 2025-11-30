@@ -18,8 +18,6 @@ import (
 	"time"
 )
 
-var GlobalIndexRegistry *index.Registry
-
 // StartServerWithConfig initialisiert und startet den HTTP-Server mit Konfiguration
 func StartServerWithConfig(cfg ServerConfig) {
 	fmt.Println("[DEBUG] Starte Server mit Konfiguration:", cfg)
@@ -55,10 +53,8 @@ func StartServerWithConfig(cfg ServerConfig) {
 	fileLogger.Info("Verwende Logdatei:", logFile)
 
 	// Index-Registry initialisieren und Indexe laden
-	GlobalIndexRegistry = index.NewRegistry()
-	if err := GlobalIndexRegistry.LoadAllIndexes(cfg.DataDir); err != nil {
+	if err := index.LoadAllIndexes(cfg.DataDir); err != nil {
 		fileLogger.Error("Fehler beim Laden der Indexe:", err)
-		fmt.Fprintf(os.Stderr, "Fehler beim Laden der Indexe: %v\n", err)
 		os.Exit(1)
 	}
 	fileLogger.Info("Alle Indexe wurden in den RAM geladen.")
