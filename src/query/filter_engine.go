@@ -236,3 +236,4 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 	}
 	return entries[offset:end]
 }
+
