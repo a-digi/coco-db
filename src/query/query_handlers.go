@@ -59,69 +59,88 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 	entries := filterResult.Entries
 	fileOpens := filterResult.FileOpens
 	ramHits := filterResult.RAMHits
-	for i := range entries {
-		for _, join := range joinDefs {
-			joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
-			if err != nil {
-				continue
-			}
-			joinQuery := &Query{
-				Filter: join.Filter,
-				Limit:  0,
-				Offset: 0,
-				Sort:   nil,
-				Join:   join.Join,
-			}
-			// Join-Bedingung: Mapping Ziel-Feld (in Join-Tabelle) → Quell-Feld (im Haupteintrag)
-			joinFilter := map[string]interface{}{}
-			for dst, src := range join.On {
-				val, ok := entries[i][src]
-				if !ok {
-					if h.Logger != nil {
-						h.Logger.Warning(fmt.Sprintf("Join-Mapping: Quellfeld '%s' fehlt im Eintrag: %+v", src, entries[i]))
-					}
-					continue
-				}
-				joinFilter[dst] = val
-			}
-			// Filter kombinieren
-			for k, v := range joinQuery.Filter {
-				joinFilter[k] = v
-			}
-			joinQuery.Filter = joinFilter
-			// Rekursiver Join mit aktualisiertem joinPath
-			joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
-			if err != nil {
-				joinResult = &FilterResult{Entries: []map[string]interface{}{}}
-			}
-			if joinResult == nil {
-				joinResult = &FilterResult{Entries: []map[string]interface{}{}}
-			}
-			if join.Fields != nil && len(join.Fields) > 0 {
-				// Nur gewünschte Felder übernehmen
-				for j := range joinResult.Entries {
-					for k := range joinResult.Entries[j] {
-						found := false
-						for _, f := range join.Fields {
-							if k == f {
-								found = true
-								break
-							}
-						}
-						if !found {
-							delete(joinResult.Entries[j], k)
-						}
-					}
-				}
-			}
-			// Debug: Logge Join-Filter und Ergebnis-Anzahl
-			if h.Logger != nil {
-				h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
-			}
-			entries[i][join.Table] = joinResult.Entries
-			fileOpens += joinResult.FileOpens
-			ramHits += joinResult.RAMHits
+	for _, join := range joinDefs {
+		joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
+		if err != nil {
+			continue
 		}
+		// Sammle alle relevanten Join-IDs aus Parent-Entries
+		joinIDs := make(map[interface{}]struct{})
+		for i := range entries {
+			for _, src := range join.On {
+				val, ok := entries[i][src]
+				if ok {
+					joinIDs[val] = struct{}{}
+				}
+			}
+		}
+		// Baue in-Filter für Join-Feld
+		joinFilter := map[string]interface{}{}
+		for dst := range join.On {
+			var idList []interface{}
+			for id := range joinIDs {
+				idList = append(idList, id)
+			}
+			if len(idList) == 1 {
+				joinFilter[dst] = idList[0]
+			} else if len(idList) > 1 {
+				joinFilter[dst] = map[string]interface{}{"in": idList}
+			}
+		}
+		// Filter kombinieren
+		for k, v := range join.Filter {
+			joinFilter[k] = v
+		}
+		joinQuery := &Query{
+			Filter: joinFilter,
+			Limit:  0,
+			Offset: 0,
+			Sort:   nil,
+			Join:   join.Join,
+		}
+		// Rekursiver Join mit aktualisiertem joinPath
+		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
+		if err != nil {
+			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
+		}
+		if joinResult == nil {
+			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
+		}
+		if join.Fields != nil && len(join.Fields) > 0 {
+			// Nur gewünschte Felder übernehmen
+			for j := range joinResult.Entries {
+				for k := range joinResult.Entries[j] {
+					found := false
+					for _, f := range join.Fields {
+						if k == f {
+							found = true
+							break
+						}
+					}
+					if !found {
+						delete(joinResult.Entries[j], k)
+					}
+				}
+			}
+		}
+		// Debug: Logge Join-Filter und Ergebnis-Anzahl
+		if h.Logger != nil {
+			h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
+		}
+		// Mappe die Join-Ergebnisse auf die Parent-Entries
+		for i := range entries {
+			var matchList []map[string]interface{}
+			for _, e := range joinResult.Entries {
+				for dst, src := range join.On {
+					if entries[i][src] == e[dst] {
+						matchList = append(matchList, e)
+					}
+				}
+			}
+			entries[i][join.Table] = matchList
+		}
+		fileOpens += joinResult.FileOpens
+		ramHits += joinResult.RAMHits
 	}
 	return &FilterResult{
 		Entries:   entries,
