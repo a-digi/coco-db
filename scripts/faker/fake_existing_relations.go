@@ -118,6 +118,14 @@ func main() {
 		fmt.Printf("Fehler beim Lesen der IDs aus %s: %v\n", secondEntriesDir, err)
 		os.Exit(1)
 	}
+	if len(relationIDs) == 0 {
+		fmt.Printf("Keine IDs in %s gefunden. Abbruch.\n", relationEntriesDir)
+		os.Exit(1)
+	}
+	if len(secondIDs) == 0 {
+		fmt.Printf("Keine IDs in %s gefunden. Abbruch.\n", secondEntriesDir)
+		os.Exit(1)
+	}
 
 	url := fmt.Sprintf("%s/api/databases/%s/tables/%s/entries", apiURL, dbName, targetTable)
 	success, fail := 0, 0
