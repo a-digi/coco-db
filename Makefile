@@ -63,3 +63,27 @@ fake-data:
 		AMOUNT=$(amount); \
 	fi; \
 	go run ./scripts/faker/faker.go --table $(db)/$(table) --amount $$AMOUNT
+
+fake-existing-relations:
+	@if [ -z "$(db)" ]; then \
+		echo "Bitte gib die Datenbank mit db=... an, z.B. make fake-existing-relations db=poseidon"; \
+		exit 1; \
+	fi
+	@if [ -z "$(targetTable)" ]; then \
+		echo "Bitte gib die Zieltabelle mit targetTable=... an, z.B. make fake-existing-relations targetTable=user_roles"; \
+		exit 1; \
+	fi
+	@if [ -z "$(relationTable)" ]; then \
+		echo "Bitte gib die erste Relationstabelle mit relationTable=... an, z.B. make fake-existing-relations relationTable=users"; \
+		exit 1; \
+	fi
+	@if [ -z "$(secondRelationTable)" ]; then \
+		echo "Bitte gib die zweite Relationstabelle mit secondRelationTable=... an, z.B. make fake-existing-relations secondRelationTable=roles"; \
+		exit 1; \
+	fi
+	@if [ -z "$(amount)" ]; then \
+		AMOUNT=10; \
+	else \
+		AMOUNT=$(amount); \
+	fi; \
+	go run ./scripts/faker/fake_existing_relations.go --db $(db) --targetTable $(targetTable) --relationTable $(relationTable) --secondRelationTable $(secondRelationTable) --amount $$AMOUNT
