@@ -7,7 +7,6 @@ import (
 	"errors"
 	"io"
 	"strings"
-	"regexp"
 )
 
 // ParseQuery liest und parst den JSON-Body in ein Query-Objekt und prüft Pflichtfelder/Defaults
@@ -92,21 +91,33 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 	}
 	tableName := strings.TrimSpace(queryStr[tableStart : tableStart+tableEnd])
 
-	// Extrahiere Parameter (zwischen erstem '(' und erstem ')')
+	// Robuste Extraktion des Parameterblocks (Klammerzählung)
 	paramsStart := tableStart + tableEnd + 1
-	paramsEnd := strings.Index(queryStr[paramsStart:], ")")
-	if paramsEnd == -1 {
-		return nil, "", errors.New("Parameterblock nicht gefunden")
+	parenCount := 1
+	paramsEnd := paramsStart
+	for paramsEnd < len(queryStr) && parenCount > 0 {
+		if queryStr[paramsEnd] == '(' {
+			parenCount++
+		} else if queryStr[paramsEnd] == ')' {
+			parenCount--
+		}
+		paramsEnd++
 	}
-	paramsBlock := queryStr[paramsStart : paramsStart+paramsEnd]
+	if parenCount != 0 {
+		return nil, "", errors.New("Parameterblock nicht gefunden (Klammern nicht ausgeglichen)")
+	}
+	paramsBlock := queryStr[paramsStart : paramsEnd-1]
+
+	// Logging für Debugging
+	fmt.Println("[DEBUG] paramsBlock:", paramsBlock)
 
 	// Extrahiere Felder (zwischen erstem '{' nach ')' und passender '}')
-	fieldsStart := strings.Index(queryStr[paramsStart+paramsEnd:], "{")
+	fieldsStart := strings.Index(queryStr[paramsEnd:], "{")
 	fieldsEnd := strings.LastIndex(queryStr, "}")
 	if fieldsStart == -1 || fieldsEnd == -1 {
 		return nil, "", errors.New("Feldblock nicht gefunden")
 	}
-	fieldsBlock := queryStr[paramsStart+paramsEnd+fieldsStart+1 : fieldsEnd]
+	fieldsBlock := queryStr[paramsEnd+fieldsStart+1 : fieldsEnd]
 
 	// 3. Parameter-Block in JSON-ähnliches Format umwandeln (robuster)
 	paramsBlock = strings.ReplaceAll(paramsBlock, "\n", " ")
@@ -120,10 +131,8 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 	paramsBlock = strings.ReplaceAll(paramsBlock, "None", "null")
 	paramsBlock = strings.ReplaceAll(paramsBlock, "\r", " ")
 	paramsBlock = strings.TrimSpace(paramsBlock)
-	// Versuche, fehlende Anführungszeichen um Keys zu ergänzen (rudimentär)
-	paramsBlock = regexp.MustCompile(`([a-zA-Z0-9_]+)\s*:`).ReplaceAllString(paramsBlock, `"$1":`)
-	paramsBlock = regexp.MustCompile(`: ([a-zA-Z0-9_]+)`).ReplaceAllString(paramsBlock, `: "$1"`)
 	paramsBlock = replaceColonsAndCommasOutsideStrings(paramsBlock)
+	paramsBlock = quoteKeys(paramsBlock)
 
 	// 4. Felder extrahieren (durch Komma getrennt, ggf. mit Subfeldern)
 	fields := []string{}
@@ -141,6 +150,7 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 		return nil, "", fmt.Errorf("Parameterblock konnte nicht geparst werden: %w\nparamsBlock: %s\nparamsJSON: %s", err, paramsBlock, paramsJSON)
 	}
 	qr.Fields = fields
+	qr.IsSearchQuery = true
 
 	return &qr, tableName, nil
 }
@@ -172,6 +182,59 @@ func replaceColonsAndCommasOutsideStrings(s string) string {
 			}
 		}
 		result.WriteByte(c)
+	}
+	return result.String()
+}
+
+// Robuste Hilfsfunktion: Keys in JSON-ähnlichem String quotieren (auch nach Kommas, {, [ und mit Whitespace)
+func quoteKeys(s string) string {
+	var result strings.Builder
+	inString := false
+	nextIsKey := true // Nach {, [, oder , erwarten wir einen Key
+	for i := 0; i < len(s); {
+		if s[i] == '"' {
+			inString = !inString
+			result.WriteByte(s[i])
+			i++
+			nextIsKey = false
+			continue
+		}
+		if !inString && (s[i] == '{' || s[i] == '[' || s[i] == ',') {
+			result.WriteByte(s[i])
+			nextIsKey = true
+			i++
+			continue
+		}
+		if !inString && (s[i] == ' ' || s[i] == '\n' || s[i] == '\t' || s[i] == '\r') {
+			result.WriteByte(s[i])
+			i++
+			continue
+		}
+		if !inString && nextIsKey && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || s[i] == '_') {
+			start := i
+			for i < len(s) && (s[i] == '_' || (s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= '0' && s[i] <= '9')) {
+				i++
+			}
+			// Whitespace zwischen Key und : überspringen
+			for i < len(s) && (s[i] == ' ' || s[i] == '\n' || s[i] == '\t' || s[i] == '\r') {
+				result.WriteByte(s[i])
+				i++
+			}
+			if i < len(s) && s[i] == ':' {
+				result.WriteByte('"')
+				result.WriteString(s[start:i])
+				result.WriteByte('"')
+				nextIsKey = false
+				continue
+			} else {
+				result.WriteString(s[start:i])
+				nextIsKey = false
+				continue
+			}
+		}
+		result.WriteByte(s[i])
+		nextIsKey = false
+		i++
 	}
 	return result.String()
 }

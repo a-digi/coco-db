@@ -44,23 +44,35 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	// 3. Sequentieller Scan für nicht indizierte Filter
 	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
 	var result []map[string]interface{}
-	if len(ids) > 0 {
-		// Nur Einträge mit diesen IDs laden
-		for _, id := range ids {
-			entry, err := loadEntry(entriesDir, id)
-			if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
-				result = append(result, entry)
-			}
-		}
-	} else {
-		// Kein Indexfilter: Alle Einträge sequenziell prüfen (ohne alles in den Speicher zu laden)
+	if query.IsSearchQuery {
+		// Eigene Filter-Logik für SearchQuery
 		files, _ := os.ReadDir(entriesDir)
 		for _, f := range files {
 			if f.IsDir() {
 				id := f.Name()
 				entry, err := loadEntry(entriesDir, id)
+				if err == nil && matchesAllFiltersSearch(entry, query.Filter) {
+					result = append(result, entry)
+				}
+			}
+		}
+	} else {
+		if len(ids) > 0 {
+			for _, id := range ids {
+				entry, err := loadEntry(entriesDir, id)
 				if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
 					result = append(result, entry)
+				}
+			}
+		} else {
+			files, _ := os.ReadDir(entriesDir)
+			for _, f := range files {
+				if f.IsDir() {
+					id := f.Name()
+					entry, err := loadEntry(entriesDir, id)
+					if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
+						result = append(result, entry)
+					}
 				}
 			}
 		}
@@ -76,6 +88,34 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 
 // matchesAllFiltersEngine prüft, ob ein Eintrag alle Filterbedingungen erfüllt (AND-Logik)
 func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]interface{}) bool {
+	for field, cond := range filter {
+		val, ok := entry[field]
+		if !ok {
+			return false
+		}
+		switch c := cond.(type) {
+		case map[string]interface{}:
+			for op, opVal := range c {
+				fn, found := operatorFuncs[op]
+				if !found {
+					continue
+				}
+				if !fn(val, opVal) {
+					return false
+				}
+			}
+			continue
+		default:
+			if !isEqual(val, c) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// matchesAllFiltersSearch prüft, ob ein Eintrag alle Filterbedingungen für Suchanfragen erfüllt (AND-Logik)
+func matchesAllFiltersSearch(entry map[string]interface{}, filter map[string]interface{}) bool {
 	for field, cond := range filter {
 		val, ok := entry[field]
 		if !ok {
@@ -236,4 +276,3 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 	}
 	return entries[offset:end]
 }
-

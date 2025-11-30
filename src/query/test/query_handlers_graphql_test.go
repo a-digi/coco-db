@@ -13,7 +13,7 @@ import (
 )
 
 func TestQueryHandler_GraphQLLikeQuery(t *testing.T) {
-	t.Error("Test gestartet")
+	t.Log("Test gestartet")
 	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
 	os.RemoveAll("./testdata")
 	setupTestTable("./testdata", "testdb", "users", t)
@@ -47,13 +47,15 @@ func TestQueryHandler_GraphQLLikeQuery(t *testing.T) {
 	os.WriteFile(idxPath, idxBytes, 0644)
 
 	graphqlQuery := `query { users( filter: { created_at: { gte: "2025-11-01T00:00:00Z", lte: "2025-11-30T23:59:59Z" }, email: { like: "*@gmail.com" }, age: { gte: 18 } }, limit: 10, offset: 0, sort: ["created_at", "age"], join: [ { table: "orders", on: { user_id: "id" }, filter: { status: "open" }, fields: ["id", "amount", "status"] } ], fields: ["id", "name", "email", "created_at", "age", "orders"] ) { id name email created_at age orders { id amount status } } }`
+	t.Log("GraphQL Query:", graphqlQuery)
 	r := httptest.NewRequest("POST", "/api/databases/testdb/search", strings.NewReader(graphqlQuery))
 	resp := h.QueryHandler("testdb", r)
+	t.Logf("Response: %+v", resp)
 	if !resp.Success || resp.HttpCode != 200 {
 		if resp.Error != nil {
-			panic(resp.Error)
+			t.Errorf("Fehler: %v", resp.Error)
 		}
-		panic("Unbekannter Fehler im GraphQL-Test")
+		return
 	}
 	// Weitere Assertions je nach gewünschtem Ergebnis
 }

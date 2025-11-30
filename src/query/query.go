@@ -24,4 +24,5 @@ type Query struct {
 	Sort   []string               `json:"sort"`
 	Join   []JoinDef              `json:"join"`
 	Fields []string               `json:"fields"`
+	IsSearchQuery bool           `json:"-"` // Kennzeichnet SearchQuery
 }
