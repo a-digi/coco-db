@@ -72,7 +72,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			// Join-Bedingung: Mapping Quellfeld → Zielfeld
 			on := join.On
 			joinFilter := map[string]interface{}{}
-			for src, dst := range on {
+			for dst, src := range on {
 				if val, ok := entries[i][src]; ok {
 					joinFilter[dst] = val
 				}
@@ -85,7 +85,10 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			// Rekursiver Join mit aktualisiertem joinPath
 			joinResults, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
 			if err != nil {
-				continue
+				joinResults = []map[string]interface{}{} // Fehler: leeres Array statt null
+			}
+			if joinResults == nil {
+				joinResults = []map[string]interface{}{}
 			}
 			if join.Fields != nil && len(join.Fields) > 0 {
 				// Nur gewünschte Felder übernehmen
@@ -103,6 +106,10 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 						}
 					}
 				}
+			}
+			// Debug: Logge Join-Filter und Ergebnis-Anzahl
+			if h.Logger != nil {
+				h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResults)))
 			}
 			entries[i][join.Table] = joinResults
 		}

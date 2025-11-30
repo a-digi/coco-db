@@ -263,7 +263,11 @@ func SetupRouter() http.Handler {
 	})
 
 	// QueryHandler-Instanz für Query-Endpunkte
-	queryHandler := &query.QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+	fileLogger, err := logger.NewFileLogger("logs/coco-db.log/")
+	if err != nil {
+		panic("FileLogger konnte nicht initialisiert werden: " + err.Error())
+	}
+	queryHandler := &query.QueryHandler{DataDir: "./data", Logger: fileLogger}
 
 	// Query-Endpunkt: POST /api/databases/{dbname}/tables/{tablename}/query
 	pr.HandleFunc("POST", "/api/databases/{dbname}/tables/{tablename}/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
@@ -278,7 +282,7 @@ func SetupRouter() http.Handler {
 	// Search-Endpunkt: POST /api/databases/{dbname}/search
 	pr.HandleFunc("POST", "/api/databases/{dbname}/search", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		dbName := params["dbname"]
-		queryHandler := &query.QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+		queryHandler := &query.QueryHandler{DataDir: "./data", Logger: fileLogger}
 		resp := queryHandler.QueryHandler(dbName, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)
