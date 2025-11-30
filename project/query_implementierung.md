@@ -179,6 +179,28 @@ Content-Type: application/json
 ## 10. Dokumentation
 - [x] Dokumentiere alle unterstützten Operatoren, Query-Parameter und Beispiele
 - [x] Füge Hinweise zu Performance, Index-Nutzung und Limitationen hinzu
+- [x] Beispiel für verschachtelte Joins (siehe unten)
+
+### Beispiel für verschachtelte Joins (JSON)
+```json
+{
+  "filter": { "id": "1" },
+  "join": [
+    {
+      "table": "orders",
+      "on": { "id": "user_id" },
+      "fields": ["id", "amount"],
+      "join": [
+        {
+          "table": "order_items",
+          "on": { "id": "order_id" },
+          "fields": ["id", "product_id", "qty"]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Unterstützte Operatoren
 | Operator     | Beschreibung                                 | Beispiel                                  |
@@ -369,8 +391,8 @@ query {
    - [x] Begrenzung der maximalen Ergebnismenge und Join-Tiefe (bereits in queryWithJoins implementiert)
 
 6. **Tests & Dokumentation**
-   - [ ] Unit- und Integrationstests für verschachtelte Joins, Filter, Felder
-   - [ ] Erweiterung der API-Dokumentation und Beispiele
+   - [x] Unit- und Integrationstests für verschachtelte Joins, Filter, Felder
+   - [x] Erweiterung der API-Dokumentation und Beispiele
 
 ---
 
@@ -380,5 +402,5 @@ query {
 - [x] Globale Query-Logik für rekursive Joins erweitert
 - [x] Tiefe und Zyklen geprüft und begrenzt
 - [x] Indexnutzung und Performance geprüft
-- [ ] Tests für verschachtelte Joins und Filter
-- [ ] Dokumentation und Beispiele aktualisiert
+- [x] Tests für verschachtelte Joins und Filter
+- [x] Dokumentation und Beispiele aktualisiert

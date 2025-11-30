@@ -168,3 +168,97 @@ func TestQueryHandler_NotFound(t *testing.T) {
 		t.Errorf("Erwartet Fehler bei fehlender Tabelle, bekommen: %+v", resp)
 	}
 }
+
+func TestQueryHandler_Join_Success(t *testing.T) {
+	h := &query.QueryHandler{DataDir: "./testdata", Logger: &logger.NoopLogger{}}
+	// Setup users-Tabelle
+	setupTestTable("./testdata", "testdb", "users", t)
+	// Setup orders-Tabelle mit Join-Feld user_id
+	meta := &fields.TableMeta{
+		TableName: "orders",
+		Fields: []fields.FieldMeta{
+			{Name: "id", Type: "string"},
+			{Name: "user_id", Type: "string"},
+			{Name: "amount", Type: "int"},
+		},
+		Indexes: []fields.IndexMeta{
+			{Name: "id_idx", Fields: []string{"id"}, Type: "primary", Unique: true},
+		},
+	}
+	metaPath := filepath.Join("./testdata", "testdb", "orders", "meta.json")
+	_ = os.MkdirAll(filepath.Dir(metaPath), 0755)
+	metaBytes, _ := json.Marshal(meta)
+	_ = os.WriteFile(metaPath, metaBytes, 0644)
+	// Ein Order-Eintrag
+	entryDir := filepath.Join("./testdata", "testdb", "orders", "entries", "1")
+	_ = os.MkdirAll(entryDir, 0755)
+	entry := map[string]interface{}{"id": "1", "user_id": "1", "amount": 99}
+	entryBytes, _ := json.Marshal(entry)
+	_ = os.WriteFile(filepath.Join(entryDir, "1.json"), entryBytes, 0644)
+	// Indexdatei
+	idxDir := filepath.Join("./testdata", "testdb", "orders", "indexes")
+	_ = os.MkdirAll(idxDir, 0755)
+	idxObj := map[string][]string{"1": {"1"}}
+	idxPath := filepath.Join(idxDir, "id_idx.json")
+	idxBytes, _ := json.Marshal(idxObj)
+	_ = os.WriteFile(idxPath, idxBytes, 0644)
+
+	t.Cleanup(func() { os.RemoveAll("./testdata") })
+
+	queryBody := map[string]interface{}{
+		"filter": map[string]interface{}{"id": "1"},
+		"join": []interface{}{
+			map[string]interface{}{
+				"table": "orders",
+				"on": map[string]interface{}{"id": "user_id"},
+				"fields": []interface{}{ "id", "amount" },
+			},
+		},
+	}
+	body, _ := json.Marshal(queryBody)
+	r := httptest.NewRequest("POST", "/api/query", bytes.NewReader(body))
+	resp := h.QueryHandler("testdb", r)
+	if !resp.Success || resp.HttpCode != http.StatusOK {
+		t.Errorf("Erwartet Success und Status 200, bekommen: %+v", resp)
+	}
+	results, ok := resp.Data.([]interface{})
+	if !ok || len(results) == 0 {
+		t.Errorf("Erwartet mindestens ein Tabellenergebnis, bekommen: %+v", resp.Data)
+		return
+	}
+	var userEntry map[string]interface{}
+	for _, tbl := range results {
+		tblMap, ok := tbl.(map[string]interface{})
+		if !ok || tblMap["table"] != "users" {
+			continue
+		}
+		entries, ok := tblMap["entries"].([]interface{})
+		if !ok || len(entries) == 0 {
+			t.Errorf("Erwartet mindestens einen User-Eintrag, bekommen: %+v", entries)
+			return
+		}
+		userEntry, ok = entries[0].(map[string]interface{})
+		if !ok {
+			t.Errorf("User-Eintrag ist kein map[string]interface{}: %+v", entries[0])
+			return
+		}
+		break
+	}
+	if userEntry == nil {
+		t.Errorf("Kein User-Eintrag gefunden")
+		return
+	}
+	orders, ok := userEntry["orders"].([]interface{})
+	if !ok || len(orders) == 0 {
+		t.Errorf("Erwartet mindestens einen Order-Eintrag im Join, bekommen: %+v", userEntry["orders"])
+		return
+	}
+	order, ok := orders[0].(map[string]interface{})
+	if !ok {
+		t.Errorf("Order-Eintrag ist kein map[string]interface{}: %+v", orders[0])
+		return
+	}
+	if order["id"] != "1" || fmt.Sprintf("%v", order["amount"]) != "99" {
+		t.Errorf("Order-Eintrag stimmt nicht: %+v", order)
+	}
+}
