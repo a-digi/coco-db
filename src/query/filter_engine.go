@@ -3,6 +3,7 @@ package query
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/a-digi/coco-db/src/query/filter"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"os"
 	"path/filepath"
@@ -51,7 +52,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			if f.IsDir() {
 				id := f.Name()
 				entry, err := loadEntry(entriesDir, id)
-				if err == nil && matchesAllFiltersSearch(entry, query.Filter) {
+				if err == nil && filter.MatchesAllFiltersSearch(entry, query.Filter, operatorFuncs, isEqual) {
 					result = append(result, entry)
 				}
 			}
@@ -88,34 +89,6 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 
 // matchesAllFiltersEngine prüft, ob ein Eintrag alle Filterbedingungen erfüllt (AND-Logik)
 func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]interface{}) bool {
-	for field, cond := range filter {
-		val, ok := entry[field]
-		if !ok {
-			return false
-		}
-		switch c := cond.(type) {
-		case map[string]interface{}:
-			for op, opVal := range c {
-				fn, found := operatorFuncs[op]
-				if !found {
-					continue
-				}
-				if !fn(val, opVal) {
-					return false
-				}
-			}
-			continue
-		default:
-			if !isEqual(val, c) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// matchesAllFiltersSearch prüft, ob ein Eintrag alle Filterbedingungen für Suchanfragen erfüllt (AND-Logik)
-func matchesAllFiltersSearch(entry map[string]interface{}, filter map[string]interface{}) bool {
 	for field, cond := range filter {
 		val, ok := entry[field]
 		if !ok {
