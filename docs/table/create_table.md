@@ -1,5 +1,22 @@
 # Tabelle anlegen (Create Table)
 
+## Hinweise zu Default-Werten für Datumsfelder (date)
+
+- Für Felder vom Typ `date` können folgende Default-Werte verwendet werden:
+  - Fester ISO-8601-String, z.B. `"2025-11-30T00:00:00Z"`
+  - Platzhalter:
+    - `"now"`   → aktuelles Datum und Uhrzeit (UTC, RFC3339)
+    - `"today"` → aktuelles Tagesdatum (UTC, 00:00:00 Uhr)
+- Beispiel für ein Feld mit Default-Wert:
+
+```json
+{
+  "name": "created_at",
+  "type": "date",
+  "default": "now"
+}
+```
+
 ## Endpunkt
 
 ```

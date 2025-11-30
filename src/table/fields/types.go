@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // FieldMeta beschreibt ein Feld in meta.json gemäß Projektanforderungen.
@@ -79,4 +80,29 @@ func LoadTableMeta(dataDir, dbName, tableName string) (*TableMeta, error) {
 // GetIndexFileName gibt den konsistenten Dateinamen für einen Index zurück
 func GetIndexFileName(indexName string) string {
 	return "index_" + indexName + ".json"
+}
+
+// ResolveDateDefaultValue löst Platzhalter wie "now" und "today" für date-Felder auf
+func ResolveDateDefaultValue(defaultVal interface{}) (string, bool) {
+	if defaultVal == nil {
+		return "", false
+	}
+	switch v := defaultVal.(type) {
+	case string:
+		switch v {
+		case "now":
+			return time.Now().UTC().Format(time.RFC3339), true
+		case "today":
+			today := time.Now().UTC()
+			return today.Format("2006-01-02T00:00:00Z"), true
+		default:
+			// Prüfe, ob es ein valides ISO-8601-Datum ist
+			if _, err := time.Parse(time.RFC3339, v); err == nil {
+				return v, true
+			}
+			return "", false
+		}
+	default:
+		return "", false
+	}
 }
