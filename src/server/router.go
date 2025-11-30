@@ -277,6 +277,65 @@ func SetupRouter() http.Handler {
 	// Query-Endpunkt: POST /api/{dbname}/query
 	pr.HandleFunc("POST", "/api/{dbname}/query", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
 		dbName := params["dbname"]
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_JSON", "Ungültiges JSON: "+err.Error(), "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+		if len(body) == 1 {
+			// GraphQL-Stil erkannt
+			w.Header().Set("X-Query-Style", "graphql")
+			var rootTable string
+			var rootQuery map[string]interface{}
+			for k, v := range body {
+				rootTable = k
+				rootQuery, _ = v.(map[string]interface{})
+			}
+			if rootTable == "" || rootQuery == nil {
+				resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_GRAPHQL_ROOT_PARSE", "Root-Tabelle oder Query fehlt/ungültig", "")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(resp.HttpCode)
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			queryObj, err := query.ParseGraphQLStyleQuery(rootQuery)
+			if err != nil {
+				resp := response.WriteErrorInternal(http.StatusBadRequest, "ERR_GRAPHQL_PARSE", err.Error(), "")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(resp.HttpCode)
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			if queryObj.Filter == nil {
+				queryObj.Filter = map[string]interface{}{}
+			}
+			meta, err := fields.LoadTableMeta("./data", dbName, rootTable)
+			if err != nil {
+				resp := response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), "")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(resp.HttpCode)
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			queryHandler := &query.QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+			entries, err := queryHandler.QueryWithJoins(dbName, rootTable, queryObj, meta, queryObj.Join, 1, 8, nil)
+			if err != nil {
+				resp := response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), "")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(resp.HttpCode)
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			resp := response.WriteSuccess(entries, "")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(resp.HttpCode)
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+		// Fallback: altes JSON-API-Format
 		resp := queryHandler.QueryHandler(dbName, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)

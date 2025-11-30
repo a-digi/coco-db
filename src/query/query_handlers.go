@@ -151,3 +151,8 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 	execTime := time.Since(start).String()
 	return response.WriteSuccess(allResults, execTime)
 }
+
+// Exportiere die Funktion, damit sie im Router verwendet werden kann
+func (h *QueryHandler) QueryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) ([]map[string]interface{}, error) {
+	return h.queryWithJoins(dbName, tableName, query, meta, joinDefs, joinDepth, maxJoinDepth, joinPath)
+}
