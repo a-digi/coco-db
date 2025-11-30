@@ -88,6 +88,72 @@ curl -X POST http://localhost:2022/api/testdb/query \
 
 ---
 
+## 2. Globale Query (GraphQL-Stil)
+
+### Endpunkt
+```
+POST /api/{dbname}/query
+```
+
+### Beispiel-Request (GraphQL-Style)
+```bash
+curl -X POST http://localhost:2022/api/testdb/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "users": {
+      "filter": { "email": { "like": "*@gmail.com" } },
+      "limit": 5,
+      "sort": ["email"],
+      "join": [
+        {
+          "table": "user_roles",
+          "on": { "id": "user_id" },
+          "fields": ["role_id"],
+          "join": [
+            {
+              "table": "roles",
+              "on": { "role_id": "id" },
+              "fields": ["name", "description"]
+            }
+          ]
+        }
+      ]
+    }
+  }'
+```
+
+### Beispiel-Response (GraphQL-Style)
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "name": "Max Mustermann",
+      "email": "max@gmail.com",
+      "user_roles": [
+        {
+          "role_id": "admin",
+          "roles": [
+            { "name": "Admin", "description": "Administrator mit allen Rechten" }
+          ]
+        }
+      ]
+    }
+    // ...weitere Nutzer...
+  ],
+  "httpCode": 200,
+  "executionTime": "..."
+}
+```
+
+**Hinweis:**
+- Die Response ist ein Array mit verschachtelten Objekten, die der Join-Struktur der Query entsprechen.
+- Die Query kann beliebig tief verschachtelte Joins enthalten.
+- Die Felder und Filter können an die tatsächlichen Daten angepasst werden.
+
+---
+
 ## 3. Request-Body (Schema)
 
 ```json
