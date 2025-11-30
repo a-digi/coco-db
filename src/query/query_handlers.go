@@ -1,13 +1,13 @@
 package query
 
 import (
+	"fmt"
 	"net/http"
 	"time"
-	"fmt"
+
+	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
-	"github.com/a-digi/coco-db/src/logger"
-	"log"
 )
 
 // QueryHandler kapselt DataDir und Logger für Query-Endpunkte
@@ -57,7 +57,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[JOIN-TRACE] Tabelle: %s, Ergebnisse nach FilterEngine: %d", tableName, len(filterResult.Entries))
+
 	entries := filterResult.Entries
 	fileOpens := filterResult.FileOpens
 	ramHits := filterResult.RAMHits
@@ -103,12 +103,8 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			Sort:   nil,
 			Join:   join.Join,
 		}
-		log.Printf("[JOIN-TRACE] Starte Join auf Tabelle: %s mit Filter: %+v", join.Table, joinQuery.Filter)
 		// Rekursiver Join mit aktualisiertem joinPath
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
-		if joinResult != nil {
-			log.Printf("[JOIN-TRACE] Join-Tabelle: %s, Ergebnisse: %d", join.Table, len(joinResult.Entries))
-		}
 		if err != nil {
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}

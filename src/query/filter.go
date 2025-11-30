@@ -1,7 +1,6 @@
 package query
 
 import (
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -146,22 +145,19 @@ func isPartial(a, b interface{}) bool {
 	as, ok1 := a.(string)
 	bs, ok2 := b.(string)
 	if !ok1 || !ok2 {
-		log.Printf("isPartial: type assertion failed: a=%v (%T), b=%v (%T)", a, a, b, b)
 		return false
 	}
 	if idx := strings.Index(as, "@"); idx != -1 {
 		local := as[:idx]
 		domain := as[idx+1:]
 		if local == bs {
-			log.Printf("isPartial: MATCH (local==b) - a=%s, b=%s", as, bs)
 			return true
 		}
 		if dot := strings.Index(domain, "."); dot != -1 && domain[:dot] == bs && local == "bar" {
-			log.Printf("isPartial: MATCH (domain==b && local==bar) - a=%s, b=%s", as, bs)
 			return true
 		}
 	}
-	log.Printf("isPartial: NO MATCH - a=%s, b=%s", as, bs)
+
 	return false
 }
 

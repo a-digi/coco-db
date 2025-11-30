@@ -2,7 +2,6 @@ package index
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -121,18 +120,8 @@ func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value 
 func (r *IndexRegistry) DebugPrintIndex(key string, n int) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	idx, ok := r.cache[key]
-	if !ok {
+	if _, ok := r.cache[key]; !ok {
 		return
-	}
-
-	count := 0
-	for k, v := range idx {
-		fmt.Printf("  %s: %v\n", k, v)
-		count++
-		if count >= n {
-			break
-		}
 	}
 }
 
