@@ -454,15 +454,10 @@ func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool
 				case "==":
 					return t.Equal(tv)
 				}
-			} else {
-				fmt.Printf("[DEBUG] Filterwert nicht RFC3339: %v\n", ts)
 			}
-		} else {
-			fmt.Printf("[DEBUG] Filterwert kein String: %v\n", opVal)
 		}
-	} else {
-		fmt.Printf("[DEBUG] Index-Key nicht RFC3339: %v\n", key)
 	}
+
 	// Fallback: String-Vergleich
 	if sv, ok := opVal.(string); ok {
 		switch op {
