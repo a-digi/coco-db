@@ -3,12 +3,12 @@
 ## Empfehlungen
 
 1 **Indexe beim Serverstart in den RAM laden**
-  - [ ] Lade alle relevanten Indexdateien (z.B. BTree, JSON) beim Start des Servers in einen zentralen In-Memory-Cache.
-    - [ ] Definiere eine zentrale Index-Registry/Cache-Struktur (z.B. als Go-Map oder Singleton).
-    - [ ] Implementiere eine Funktion `LoadAllIndexes(dataDir string)`, die rekursiv alle Indexdateien (z.B. `index_*.json`) in allen Tabellenverzeichnissen findet und lädt.
-    - [ ] Für jeden gefundenen Index: Lese die Datei, parse sie (z.B. als Map oder BTree-Objekt) und speichere sie in der Registry unter dem Schlüssel (Datenbank, Tabelle, Indexname).
-    - [ ] Stelle sicher, dass die Registry threadsicher ist (z.B. mit sync.RWMutex).
-    - [ ] Rufe diese Funktion beim Serverstart auf und logge Anzahl, Ladezeit und Speicherverbrauch der geladenen Indexe.
+  - [x] Lade alle relevanten Indexdateien (z.B. BTree, JSON) beim Start des Servers in einen zentralen In-Memory-Cache.
+    - [x] Definiere eine zentrale Index-Registry/Cache-Struktur (z.B. als Go-Map oder Singleton).
+    - [x] Implementiere eine Funktion `LoadAllIndexes(dataDir string)`, die rekursiv alle Indexdateien (z.B. `index_*.json`) in allen Tabellenverzeichnissen findet und lädt.
+    - [x] Für jeden gefundenen Index: Lese die Datei, parse sie (z.B. als Map oder BTree-Objekt) und speichere sie in der Registry unter dem Schlüssel (Datenbank, Tabelle, Indexname).
+    - [x] Stelle sicher, dass die Registry threadsicher ist (z.B. mit sync.RWMutex).
+    - [x] Rufe diese Funktion beim Serverstart auf und logge Anzahl, Ladezeit und Speicherverbrauch der geladenen Indexe.
     - [ ] Schreibe Unit-Tests für das Laden und die Registry.
     - [ ] Dokumentiere die Registry-API für Query-Handler und Filter-Engine.
     - [ ] (Optional) Implementiere ein Interface für verschiedene Index-Typen (BTree, Hash, ...).

@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/a-digi/coco-db/src/index"
 	"github.com/a-digi/coco-db/src/logger"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 	"syscall"
 	"time"
 )
+
+var GlobalIndexRegistry *index.Registry
 
 // StartServerWithConfig initialisiert und startet den HTTP-Server mit Konfiguration
 func StartServerWithConfig(cfg ServerConfig) {
@@ -50,6 +53,15 @@ func StartServerWithConfig(cfg ServerConfig) {
 	fileLogger.Info("Server-Initialisierung gestartet.")
 	fileLogger.Info("Verwende Datenverzeichnis:", cfg.DataDir)
 	fileLogger.Info("Verwende Logdatei:", logFile)
+
+	// Index-Registry initialisieren und Indexe laden
+	GlobalIndexRegistry = index.NewRegistry()
+	if err := GlobalIndexRegistry.LoadAllIndexes(cfg.DataDir); err != nil {
+		fileLogger.Error("Fehler beim Laden der Indexe:", err)
+		fmt.Fprintf(os.Stderr, "Fehler beim Laden der Indexe: %v\n", err)
+		os.Exit(1)
+	}
+	fileLogger.Info("Alle Indexe wurden in den RAM geladen.")
 
 	addr := ":" + cfg.Port
 	mux := SetupRouter()
