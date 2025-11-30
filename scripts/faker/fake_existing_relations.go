@@ -27,9 +27,22 @@ func readIDs(entriesDir string) ([]string, error) {
 	}
 	ids := make([]string, 0, len(files))
 	for _, f := range files {
-		if !f.IsDir() && strings.HasSuffix(f.Name(), ".json") {
-			id := strings.TrimSuffix(f.Name(), ".json")
-			ids = append(ids, id)
+		if f.IsDir() {
+			// Suche nach <dir>/<dir>.json
+			jsonPath := filepath.Join(entriesDir, f.Name(), f.Name()+".json")
+			b, err := ioutil.ReadFile(jsonPath)
+			if err != nil {
+				continue
+			}
+			var obj map[string]interface{}
+			if err := json.Unmarshal(b, &obj); err != nil {
+				continue
+			}
+			idVal, ok := obj["id"]
+			idStr, okStr := idVal.(string)
+			if ok && okStr && idStr != "" {
+				ids = append(ids, idStr)
+			}
 		}
 	}
 	return ids, nil
@@ -50,11 +63,19 @@ func readConfig(path string) (string, string) {
 	return cfg.DataDir, cfg.Port
 }
 
+func parseTableField(arg string) (string, string, error) {
+	parts := strings.SplitN(arg, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("Ungültiges Argument: %s. Erwartet: tabelle:feldname", arg)
+	}
+	return parts[0], parts[1], nil
+}
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	targetTableArg := flag.String("targetTable", "user_roles", "Zieltabelle, in die neue Einträge geschrieben werden (z.B. user_roles)")
-	relationTableArg := flag.String("relationTable", "users", "Erste Relationstabelle (z.B. users)")
-	secondRelationTableArg := flag.String("secondRelationTable", "roles", "Zweite Relationstabelle (z.B. roles)")
+	relationTableArg := flag.String("relationTable", "users:user_id", "Erste Relationstabelle und Feldname im Format tabelle:feldname (z.B. users:user_id)")
+	secondRelationTableArg := flag.String("secondRelationTable", "roles:role_id", "Zweite Relationstabelle und Feldname im Format tabelle:feldname (z.B. roles:role_id)")
 	dbArg := flag.String("db", "poseidon", "Datenbankname")
 	amountArg := flag.Int("amount", 100, "Anzahl der zu generierenden Einträge")
 	apiArg := flag.String("api", "", "API-Basis-URL (z.B. http://localhost:2022)")
@@ -72,8 +93,17 @@ func main() {
 	}
 	dbName := *dbArg
 	targetTable := *targetTableArg
-	relationTable := *relationTableArg
-	secondRelationTable := *secondRelationTableArg
+
+	relationTable, relationField, err := parseTableField(*relationTableArg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	secondRelationTable, secondRelationField, err := parseTableField(*secondRelationTableArg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	relationEntriesDir := filepath.Join(dataDir, dbName, relationTable, "entries")
 	secondEntriesDir := filepath.Join(dataDir, dbName, secondRelationTable, "entries")
@@ -104,8 +134,8 @@ func main() {
 			relID := relationIDs[rand.Intn(len(relationIDs))]
 			secID := secondIDs[rand.Intn(len(secondIDs))]
 			entry := map[string]interface{}{
-				"relation_id":       relID,
-				"second_relation_id": secID,
+				relationField:       relID,
+				secondRelationField: secID,
 			}
 			body, _ := json.Marshal(entry)
 			resp, err := http.Post(url, "application/json", bytes.NewReader(body))
