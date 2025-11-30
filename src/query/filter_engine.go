@@ -65,7 +65,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	// 1. IDs aus allen Indexfiltern sammeln
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
-
+		fmt.Printf("[DEBUG] idxMeta für Feld '%s': %+v\n", f, idxMeta)
 		if cond, ok := query.Filter[f]; ok {
 			idxKey := dbName + "." + tableName + "." + idxMeta.Name
 			reg := index.GetRegistry()
@@ -151,8 +151,11 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else {
+		fmt.Printf("[DEBUG] Kein Index nutzbar, vollständiger Scan für Tabelle %s.%s!\n", dbName, tableName)
 		// Kein Index nutzbar: vollständiger Scan
 		files, _ := os.ReadDir(entriesDir)
+		fmt.Printf("[DEBUG] Scan-Verzeichnis: %s, Anzahl Dateien: %d\n", entriesDir, len(files))
+
 		for _, f := range files {
 			if f.IsDir() {
 				id := f.Name()
