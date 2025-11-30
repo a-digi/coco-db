@@ -9,15 +9,15 @@
     - [x] Für jeden gefundenen Index: Lese die Datei, parse sie (z.B. als Map oder BTree-Objekt) und speichere sie in der Registry unter dem Schlüssel (Datenbank, Tabelle, Indexname).
     - [x] Stelle sicher, dass die Registry threadsicher ist (z.B. mit sync.RWMutex).
     - [x] Rufe diese Funktion beim Serverstart auf und logge Anzahl, Ladezeit und Speicherverbrauch der geladenen Indexe.
-    - [ ] Schreibe Unit-Tests für das Laden und die Registry.
-    - [ ] Dokumentiere die Registry-API für Query-Handler und Filter-Engine.
+    - [x] Schreibe Unit-Tests für das Laden und die Registry.
+    - [x] Dokumentiere die Registry-API für Query-Handler und Filter-Engine.
     - [ ] (Optional) Implementiere ein Interface für verschiedene Index-Typen (BTree, Hash, ...).
     - [ ] (Optional) Füge einen Health-Check hinzu, der prüft, ob alle Indexe geladen wurden.
   - [ ] Halte die Indexe während der Laufzeit aktuell (z.B. mit Event Sourcing/Index-Worker).
 
 2 **Zentralen Index-Cache/Registry implementieren**
-  - [ ] Entwickle eine zentrale Komponente (z.B. Singleton oder globales Objekt), die alle geladenen Indexe verwaltet.
-  - [ ] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
+  - [x] Entwickle eine zentrale Komponente (z.B. Singleton oder globales Objekt), die alle geladenen Indexe verwaltet.
+  - [x] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
 
 3 **Indexe für schnelle Lookups bei Filter- und Join-Operationen nutzen**
   - [ ] Nutze die In-Memory-Indexe, um Filter und Joins effizient (O(1) oder O(log n)) auszuführen.
