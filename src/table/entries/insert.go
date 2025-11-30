@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	fields "github.com/a-digi/coco-db/src/table/fields"
@@ -94,26 +96,47 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 		var meta fields.TableMeta
 		if err := json.Unmarshal(metaFile, &meta); err == nil {
 			for _, idxMeta := range meta.Indexes {
-				if len(idxMeta.Fields) == 1 {
-					idxField := idxMeta.Fields[0]
-					key, ok := entry[idxField]
-					if ok {
-						// Index laden oder neu anlegen
-						idxPath := filepath.Join(tableDir, "indexes", "index_"+idxMeta.Name+".json")
-						var idxObj map[string][]string
-						idxObj = map[string][]string{}
-						if idxData, err := os.ReadFile(idxPath); err == nil {
-							_ = json.Unmarshal(idxData, &idxObj)
-						}
-						k, ok := key.(string)
-						if ok {
-							idxObj[k] = append(idxObj[k], entryId)
-							idxFile, _ := os.Create(idxPath)
-							_ = json.NewEncoder(idxFile).Encode(idxObj)
-							idxFile.Close()
-						}
+				var keyParts []string
+				for _, f := range idxMeta.Fields {
+					v, ok := entry[f]
+					if !ok {
+						keyParts = nil
+						break
 					}
+					keyParts = append(keyParts, fmt.Sprint(v))
 				}
+				if keyParts == nil {
+					continue
+				}
+				idxKey := strings.Join(keyParts, "|")
+				idxPath := filepath.Join(tableDir, "indexes", "index_"+idxMeta.Name+".json")
+				writeIndexFileAtomic(idxPath, func(idxObj map[string][]string) {
+					idxObj[idxKey] = append(idxObj[idxKey], entryId)
+				})
+			}
+		}
+	}
+
+	// 6. Indexdateien pro Feld in entries/<feldname>.json pflegen
+	if err == nil {
+		var meta fields.TableMeta
+		if err := json.Unmarshal(metaFile, &meta); err == nil {
+			indexedFields := map[string]struct{}{}
+			for _, idxMeta := range meta.Indexes {
+				for _, f := range idxMeta.Fields {
+					indexedFields[f] = struct{}{}
+				}
+			}
+			for f := range indexedFields {
+				v, ok := entry[f]
+				if !ok {
+					continue
+				}
+				fieldIdxPath := filepath.Join(entriesDir, f+".json")
+				writeIndexFileAtomic(fieldIdxPath, func(fieldIdx map[string][]string) {
+					key := fmt.Sprint(v)
+					fieldIdx[key] = append(fieldIdx[key], entryId)
+				})
 			}
 		}
 	}
@@ -129,4 +152,36 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 		Data:          respData,
 		ExecutionTime: time.Since(start).String(),
 	}
+}
+
+var (
+	indexFileLocks   = make(map[string]*sync.Mutex)
+	indexFileLocksMu sync.Mutex
+)
+
+// getIndexFileLock gibt einen Mutex für den gegebenen Dateipfad zurück (pro Datei eindeutig)
+func getIndexFileLock(path string) *sync.Mutex {
+	indexFileLocksMu.Lock()
+	defer indexFileLocksMu.Unlock()
+	m, ok := indexFileLocks[path]
+	if !ok {
+		m = &sync.Mutex{}
+		indexFileLocks[path] = m
+	}
+	return m
+}
+
+// writeIndexFileAtomic führt Lesen, Modifizieren und Schreiben atomar unter Lock aus
+func writeIndexFileAtomic(path string, updateFn func(map[string][]string)) {
+	lock := getIndexFileLock(path)
+	lock.Lock()
+	defer lock.Unlock()
+	idxObj := map[string][]string{}
+	if b, err := os.ReadFile(path); err == nil {
+		_ = json.Unmarshal(b, &idxObj)
+	}
+	updateFn(idxObj)
+	f, _ := os.Create(path)
+	_ = json.NewEncoder(f).Encode(idxObj)
+	f.Close()
 }
