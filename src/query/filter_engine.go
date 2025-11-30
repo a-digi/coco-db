@@ -14,7 +14,6 @@ import (
 
 // FilterResult enthält die Query-Ergebnisse und die Zähler für Dateiöffnungen und RAM-Zugriffe
 // Wird für API-Aggregate-Logik genutzt
-//
 type FilterResult struct {
 	Entries      []map[string]interface{} `json:"results"`
 	FileOpens    int                      `json:"fileOpens"`
