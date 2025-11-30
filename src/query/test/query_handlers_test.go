@@ -32,11 +32,11 @@ func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
 	metaBytes, _ := json.Marshal(meta)
 	_ = os.WriteFile(metaPath, metaBytes, 0644)
 	// Ein Eintrag
-	entryDir := filepath.Join(dataDir, dbName, tableName, "entries", "1")
-	_ = os.MkdirAll(entryDir, 0755)
+	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
+	_ = os.MkdirAll(entriesDir, 0755)
 	entry := map[string]interface{}{"id": "1", "name": "Test", "age": 42}
 	entryBytes, _ := json.Marshal(entry)
-	_ = os.WriteFile(filepath.Join(entryDir, "1.json"), entryBytes, 0644)
+	_ = os.WriteFile(filepath.Join(entriesDir, "1.json"), entryBytes, 0644)
 	// Indexdatei als Objekt anlegen
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
@@ -61,12 +61,22 @@ func TestTableQueryHandler_Success(t *testing.T) {
 	}
 	data, ok := resp.Data.([]interface{})
 	if !ok || len(data) != 1 {
-		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen wawe: %+v", data)
+		t.Errorf("Erwartet ein Tabellenergebnis, bekommen: %+v", data)
 		return
 	}
-	entry, ok := data[0].(map[string]interface{})
+	tableObj, ok := data[0].(map[string]interface{})
 	if !ok {
-		t.Errorf("Erwartet map[string]interface{} für entry, bekommen: %+v", data[0])
+		t.Errorf("Erwartet map[string]interface{} für Tabelle, bekommen: %+v", data[0])
+		return
+	}
+	entries, ok := tableObj["entries"].([]interface{})
+	if !ok || len(entries) != 1 {
+		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen: %+v", entries)
+		return
+	}
+	entry, ok := entries[0].(map[string]interface{})
+	if !ok {
+		t.Errorf("Erwartet map[string]interface{} für entry, bekommen: %+v", entries[0])
 		return
 	}
 	t.Logf("Entry: %+v", entry)
@@ -190,11 +200,11 @@ func TestQueryHandler_Join_Success(t *testing.T) {
 	metaBytes, _ := json.Marshal(meta)
 	_ = os.WriteFile(metaPath, metaBytes, 0644)
 	// Ein Order-Eintrag
-	entryDir := filepath.Join("./testdata", "testdb", "orders", "entries", "1")
-	_ = os.MkdirAll(entryDir, 0755)
+	entriesDir := filepath.Join("./testdata", "testdb", "orders", "entries")
+	_ = os.MkdirAll(entriesDir, 0755)
 	entry := map[string]interface{}{"id": "1", "user_id": "1", "amount": 99}
 	entryBytes, _ := json.Marshal(entry)
-	_ = os.WriteFile(filepath.Join(entryDir, "1.json"), entryBytes, 0644)
+	_ = os.WriteFile(filepath.Join(entriesDir, "1.json"), entryBytes, 0644)
 	// Indexdatei
 	idxDir := filepath.Join("./testdata", "testdb", "orders", "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
