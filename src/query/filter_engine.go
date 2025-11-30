@@ -43,15 +43,29 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			indexedFields[f] = idx
 		}
 	}
+	// Debug-Ausgabe der indexierten Felder
+	fmt.Printf("[DEBUG] indexedFields: ")
+	for k := range indexedFields {
+		fmt.Printf("%s ", k)
+	}
+	fmt.Println()
+
 	for f := range query.Filter {
 		if _, ok := indexedFields[f]; !ok {
 			nonIndexedFields[f] = struct{}{}
 		}
 	}
+	// Debug-Ausgabe der nicht-indexierten Felder
+	fmt.Printf("[DEBUG] nonIndexedFields: ")
+	for k := range nonIndexedFields {
+		fmt.Printf("%s ", k)
+	}
+	fmt.Println()
 
 	// 1. IDs aus allen Indexfiltern sammeln
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
+
 		if cond, ok := query.Filter[f]; ok {
 			idxKey := dbName + "." + tableName + "." + idxMeta.Name
 			reg := index.GetRegistry()
@@ -434,6 +448,9 @@ func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool
 	if t, err := time.Parse(time.RFC3339, key); err == nil {
 		if ts, ok := opVal.(string); ok {
 			if tv, err := time.Parse(time.RFC3339, ts); err == nil {
+				// Beide Werte explizit auf UTC normalisieren
+				t = t.UTC()
+				tv = tv.UTC()
 				switch op {
 				case ">=":
 					return !t.Before(tv)
@@ -446,8 +463,14 @@ func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool
 				case "==":
 					return t.Equal(tv)
 				}
+			} else {
+				fmt.Printf("[DEBUG] Filterwert nicht RFC3339: %v\n", ts)
 			}
+		} else {
+			fmt.Printf("[DEBUG] Filterwert kein String: %v\n", opVal)
 		}
+	} else {
+		fmt.Printf("[DEBUG] Index-Key nicht RFC3339: %v\n", key)
 	}
 	// Fallback: String-Vergleich
 	if sv, ok := opVal.(string); ok {
