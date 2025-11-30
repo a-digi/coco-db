@@ -24,13 +24,8 @@ type FilterResult struct {
 // Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
 // Gibt die gefilterten Einträge als Array von map[string]interface{} zurück
 func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) (*FilterResult, error) {
-    fmt.Println("[DEBUG] FilterEngine gestartet")
     var fileOpenCount int
     var ramHitCount int
-
-	// Debug: Logge alle verfügbaren RAM-Index-Keys beim ersten Aufruf
-	reg := index.GetRegistry()
-	fmt.Printf("[DEBUG] RAM-Index-Keys: %v\n", reg.Keys())
 
 	loadEntryCounted := func(entriesDir, id string) (map[string]interface{}, error) {
 		fileOpenCount++
@@ -44,59 +39,43 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			indexedFields[f] = idx
 		}
 	}
-	// Debug-Ausgabe der indexierten Felder
-	fmt.Printf("[DEBUG] indexedFields: ")
-	for k := range indexedFields {
-		fmt.Printf("%s ", k)
-	}
-	fmt.Println()
 
 	for f := range query.Filter {
 		if _, ok := indexedFields[f]; !ok {
 			nonIndexedFields[f] = struct{}{}
 		}
 	}
-	// Debug-Ausgabe der nicht-indexierten Felder
-	fmt.Printf("[DEBUG] nonIndexedFields: ")
-	for k := range nonIndexedFields {
-		fmt.Printf("%s ", k)
-	}
-	fmt.Println()
 
 	// 1. IDs aus allen Indexfiltern sammeln
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
-		fmt.Printf("[DEBUG] idxMeta für Feld '%s': %+v\n", f, idxMeta)
 		if cond, ok := query.Filter[f]; ok {
 			idxKey := dbName + "." + tableName + "." + idxMeta.Name
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {
-				fmt.Printf("[DEBUG] RAM-Index gefunden: %s (Einträge: %d)\n", idxKey, len(idxObj))
-			} else {
-				fmt.Printf("[DEBUG] Kein RAM-Index für %s gefunden!\n", idxKey)
-			}
-			// Bereichsfilter erkennen
-			switch c := cond.(type) {
-			case map[string]interface{}:
-				ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
-				if len(ids) > 0 {
-					idSets = append(idSets, ids)
-				}
-			default:
-				key := fmt.Sprint(cond)
-				if idsRaw, found := idxObj[key]; found {
-					ramHitCount++
-					if ids, ok := idsRaw.([]interface{}); ok {
-						strIDs := make([]string, 0, len(ids))
-						for _, id := range ids {
-							if s, ok := id.(string); ok {
-								strIDs = append(strIDs, s)
-							}
-						}
-						idSets = append(idSets, strIDs)
-					} else if ids, ok := idsRaw.([]string); ok {
+				// Bereichsfilter erkennen
+				switch c := cond.(type) {
+				case map[string]interface{}:
+					ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
+					if len(ids) > 0 {
 						idSets = append(idSets, ids)
+					}
+				default:
+					key := fmt.Sprint(cond)
+					if idsRaw, found := idxObj[key]; found {
+						ramHitCount++
+						if ids, ok := idsRaw.([]interface{}); ok {
+							strIDs := make([]string, 0, len(ids))
+							for _, id := range ids {
+								if s, ok := id.(string); ok {
+									strIDs = append(strIDs, s)
+								}
+							}
+							idSets = append(idSets, strIDs)
+						} else if ids, ok := idsRaw.([]string); ok {
+							idSets = append(idSets, ids)
+						}
 					}
 				}
 			}
@@ -152,36 +131,31 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
-        // Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, öffne nur diese Dateien
-        for _, id := range inIDs {
-            entry, err := loadEntryCounted(entriesDir, id)
-            if err != nil {
-                continue
-            }
-            if matchesAllFiltersEngine(entry, query.Filter) {
-                result = append(result, entry)
-            }
-        }
-    } else {
-        // Debug-Ausgabe, wenn kein Index nutzbar ist
-        msg := fmt.Sprintf("[DEBUG] Kein Index nutzbar, vollständiger Scan für Tabelle %s.%s!", dbName, tableName)
-        fmt.Println(msg)
-        // Kein Index nutzbar: vollständiger Scan
-        files, _ := os.ReadDir(entriesDir)
-        msg = fmt.Sprintf("[DEBUG] Scan-Verzeichnis: %s, Anzahl Dateien: %d", entriesDir, len(files))
-        fmt.Println(msg)
-        for _, f := range files {
-            if f.IsDir() {
-                id := f.Name()
-                entry, err := loadEntryCounted(entriesDir, id)
-                if err != nil {
-                    continue
-                }
-                if matchesAllFiltersEngine(entry, query.Filter) {
-                    result = append(result, entry)
-                }
-            }
-        }
+		// Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, öffne nur diese Dateien
+		for _, id := range inIDs {
+			entry, err := loadEntryCounted(entriesDir, id)
+			if err != nil {
+				continue
+			}
+			if matchesAllFiltersEngine(entry, query.Filter) {
+				result = append(result, entry)
+			}
+		}
+	} else {
+		// Kein Index nutzbar: vollständiger Scan
+		files, _ := os.ReadDir(entriesDir)
+		for _, f := range files {
+			if f.IsDir() {
+				id := f.Name()
+				entry, err := loadEntryCounted(entriesDir, id)
+				if err != nil {
+					continue
+				}
+				if matchesAllFiltersEngine(entry, query.Filter) {
+					result = append(result, entry)
+				}
+			}
+		}
 	}
 
 	if len(query.Sort) > 0 {
