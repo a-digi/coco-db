@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"time"
 )
 
 // Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
@@ -37,26 +39,35 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {
-				fmt.Printf("[INDEX-REGISTRY] Treffer für %s: %v\n", idxKey, cond)
-				key := fmt.Sprint(cond)
-				if idsRaw, found := idxObj[key]; found {
-					if ids, ok := idsRaw.([]interface{}); ok {
-						strIDs := make([]string, 0, len(ids))
-						for _, id := range ids {
-							if s, ok := id.(string); ok {
-								strIDs = append(strIDs, s)
-							}
-						}
-						idSets = append(idSets, strIDs)
-						continue
-					}
-					if ids, ok := idsRaw.([]string); ok {
+				// Bereichsfilter erkennen
+				switch c := cond.(type) {
+				case map[string]interface{}:
+					ids := filterIDsByRangeFromIndex(idxObj, c)
+					if len(ids) > 0 {
 						idSets = append(idSets, ids)
 						continue
 					}
+				default:
+					key := fmt.Sprint(cond)
+					if idsRaw, found := idxObj[key]; found {
+						if ids, ok := idsRaw.([]interface{}); ok {
+							strIDs := make([]string, 0, len(ids))
+							for _, id := range ids {
+								if s, ok := id.(string); ok {
+									strIDs = append(strIDs, s)
+								}
+							}
+							idSets = append(idSets, strIDs)
+							continue
+						}
+						if ids, ok := idsRaw.([]string); ok {
+							idSets = append(idSets, ids)
+							continue
+						}
+					}
 				}
 				// Wenn Key nicht im RAM-Index: explizit loggen
-				fmt.Printf("[INDEX-REGISTRY] Kein Treffer für Key %v in %s\n", key, idxKey)
+				fmt.Printf("[INDEX-REGISTRY] Kein Treffer für Key %v in %s\n", cond, idxKey)
 			}
 			// Fallback: Indexdatei von Disk laden (Legacy/Fehlerfall)
 			fmt.Printf("[INDEX-FILE] Lade Indexdatei für %s (Fallback)\n", idxKey)
@@ -277,4 +288,133 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 		end = offset + limit
 	}
 	return entries[offset:end]
+}
+
+// Hilfsfunktion: Bereichsfilter auf Index anwenden
+func filterIDsByRangeFromIndex(idxObj map[string]interface{}, cond map[string]interface{}) []string {
+	var result []string
+	for k, v := range idxObj {
+		// k ist der Index-Key (z.B. Datum oder Zahl als String)
+		// v ist []string oder []interface{}
+		match := true
+		for op, opVal := range cond {
+			switch op {
+			case "gte":
+				if !compareIndexKey(k, opVal, ">=", false) {
+					match = false
+				}
+			case "lte":
+				if !compareIndexKey(k, opVal, "<=", false) {
+					match = false
+				}
+			case "gt":
+				if !compareIndexKey(k, opVal, ">", false) {
+					match = false
+				}
+			case "lt":
+				if !compareIndexKey(k, opVal, "<", false) {
+					match = false
+				}
+			case "eq":
+				if !compareIndexKey(k, opVal, "==", false) {
+					match = false
+				}
+			}
+		}
+		if match {
+			// IDs extrahieren
+			switch ids := v.(type) {
+			case []interface{}:
+				for _, id := range ids {
+					if s, ok := id.(string); ok {
+						result = append(result, s)
+					}
+				}
+			case []string:
+				result = append(result, ids...)
+			}
+		}
+	}
+	return result
+}
+
+// Hilfsfunktion: Vergleich von Index-Keys (Datum, Zahl, String)
+func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool {
+	// Versuche als Zahl
+	if f, err := parseFloat(key); err == nil {
+		if fv, ok := toFloat(opVal); ok {
+			switch op {
+			case ">=":
+				return f >= fv
+			case "<=":
+				return f <= fv
+			case ">":
+				return f > fv
+			case "<":
+				return f < fv
+			case "==":
+				return f == fv
+			}
+		}
+	}
+	// Versuche als Datum
+	if t, err := time.Parse(time.RFC3339, key); err == nil {
+		if ts, ok := opVal.(string); ok {
+			if tv, err := time.Parse(time.RFC3339, ts); err == nil {
+				switch op {
+				case ">=":
+					return !t.Before(tv)
+				case "<=":
+					return !t.After(tv)
+				case ">":
+					return t.After(tv)
+				case "<":
+					return t.Before(tv)
+				case "==":
+					return t.Equal(tv)
+				}
+			}
+		}
+	}
+	// Fallback: String-Vergleich
+	if sv, ok := opVal.(string); ok {
+		switch op {
+		case ">=":
+			return key >= sv
+		case "<=":
+			return key <= sv
+		case ">":
+			return key > sv
+		case "<":
+			return key < sv
+		case "==":
+			return key == sv
+		}
+	}
+	return false
+}
+
+func parseFloat(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
+}
+
+func toFloat(v interface{}) (float64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return t, true
+	case float32:
+		return float64(t), true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	case int32:
+		return float64(t), true
+	case string:
+		f, err := strconv.ParseFloat(t, 64)
+		if err == nil {
+			return f, true
+		}
+	}
+	return 0, false
 }
