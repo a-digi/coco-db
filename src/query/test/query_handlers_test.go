@@ -37,11 +37,11 @@ func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
 	entry := map[string]interface{}{"id": "1", "name": "Test", "age": 42}
 	entryBytes, _ := json.Marshal(entry)
 	_ = os.WriteFile(filepath.Join(entriesDir, "1.json"), entryBytes, 0644)
-	// Indexdatei als Objekt anlegen
+	// Indexdatei als Objekt anlegen (id → [id])
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
-	idxObj := map[string][]string{"1": {"1"}}
 	idxPath := filepath.Join(idxDir, "index_id_idx.json")
+	idxObj := map[string][]string{"1": {"1"}}
 	idxBytes, _ := json.Marshal(idxObj)
 	_ = os.WriteFile(idxPath, idxBytes, 0644)
 }
@@ -61,22 +61,12 @@ func TestTableQueryHandler_Success(t *testing.T) {
 	}
 	data, ok := resp.Data.([]interface{})
 	if !ok || len(data) != 1 {
-		t.Errorf("Erwartet ein Tabellenergebnis, bekommen: %+v", data)
+		t.Errorf("Erwartet ein Eintrag-Array, bekommen: %+v", data)
 		return
 	}
-	tableObj, ok := data[0].(map[string]interface{})
+	entry, ok := data[0].(map[string]interface{})
 	if !ok {
-		t.Errorf("Erwartet map[string]interface{} für Tabelle, bekommen: %+v", data[0])
-		return
-	}
-	entries, ok := tableObj["entries"].([]interface{})
-	if !ok || len(entries) != 1 {
-		t.Errorf("Erwartet einen Eintrag mit id=1, bekommen: %+v", entries)
-		return
-	}
-	entry, ok := entries[0].(map[string]interface{})
-	if !ok {
-		t.Errorf("Erwartet map[string]interface{} für entry, bekommen: %+v", entries[0])
+		t.Errorf("Erwartet map[string]interface{} für entry, bekommen: %+v", data[0])
 		return
 	}
 	t.Logf("Entry: %+v", entry)
@@ -205,11 +195,11 @@ func TestQueryHandler_Join_Success(t *testing.T) {
 	entry := map[string]interface{}{"id": "1", "user_id": "1", "amount": 99}
 	entryBytes, _ := json.Marshal(entry)
 	_ = os.WriteFile(filepath.Join(entriesDir, "1.json"), entryBytes, 0644)
-	// Indexdatei
+	// Indexdatei für orders als Objekt anlegen (id → [id])
 	idxDir := filepath.Join("./testdata", "testdb", "orders", "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
-	idxObj := map[string][]string{"1": {"1"}}
 	idxPath := filepath.Join(idxDir, "index_id_idx.json")
+	idxObj := map[string][]string{"1": {"1"}}
 	idxBytes, _ := json.Marshal(idxObj)
 	_ = os.WriteFile(idxPath, idxBytes, 0644)
 
