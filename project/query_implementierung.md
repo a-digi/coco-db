@@ -347,26 +347,26 @@ query {
 ## Schritt-für-Schritt-Implementierung: Globale Suche mit Joins (GraphQL-Stil)
 
 1. **JoinDef-Struct und Query-Struct erweitern**
-   - [ ] JoinDef-Struct mit Feldern: table, on, filter, fields anlegen/erweitern
-   - [ ] Query-Struct um Join-Array ergänzen (falls noch nicht geschehen)
+   - [x] JoinDef-Struct mit Feldern: table, on, filter, fields anlegen/erweitern
+   - [x] Query-Struct um Join-Array ergänzen (falls noch nicht geschehen)
 
 2. **Parser für Join-Array implementieren**
-   - [ ] JSON-Parsing für join-Array in QueryRequest implementieren
-   - [ ] Validierung der Join-Definitionen (Pflichtfelder, Typen, Tiefe)
+   - [x] JSON-Parsing für join-Array in QueryRequest implementieren
+   - [x] Validierung der Join-Definitionen (Pflichtfelder, Typen, Tiefe)
 
 3. **Globale Query-Logik anpassen**
-   - [ ] QueryHandler für globale Suche um rekursive Join-Verarbeitung erweitern
-   - [ ] Für jeden Haupteintrag: Join-Bedingung (on) auswerten und passende Einträge in Join-Tabelle suchen
-   - [ ] Optional: Filter und Felder auf Join anwenden
-   - [ ] Ergebnisse als verschachtelte Objekte im Resultat einfügen
+   - [x] QueryHandler für globale Suche um rekursive Join-Verarbeitung erweitern
+   - [x] Für jeden Haupteintrag: Join-Bedingung (on) auswerten und passende Einträge in Join-Tabelle suchen
+   - [x] Optional: Filter und Felder auf Join anwenden
+   - [x] Ergebnisse als verschachtelte Objekte im Resultat einfügen
 
 4. **Rekursive Verarbeitung und Begrenzung**
-   - [ ] Unterstützung für beliebig viele (verschachtelte) Joins, aber Begrenzung der Tiefe (z.B. 5–10)
-   - [ ] Fehlerbehandlung bei zu tiefer Verschachtelung oder zyklischen Joins
+   - [x] Unterstützung für beliebig viele (verschachtelte) Joins, aber Begrenzung der Tiefe (z.B. 5–10)
+   - [x] Fehlerbehandlung bei zu tiefer Verschachtelung oder zyklischen Joins
 
 5. **Performance & Sicherheit**
-   - [ ] Indexnutzung auch bei Joins sicherstellen
-   - [ ] Begrenzung der maximalen Ergebnismenge und Join-Tiefe
+   - [x] Indexnutzung auch bei Joins sicherstellen (siehe FilterEngine: Indexnutzung für alle Filterfelder, auch in Joins)
+   - [x] Begrenzung der maximalen Ergebnismenge und Join-Tiefe (bereits in queryWithJoins implementiert)
 
 6. **Tests & Dokumentation**
    - [ ] Unit- und Integrationstests für verschachtelte Joins, Filter, Felder
@@ -375,11 +375,10 @@ query {
 ---
 
 **Checkliste für die Implementierung:**
-- [ ] JoinDef-Struct und Query-Struct angepasst
-- [ ] Parser für join-Array implementiert
-- [ ] Globale Query-Logik für rekursive Joins erweitert
-- [ ] Tiefe und Zyklen geprüft und begrenzt
-- [ ] Indexnutzung und Performance geprüft
+- [x] JoinDef-Struct und Query-Struct angepasst
+- [x] Parser für join-Array implementiert
+- [x] Globale Query-Logik für rekursive Joins erweitert
+- [x] Tiefe und Zyklen geprüft und begrenzt
+- [x] Indexnutzung und Performance geprüft
 - [ ] Tests für verschachtelte Joins und Filter
 - [ ] Dokumentation und Beispiele aktualisiert
-

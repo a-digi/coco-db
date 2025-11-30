@@ -42,8 +42,22 @@ func ParseQuery(r *http.Request, defaultLimit, maxLimit int) (*Query, error) {
 	// Join prüfen (falls vorhanden)
 	if qr.Join != nil {
 		for i, j := range qr.Join {
-			if j == nil {
-				return nil, fmt.Errorf("Join[%d] must be an object", i)
+			if j.Table == "" {
+				return nil, fmt.Errorf("Join[%d] missing required field: table", i)
+			}
+			if len(j.On) == 0 {
+				return nil, fmt.Errorf("Join[%d] missing required field: on", i)
+			}
+			// Rekursive Validierung für verschachtelte Joins
+			if j.Join != nil {
+				for k, sub := range j.Join {
+					if sub.Table == "" {
+						return nil, fmt.Errorf("Join[%d].Join[%d] missing required field: table", i, k)
+					}
+					if len(sub.On) == 0 {
+						return nil, fmt.Errorf("Join[%d].Join[%d] missing required field: on", i, k)
+					}
+				}
 			}
 		}
 	}

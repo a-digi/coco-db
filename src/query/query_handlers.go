@@ -40,6 +40,85 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 	return response.WriteSuccess(entries, execTime)
 }
 
+// joinDepth gibt die aktuelle Verschachtelungstiefe an (für Begrenzung)
+func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) ([]map[string]interface{}, error) {
+	if joinDepth > maxJoinDepth {
+		return nil, fmt.Errorf("Maximale Join-Tiefe (%d) überschritten", maxJoinDepth)
+	}
+	if joinPath == nil {
+		joinPath = make(map[string]struct{})
+	}
+	pathKey := dbName + "." + tableName
+	if _, exists := joinPath[pathKey]; exists {
+		return nil, fmt.Errorf("Zyklischer Join erkannt: %s", pathKey)
+	}
+	joinPath[pathKey] = struct{}{}
+	entries, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
+	if err != nil {
+		return nil, err
+	}
+	for i := range entries {
+		for _, join := range joinDefs {
+			joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
+			if err != nil {
+				continue
+			}
+			joinQuery := &Query{
+				Filter: join.Filter,
+				Limit:  0,
+				Offset: 0,
+				Sort:   nil,
+				Join:   join.Join,
+			}
+			// Join-Bedingung: Mapping Quellfeld → Zielfeld
+			on := join.On
+			joinFilter := map[string]interface{}{}
+			for src, dst := range on {
+				if val, ok := entries[i][src]; ok {
+					joinFilter[dst] = val
+				}
+			}
+			// Filter kombinieren
+			for k, v := range joinQuery.Filter {
+				joinFilter[k] = v
+			}
+			joinQuery.Filter = joinFilter
+			// Rekursiver Join mit aktualisiertem joinPath
+			joinResults, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
+			if err != nil {
+				continue
+			}
+			if join.Fields != nil && len(join.Fields) > 0 {
+				// Nur gewünschte Felder übernehmen
+				for j := range joinResults {
+					for k := range joinResults[j] {
+						found := false
+						for _, f := range join.Fields {
+							if k == f {
+								found = true
+								break
+							}
+						}
+						if !found {
+							delete(joinResults[j], k)
+						}
+					}
+				}
+			}
+			entries[i][join.Table] = joinResults
+		}
+	}
+	return entries, nil
+}
+
+func copyJoinPath(orig map[string]struct{}) map[string]struct{} {
+	newMap := make(map[string]struct{}, len(orig))
+	for k, v := range orig {
+		newMap[k] = v
+	}
+	return newMap
+}
+
 // QueryHandler verarbeitet eine globale Query und gibt eine APIResponse zurück
 func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.APIResponse {
 	start := time.Now()
@@ -48,7 +127,6 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_QUERY", err.Error(), execTime)
 	}
-	// Alle Tabellen der Datenbank iterieren
 	tableDir := filepath.Join(h.DataDir, dbName)
 	dirs, err := os.ReadDir(tableDir)
 	if err != nil {
@@ -56,12 +134,13 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 		return response.WriteErrorInternal(http.StatusNotFound, "ERR_DB_NOT_FOUND", err.Error(), execTime)
 	}
 	allResults := []interface{}{}
+	maxJoinDepth := 8
 	for _, dir := range dirs {
 		if !dir.IsDir() { continue }
 		tableName := dir.Name()
 		meta, err := fields.LoadTableMeta(h.DataDir, dbName, tableName)
 		if err != nil { continue }
-		entries, err := FilterEngine(h.DataDir, dbName, tableName, queryObj, meta)
+		entries, err := h.queryWithJoins(dbName, tableName, queryObj, meta, queryObj.Join, 1, maxJoinDepth, nil)
 		if err != nil { continue }
 		allResults = append(allResults, map[string]interface{}{
 			"table": tableName,
