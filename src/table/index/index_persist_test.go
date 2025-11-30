@@ -8,6 +8,7 @@ import (
 
 func TestBTreeIndex_SaveAndLoadToFile(t *testing.T) {
 	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "indexes"), 0755)
 	meta := IndexMeta{Name: "email", Fields: []string{"email"}, Type: IndexTypeBTree}
 	idx := NewBTreeIndex(meta)
 	// Simuliere einen Index als Map
@@ -18,7 +19,8 @@ func TestBTreeIndex_SaveAndLoadToFile(t *testing.T) {
 	}
 	// Lade in neuen Index
 	idx2 := NewBTreeIndex(meta)
-	if err := idx2.LoadFromFile(dir); err != nil {
+	indexDir := filepath.Join(dir, "indexes")
+	if err := idx2.LoadFromFile(indexDir); err != nil {
 		t.Fatalf("Fehler beim Laden: %v", err)
 	}
 	m := idx2.toMap()

@@ -11,6 +11,7 @@ import (
 
 func TestBuildIndexesFromEntries_SingleField(t *testing.T) {
 	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "indexes"), 0755)
 	entriesDir := filepath.Join(dir, "entries")
 	os.MkdirAll(entriesDir, 0755)
 	// Lege zwei Einträge an
