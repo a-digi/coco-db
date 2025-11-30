@@ -27,6 +27,10 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	var fileOpenCount int
 	var ramHitCount int
 
+	// Debug: Logge alle verfügbaren RAM-Index-Keys beim ersten Aufruf
+	reg := index.GetRegistry()
+	fmt.Printf("[DEBUG] RAM-Index-Keys: %v\n", reg.Keys())
+
 	loadEntryCounted := func(entriesDir, id string) (map[string]interface{}, error) {
 		fileOpenCount++
 		return loadEntry(entriesDir, id)
@@ -53,28 +57,31 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {
-				// Bereichsfilter erkennen
-				switch c := cond.(type) {
-				case map[string]interface{}:
-					ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
-					if len(ids) > 0 {
-						idSets = append(idSets, ids)
-					}
-				default:
-					key := fmt.Sprint(cond)
-					if idsRaw, found := idxObj[key]; found {
-						ramHitCount++
-						if ids, ok := idsRaw.([]interface{}); ok {
-							strIDs := make([]string, 0, len(ids))
-							for _, id := range ids {
-								if s, ok := id.(string); ok {
-									strIDs = append(strIDs, s)
-								}
+				fmt.Printf("[DEBUG] RAM-Index gefunden: %s (Einträge: %d)\n", idxKey, len(idxObj))
+			} else {
+				fmt.Printf("[DEBUG] Kein RAM-Index für %s gefunden!\n", idxKey)
+			}
+			// Bereichsfilter erkennen
+			switch c := cond.(type) {
+			case map[string]interface{}:
+				ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
+				if len(ids) > 0 {
+					idSets = append(idSets, ids)
+				}
+			default:
+				key := fmt.Sprint(cond)
+				if idsRaw, found := idxObj[key]; found {
+					ramHitCount++
+					if ids, ok := idsRaw.([]interface{}); ok {
+						strIDs := make([]string, 0, len(ids))
+						for _, id := range ids {
+							if s, ok := id.(string); ok {
+								strIDs = append(strIDs, s)
 							}
-							idSets = append(idSets, strIDs)
-						} else if ids, ok := idsRaw.([]string); ok {
-							idSets = append(idSets, ids)
 						}
+						idSets = append(idSets, strIDs)
+					} else if ids, ok := idsRaw.([]string); ok {
+						idSets = append(idSets, ids)
 					}
 				}
 			}
