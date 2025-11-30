@@ -4,6 +4,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // ACHTUNG: Die In-Memory-Filterung ist deaktiviert.
@@ -70,22 +71,55 @@ func toFloat64(v interface{}) (float64, bool) {
 	}
 }
 
+func parseTimeIfPossible(v interface{}) (time.Time, bool) {
+	str, ok := v.(string)
+	if !ok {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339, str)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
+}
+
 func isGreater(a, b interface{}) bool {
+	// Date-Vergleich
+	ta, okA := parseTimeIfPossible(a)
+	tb, okB := parseTimeIfPossible(b)
+	if okA && okB {
+		return ta.After(tb)
+	}
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
 	return okA && okB && fa > fb
 }
 func isGreaterOrEqual(a, b interface{}) bool {
+	ta, okA := parseTimeIfPossible(a)
+	tb, okB := parseTimeIfPossible(b)
+	if okA && okB {
+		return ta.Equal(tb) || ta.After(tb)
+	}
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
 	return okA && okB && fa >= fb
 }
 func isLess(a, b interface{}) bool {
+	ta, okA := parseTimeIfPossible(a)
+	tb, okB := parseTimeIfPossible(b)
+	if okA && okB {
+		return ta.Before(tb)
+	}
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
 	return okA && okB && fa < fb
 }
 func isLessOrEqual(a, b interface{}) bool {
+	ta, okA := parseTimeIfPossible(a)
+	tb, okB := parseTimeIfPossible(b)
+	if okA && okB {
+		return ta.Equal(tb) || ta.Before(tb)
+	}
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
 	return okA && okB && fa <= fb

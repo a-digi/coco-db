@@ -126,15 +126,20 @@ curl -X POST http://localhost:2022/api/testdb/query \
 ```json
 {
   "filter": {
+    "created_at": { "gte": "2025-11-01T00:00:00Z", "lte": "2025-11-30T23:59:59Z" },
     "email": "foo@bar.de",
     "age": { "gte": 18 },
     "name": { "like": "Max" }
   },
   "limit": 10,
   "offset": 0,
-  "sort": ["age"]
+  "sort": ["created_at", "age"]
 }
 ```
+
+**Erklärung:**
+- Das Beispiel filtert alle Einträge, die im Zeitraum vom 1.11.2025 bis 30.11.2025 erstellt wurden (`created_at`), zusätzlich nach E-Mail, Mindestalter und Namens-Pattern.
+- Die Filter-Operatoren `gte` (größer/gleich) und `lte` (kleiner/gleich) funktionieren auch für Felder vom Typ `date` (ISO 8601).
 
 ---
 
