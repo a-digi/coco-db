@@ -75,3 +75,8 @@ func LoadTableMeta(dataDir, dbName, tableName string) (*TableMeta, error) {
 	}
 	return &meta, nil
 }
+
+// GetIndexFileName gibt den konsistenten Dateinamen für einen Index zurück
+func GetIndexFileName(indexName string) string {
+	return "index_" + indexName + ".json"
+}

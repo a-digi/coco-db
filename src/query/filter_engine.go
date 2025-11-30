@@ -31,7 +31,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
 			// Index laden (Stub: Annahme BTree)
-			idxPath := filepath.Join(dataDir, dbName, tableName, "indexes", idxMeta.Name+".json")
+			idxPath := filepath.Join(dataDir, dbName, tableName, "indexes", fields.GetIndexFileName(idxMeta.Name))
 			ids, err := loadIDsFromIndex(idxPath, cond)
 			if err != nil {
 				return nil, err
