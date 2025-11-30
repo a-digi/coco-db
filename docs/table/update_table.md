@@ -17,7 +17,7 @@
   { "name": "age", "type": "number", "minLength": 1, "maxLength": 3, "nullable": true },
   { "name": "isActive", "type": "boolean", "default": false, "nullable": false },
   { "name": "address", "type": "json", "maxLength": 5, "nullable": true },
-  { "name": "created_at", "type": "date", "nullable": false }
+  { "name": "created_at", "type": "date", "default": "now", "nullable": false }
 ]
 ```
 
