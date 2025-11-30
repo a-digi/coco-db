@@ -49,4 +49,17 @@ stop-dev:
 	fi
 
 fake-data:
-	go run ./scripts/faker.go --table poseidon/users --amount 10000
+	@if [ -z "$(db)" ]; then \
+		echo "Bitte gib die Datenbank mit db=... an, z.B. make fake-data db=poseidon"; \
+		exit 1; \
+	fi
+	@if [ -z "$(table)" ]; then \
+    		echo "Bitte gib die Tabelle mit db=... an, z.B. make fake-data table=users"; \
+    		exit 1; \
+    	fi
+	@if [ -z "$(amount)" ]; then \
+		AMOUNT=10; \
+	else \
+		AMOUNT=$(amount); \
+	fi; \
+	go run ./scripts/faker.go --table $(db)/$(table) --amount $$AMOUNT
