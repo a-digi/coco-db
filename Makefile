@@ -62,4 +62,4 @@ fake-data:
 	else \
 		AMOUNT=$(amount); \
 	fi; \
-	go run ./scripts/faker.go --table $(db)/$(table) --amount $$AMOUNT
+	go run ./scripts/faker/faker.go --table $(db)/$(table) --amount $$AMOUNT
