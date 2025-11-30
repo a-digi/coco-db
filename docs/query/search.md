@@ -41,11 +41,11 @@ query {
     join: [
       {
         table: "user_roles",
-        on: { id: "user_id" },
+        on: { user_id: "id" },
         join: [
           {
             table: "roles",
-            on: { role_id: "id" },
+            on: { id: "role_id" },
             fields: ["id", "name"]
           }
         ],
@@ -85,11 +85,11 @@ query {
     join: [
       {
         table: "user_roles",
-        on: { id: "user_id" },
+        on: { user_id: "id" },
         join: [
           {
             table: "roles",
-            on: { role_id: "id" },
+            on: { id: "role_id" },
             fields: ["id", "name"]
           }
         ],
@@ -118,7 +118,7 @@ query {
 ## 4. CURL-Beispiel
 
 ```sh
-curl -v -X POST http://localhost:2022/api/databases/poseidon/search -d 'query { users( filter: { created_at: { gte: "2025-11-01T00:00:00Z", lte: "2025-11-30T23:59:59Z" }, email: { like: "*@gmail.com" }, age: { gte: 18 } }, join: [ { table: "user_roles", on: { id: "user_id" }, join: [ { table: "roles", on: { role_id: "id" }, fields: ["id", "name"] } ], fields: ["role_id", "user_id", "roles"] } ], limit: 10, offset: 0, fields: ["id", "name", "email", "user_roles"] ) { id name email user_roles { role_id user_id roles { id name } } } }'
+curl -v -X POST http://localhost:2022/api/databases/poseidon/search -d 'query { users( filter: { created_at: { gte: "2025-11-01T00:00:00Z", lte: "2025-11-30T23:59:59Z" }, email: { like: "*@gmail.com" }, age: { gte: 18 } }, join: [ { table: "user_roles", on: { user_id: "id" }, join: [ { table: "roles", on: { id: "role_id" }, fields: ["id", "name"] } ], fields: ["role_id", "user_id", "roles"] } ], limit: 10, offset: 0, fields: ["id", "name", "email", "user_roles"] ) { id name email user_roles { role_id user_id roles { id name } } } }'
 ```
 
 ## 5. Hinweise

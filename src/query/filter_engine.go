@@ -53,6 +53,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				id := f.Name()
 				entry, err := loadEntry(entriesDir, id)
 				if err == nil && filter.MatchesAllFiltersSearch(entry, query.Filter, operatorFuncs, isEqual) {
+					fmt.Printf("[JOIN-LOG] Join-Treffer: id=%v, Filter=%v\n", id, query.Filter)
 					result = append(result, entry)
 				}
 			}

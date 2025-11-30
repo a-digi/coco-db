@@ -69,13 +69,17 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				Sort:   nil,
 				Join:   join.Join,
 			}
-			// Join-Bedingung: Mapping Quellfeld → Zielfeld
-			on := join.On
+			// Join-Bedingung: Mapping Ziel-Feld (in Join-Tabelle) → Quell-Feld (im Haupteintrag)
 			joinFilter := map[string]interface{}{}
-			for dst, src := range on {
-				if val, ok := entries[i][src]; ok {
-					joinFilter[dst] = val
+			for dst, src := range join.On {
+				val, ok := entries[i][src]
+				if !ok {
+					if h.Logger != nil {
+						h.Logger.Warning(fmt.Sprintf("Join-Mapping: Quellfeld '%s' fehlt im Eintrag: %+v", src, entries[i]))
+					}
+					continue
 				}
+				joinFilter[dst] = val
 			}
 			// Filter kombinieren
 			for k, v := range joinQuery.Filter {
