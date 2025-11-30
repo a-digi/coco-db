@@ -17,7 +17,7 @@
 
 2 **Zentralen Index-Cache/Registry implementieren**
   - [x] Entwickle eine zentrale Komponente (z.B. Singleton oder globales Objekt), die alle geladenen Indexe verwaltet.
-  - [ ] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
+  - [x] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
 
 3 **Indexe für schnelle Lookups bei Filter- und Join-Operationen nutzen**
   - [ ] Nutze die In-Memory-Indexe, um Filter und Joins effizient (O(1) oder O(log n)) auszuführen.
