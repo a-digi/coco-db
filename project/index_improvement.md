@@ -35,6 +35,35 @@
   - [ ] Überwache die Aktualität und Konsistenz der Indexe.
   - [ ] Logge Fehler und Rückstände im Index-Worker.
 
+## 1.3 Architektur- und Schnittstellendesign für den zentralen Index-Cache (Implementierung)
+
+Die zentrale Komponente ist `IndexRegistry` (Singleton, threadsicher), die alle geladenen Indexe im RAM hält. Sie bietet folgende Schnittstellen:
+
+- `GetRegistry() *IndexRegistry` – liefert die Singleton-Instanz
+- `Set(key string, data IndexData)` – speichert/aktualisiert einen Index
+- `Get(key string) (IndexData, bool)` – liest einen Index
+- `LoadAllIndexes(dataDir string) error` – lädt alle Indexdateien rekursiv in die Registry
+
+**Implementierung:**
+- Siehe `src/index/registry.go` und `src/index/registry_test.go` für vollständigen Go-Code und Unit-Tests.
+- Die Registry ist generisch und kann für verschiedene Index-Typen erweitert werden.
+- Die Nutzung erfolgt über den Key `db.table.index` (z.B. `poseidon.users.email`).
+- Die Registry kann beim Serverstart initialisiert und für Query- und Filter-Operationen verwendet werden.
+
+**Beispiel für die Nutzung im Serverstart:**
+
+```go
+import "src/index"
+
+func main() {
+    err := index.LoadAllIndexes("/data")
+    if err != nil {
+        log.Fatalf("Index-Laden fehlgeschlagen: %v", err)
+    }
+    // ... Restlicher Serverstart
+}
+```
+
 ## Vorteile
 - [ ] Deutlich schnellere Filter- und Join-Operationen (keine Full Table Scans)
 - [ ] Geringere Latenz und höherer Durchsatz bei komplexen Queries
@@ -43,6 +72,5 @@
 ---
 
 **Empfohlene nächste Schritte:**
-- [ ] Architektur- und Schnittstellendesign für den zentralen Index-Cache
 - [ ] Prototyp für das Laden und Aktualisieren der Indexe im RAM
 - [ ] Integration in Query- und Filter-Engine
