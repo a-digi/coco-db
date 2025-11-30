@@ -24,8 +24,9 @@ type FilterResult struct {
 // Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
 // Gibt die gefilterten Einträge als Array von map[string]interface{} zurück
 func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) (*FilterResult, error) {
-	var fileOpenCount int
-	var ramHitCount int
+    fmt.Println("[DEBUG] FilterEngine gestartet")
+    var fileOpenCount int
+    var ramHitCount int
 
 	// Debug: Logge alle verfügbaren RAM-Index-Keys beim ersten Aufruf
 	reg := index.GetRegistry()
@@ -150,26 +151,37 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				result = append(result, entry)
 			}
 		}
-	} else {
-	    /*
-		fmt.Printf("[DEBUG] Kein Index nutzbar, vollständiger Scan für Tabelle %s.%s!\n", dbName, tableName)
-		// Kein Index nutzbar: vollständiger Scan
-		files, _ := os.ReadDir(entriesDir)
-		fmt.Printf("[DEBUG] Scan-Verzeichnis: %s, Anzahl Dateien: %d\n", entriesDir, len(files))
-
-		for _, f := range files {
-			if f.IsDir() {
-				id := f.Name()
-				entry, err := loadEntryCounted(entriesDir, id)
-				if err != nil {
-					continue
-				}
-				if matchesAllFiltersEngine(entry, query.Filter) {
-					result = append(result, entry)
-				}
-			}
-		}
-        */
+	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
+        // Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, öffne nur diese Dateien
+        for _, id := range inIDs {
+            entry, err := loadEntryCounted(entriesDir, id)
+            if err != nil {
+                continue
+            }
+            if matchesAllFiltersEngine(entry, query.Filter) {
+                result = append(result, entry)
+            }
+        }
+    } else {
+        // Debug-Ausgabe, wenn kein Index nutzbar ist
+        msg := fmt.Sprintf("[DEBUG] Kein Index nutzbar, vollständiger Scan für Tabelle %s.%s!", dbName, tableName)
+        fmt.Println(msg)
+        // Kein Index nutzbar: vollständiger Scan
+        files, _ := os.ReadDir(entriesDir)
+        msg = fmt.Sprintf("[DEBUG] Scan-Verzeichnis: %s, Anzahl Dateien: %d", entriesDir, len(files))
+        fmt.Println(msg)
+        for _, f := range files {
+            if f.IsDir() {
+                id := f.Name()
+                entry, err := loadEntryCounted(entriesDir, id)
+                if err != nil {
+                    continue
+                }
+                if matchesAllFiltersEngine(entry, query.Filter) {
+                    result = append(result, entry)
+                }
+            }
+        }
 	}
 
 	if len(query.Sort) > 0 {
@@ -518,4 +530,27 @@ func toFloat(v interface{}) (float64, bool) {
 		}
 	}
 	return 0, false
+}
+
+// Hilfsfunktion: Extrahiere IDs aus einem "in"-Filter
+func getInFilterIDs(filter map[string]interface{}) []string {
+    for _, cond := range filter {
+        if condMap, ok := cond.(map[string]interface{}); ok {
+            if inVal, ok := condMap["in"]; ok {
+                var ids []string
+                switch v := inVal.(type) {
+                case []interface{}:
+                    for _, id := range v {
+                        if s, ok := id.(string); ok {
+                            ids = append(ids, s)
+                        }
+                    }
+                case []string:
+                    ids = append(ids, v...)
+                }
+                return ids
+            }
+        }
+    }
+    return nil
 }
