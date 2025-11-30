@@ -3,12 +3,12 @@ package index
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-	"log"
 )
 
 type IndexData map[string]interface{}
@@ -88,4 +88,25 @@ func buildIndexKeyFromPath(path, dataDir string) string {
 		return db + "." + table + "." + index
 	}
 	return path
+}
+
+// Prototyp: Index-Update im RAM nach Datenänderung
+
+// UpdateIndexInMemory aktualisiert einen bestimmten Index-Eintrag im RAM.
+// action: "insert", "update", "delete"
+func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value interface{}, action string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	idxKey := db + "." + table + "." + index
+	idx, ok := r.cache[idxKey]
+	if !ok {
+		idx = make(IndexData)
+		r.cache[idxKey] = idx
+	}
+	switch action {
+	case "insert", "update":
+		idx[key] = value
+	case "delete":
+		delete(idx, key)
+	}
 }

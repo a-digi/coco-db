@@ -17,7 +17,7 @@
 
 2 **Zentralen Index-Cache/Registry implementieren**
   - [x] Entwickle eine zentrale Komponente (z.B. Singleton oder globales Objekt), die alle geladenen Indexe verwaltet.
-  - [x] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
+  - [ ] Alle Query-Handler und Filter-Engines greifen auf diesen Cache zu, statt Indexdateien von der Festplatte zu lesen.
 
 3 **Indexe für schnelle Lookups bei Filter- und Join-Operationen nutzen**
   - [ ] Nutze die In-Memory-Indexe, um Filter und Joins effizient (O(1) oder O(log n)) auszuführen.
@@ -63,6 +63,29 @@ func main() {
     // ... Restlicher Serverstart
 }
 ```
+
+## 1.4 Prototyp für das Laden und Aktualisieren der Indexe im RAM
+
+Die IndexRegistry kann jetzt nicht nur beim Serverstart geladen, sondern auch zur Laufzeit aktualisiert werden:
+
+**Neue Methode:**
+```go
+// Prototyp: Index-Update im RAM nach Datenänderung
+// action: "insert", "update", "delete"
+func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value interface{}, action string)
+```
+- Fügt einen Eintrag hinzu, aktualisiert oder entfernt ihn im RAM-Index.
+- Wird nach Insert/Update/Delete aufgerufen, um die Indexe aktuell zu halten.
+
+**Beispiel für die Nutzung nach einem Insert:**
+```go
+reg := index.GetRegistry()
+reg.UpdateIndexInMemory("poseidon", "users", "email", "foo@bar.de", entryID, "insert")
+```
+
+**Empfohlene Integration:**
+- Nach jeder Datenänderung (Insert/Update/Delete) in der Datenbank wird diese Methode aufgerufen.
+- Ein Event-Worker kann das Event-Log konsumieren und so die Indexe im RAM synchron halten.
 
 ## Vorteile
 - [ ] Deutlich schnellere Filter- und Join-Operationen (keine Full Table Scans)
