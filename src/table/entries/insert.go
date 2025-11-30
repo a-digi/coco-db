@@ -141,6 +141,18 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 		}
 	}
 
+	// 7. TotalEntries in meta.json erhöhen
+	if metaFile, err := os.ReadFile(metaPath); err == nil {
+		var meta fields.TableMeta
+		if err := json.Unmarshal(metaFile, &meta); err == nil {
+			meta.TotalEntries++
+			if f, err := os.Create(metaPath); err == nil {
+				_ = json.NewEncoder(f).Encode(meta)
+				f.Close()
+			}
+		}
+	}
+
 	// Rückgabe: entryId und vollständiger Eintrag im Data-Objekt
 	respData := map[string]interface{}{"entryId": entryId}
 	for k, v := range entry {

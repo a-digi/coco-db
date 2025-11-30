@@ -87,6 +87,23 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 		}
 	}
 
+	// 3. TotalEntries in meta.json verringern
+	metaFile, err = os.ReadFile(metaPath)
+	if err == nil {
+		var meta map[string]interface{}
+		if err := json.Unmarshal(metaFile, &meta); err == nil {
+			if te, ok := meta["totalEntries"].(float64); ok {
+				if te > 0 {
+					meta["totalEntries"] = te - 1
+				}
+			}
+			if f, err := os.Create(metaPath); err == nil {
+				_ = json.NewEncoder(f).Encode(meta)
+				f.Close()
+			}
+		}
+	}
+
 	ed.Logger.Info(fmt.Sprintf("Eintrag erfolgreich gelöscht (hard): %s", entryPath))
 	return nil
 }
