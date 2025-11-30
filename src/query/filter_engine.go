@@ -84,9 +84,12 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	// 3. Sequentieller Scan für nicht indizierte Filter
 	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
 	var result []map[string]interface{}
+	sequentialScans := 0
+	sequentialEntries := 0
 	if query.IsSearchQuery {
 		// Eigene Filter-Logik für SearchQuery
 		files, _ := os.ReadDir(entriesDir)
+		sequentialScans++
 		for _, f := range files {
 			if f.IsDir() {
 				id := f.Name()
@@ -95,6 +98,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 					fmt.Printf("[JOIN-LOG] Join-Treffer: id=%v, Filter=%v\n", id, query.Filter)
 					result = append(result, entry)
 				}
+				sequentialEntries++
 			}
 		}
 	} else {
@@ -105,8 +109,10 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 					result = append(result, entry)
 				}
 			}
+			fmt.Printf("[INDEX-LOOKUP] IDs aus Index: %d\n", len(ids))
 		} else {
 			files, _ := os.ReadDir(entriesDir)
+			sequentialScans++
 			for _, f := range files {
 				if f.IsDir() {
 					id := f.Name()
@@ -114,10 +120,12 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 					if err == nil && matchesAllFiltersEngine(entry, query.Filter) {
 						result = append(result, entry)
 					}
+					sequentialEntries++
 				}
 			}
 		}
 	}
+	fmt.Printf("[SEQUENTIAL-SCAN] Scans: %d, Entries geprüft: %d\n", sequentialScans, sequentialEntries)
 
 	// Nach dem Filtern: Sortierung und Paginierung
 	if len(query.Sort) > 0 {
