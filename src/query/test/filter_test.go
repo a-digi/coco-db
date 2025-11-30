@@ -46,7 +46,7 @@ func setupTestData(t *testing.T) (dataDir, dbName, tableName string, meta *field
 	// Indexdatei (Objekt: email -> [ID])
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
-	idxPath := filepath.Join(idxDir, "email_idx.json")
+	idxPath := filepath.Join(idxDir, "index_email_idx.json")
 	idxObj := map[string][]string{
 		"foo@bar.de": {"1"},
 		"bar@foo.de": {"2"},

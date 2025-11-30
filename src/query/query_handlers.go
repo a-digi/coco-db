@@ -3,6 +3,7 @@ package query
 import (
 	"net/http"
 	"time"
+	"fmt"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"github.com/a-digi/coco-db/src/logger"

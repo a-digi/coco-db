@@ -36,7 +36,7 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
-	idxPath := filepath.Join(idxDir, "email_idx.json")
+	idxPath := filepath.Join(idxDir, "index_email_idx.json")
 	_ = os.WriteFile(idxPath, []byte(`["48dece68-4380-4f82-92e3-8fdb7da2b8bd"]`), 0644)
 
 	// Zusätzliche Testdaten für Sortierung und Paginierung
@@ -162,11 +162,11 @@ func TestFilterEngine_DeepJoins(t *testing.T) {
 	})
 
 	// Baue die Join-Definitionen für 10 Ebenen
-	joins := make([]map[string]interface{}, joinDepth)
+	joins := make([]query.JoinDef, joinDepth)
 	for i := 1; i <= joinDepth; i++ {
-		joins[i-1] = map[string]interface{}{
-			"table": "level" + strconv.Itoa(i),
-			"on": map[string]interface{}{ "ref_id": "id" },
+		joins[i-1] = query.JoinDef{
+			Table: "level" + strconv.Itoa(i),
+			On: map[string]string{ "ref_id": "id" },
 		}
 	}
 

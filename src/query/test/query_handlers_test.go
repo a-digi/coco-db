@@ -41,7 +41,7 @@ func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
 	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
 	idxObj := map[string][]string{"1": {"1"}}
-	idxPath := filepath.Join(idxDir, "id_idx.json")
+	idxPath := filepath.Join(idxDir, "index_id_idx.json")
 	idxBytes, _ := json.Marshal(idxObj)
 	_ = os.WriteFile(idxPath, idxBytes, 0644)
 }
@@ -199,7 +199,7 @@ func TestQueryHandler_Join_Success(t *testing.T) {
 	idxDir := filepath.Join("./testdata", "testdb", "orders", "indexes")
 	_ = os.MkdirAll(idxDir, 0755)
 	idxObj := map[string][]string{"1": {"1"}}
-	idxPath := filepath.Join(idxDir, "id_idx.json")
+	idxPath := filepath.Join(idxDir, "index_id_idx.json")
 	idxBytes, _ := json.Marshal(idxObj)
 	_ = os.WriteFile(idxPath, idxBytes, 0644)
 
