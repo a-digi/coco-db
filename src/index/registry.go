@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 	"log"
@@ -72,11 +73,10 @@ func LoadAllIndexes(dataDir string) error {
 
 func buildIndexKeyFromPath(path, dataDir string) string {
 	rel, _ := filepath.Rel(dataDir, path)
-	parts := filepath.SplitList(rel)
 	// Annahme: dataDir/db/table/index_*.json
 	partsFS := filepath.ToSlash(rel)
 	partsArr := make([]string, 0)
-	for _, p := range filepath.SplitList(partsFS) {
+	for _, p := range strings.Split(partsFS, "/") {
 		if p != "" {
 			partsArr = append(partsArr, p)
 		}
@@ -89,4 +89,3 @@ func buildIndexKeyFromPath(path, dataDir string) string {
 	}
 	return path
 }
-
