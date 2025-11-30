@@ -23,6 +23,9 @@ func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
 			{Name: "name", Type: "string"},
 			{Name: "age", Type: "int"},
 		},
+		Indexes: []fields.IndexMeta{
+			{Name: "id_idx", Fields: []string{"id"}, Type: "primary", Unique: true},
+		},
 	}
 	metaPath := filepath.Join(dataDir, dbName, tableName, "meta.json")
 	_ = os.MkdirAll(filepath.Dir(metaPath), 0755)
@@ -34,6 +37,13 @@ func setupTestTable(dataDir, dbName, tableName string, t *testing.T) {
 	entry := map[string]interface{}{"id": "1", "name": "Test", "age": 42}
 	entryBytes, _ := json.Marshal(entry)
 	_ = os.WriteFile(filepath.Join(entryDir, "1.json"), entryBytes, 0644)
+	// Indexdatei als Objekt anlegen
+	idxDir := filepath.Join(dataDir, dbName, tableName, "indexes")
+	_ = os.MkdirAll(idxDir, 0755)
+	idxObj := map[string][]string{"1": {"1"}}
+	idxPath := filepath.Join(idxDir, "id_idx.json")
+	idxBytes, _ := json.Marshal(idxObj)
+	_ = os.WriteFile(idxPath, idxBytes, 0644)
 }
 
 func TestTableQueryHandler_Success(t *testing.T) {

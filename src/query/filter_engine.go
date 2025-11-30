@@ -2,6 +2,7 @@ package query
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/a-digi/coco-db/src/table/fields"
 	"os"
 	"path/filepath"
@@ -101,15 +102,27 @@ func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]int
 	return true
 }
 
-// Hilfsfunktion: IDs aus Indexdatei laden (Stub: alle IDs zurückgeben, echte Filterung TODO)
+// Hilfsfunktion: IDs aus Indexdatei laden (echtes Indexformat: map[string][]string)
 func loadIDsFromIndex(idxPath string, cond interface{}) ([]string, error) {
 	b, err := os.ReadFile(idxPath)
 	if err != nil {
 		return nil, err
 	}
-	var ids []string
-	_ = json.Unmarshal(b, &ids) // Annahme: Flat-Array, TODO: echte Indexlogik
-	return ids, nil
+	// Versuche zuerst map[string][]string
+	var idxObj map[string][]string
+	if err := json.Unmarshal(b, &idxObj); err == nil {
+		key := fmt.Sprint(cond)
+		if ids, ok := idxObj[key]; ok {
+			return ids, nil
+		}
+		return []string{}, nil
+	}
+	// Fallback: []string (ältere Tests)
+	var idxArr []string
+	if err := json.Unmarshal(b, &idxArr); err == nil {
+		return idxArr, nil
+	}
+	return nil, fmt.Errorf("Indexdatei hat unbekanntes Format")
 }
 
 // Hilfsfunktion: Eintrag aus Datei laden
