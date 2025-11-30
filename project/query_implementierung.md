@@ -257,3 +257,129 @@ Content-Type: application/json
 ---
 
 Jeder Schritt sollte einzeln umgesetzt, getestet und dokumentiert werden. Die Architektur ist so zu wählen, dass Erweiterungen (z.B. weitere Operatoren, Volltextsuche, komplexe Joins) einfach möglich sind.
+
+# Globale Suche mit Joins im GraphQL-Stil
+
+## Ziel
+Die globale Suche soll eine flexible, deklarative Abfrage ermöglichen, die auch Joins auf andere Tabellen unterstützt – ähnlich wie in GraphQL.
+
+## Beispiel für eine globale Suche mit Joins (GraphQL-Stil)
+
+```graphql
+query {
+  users(
+    filter: {
+      created_at: { gte: "2025-11-01T00:00:00Z", lte: "2025-11-30T23:59:59Z" }
+      email: { like: "*@gmail.com" }
+      age: { gte: 18 }
+    }
+    limit: 10
+    offset: 0
+    sort: ["created_at", "age"]
+    join: [
+      {
+        table: "orders"
+        on: { user_id: "id" }
+        filter: { status: "open" }
+        fields: ["id", "amount", "status"]
+      }
+    ]
+  ) {
+    id
+    name
+    email
+    created_at
+    age
+    orders {
+      id
+      amount
+      status
+    }
+  }
+}
+```
+
+## JSON-API-Äquivalent
+
+```json
+{
+  "filter": {
+    "created_at": { "gte": "2025-11-01T00:00:00Z", "lte": "2025-11-30T23:59:59Z" },
+    "email": { "like": "*@gmail.com" },
+    "age": { "gte": 18 }
+  },
+  "limit": 10,
+  "offset": 0,
+  "sort": ["created_at", "age"],
+  "join": [
+    {
+      "table": "orders",
+      "on": { "user_id": "id" },
+      "filter": { "status": "open" },
+      "fields": ["id", "amount", "status"]
+    }
+  ]
+}
+```
+
+## Hinweise zur Implementierung
+- Die Query-API akzeptiert ein JSON-Objekt mit den Feldern `filter`, `limit`, `offset`, `sort` und `join`.
+- Das Feld `join` ist ein Array von Join-Definitionen:
+  - `table`: Name der zu joinenden Tabelle
+  - `on`: Join-Bedingung (Feld-Mapping)
+  - `filter`: Optionaler Filter für die Join-Tabelle
+  - `fields`: Optional, gibt an, welche Felder aus der Join-Tabelle zurückgegeben werden
+- Das Ergebnis ist verschachtelt: Für jeden Haupteintrag werden die verknüpften Einträge als Array im Join-Feld zurückgegeben.
+- Die Syntax orientiert sich an GraphQL, die Implementierung bleibt aber JSON-basiert.
+
+## Vorteile
+- Sehr flexible, deklarative Abfragen
+- Joins und verschachtelte Ergebnisse möglich
+- Einfache Erweiterbarkeit für weitere Features (z.B. Aggregationen)
+
+## ToDo
+- Erweiterung des Query-Parsers für Joins
+- Anpassung der globalen Query-Logik (QueryHandler)
+- Tests für verschachtelte Ergebnisse und Joins
+
+---
+
+## Schritt-für-Schritt-Implementierung: Globale Suche mit Joins (GraphQL-Stil)
+
+1. **JoinDef-Struct und Query-Struct erweitern**
+   - [ ] JoinDef-Struct mit Feldern: table, on, filter, fields anlegen/erweitern
+   - [ ] Query-Struct um Join-Array ergänzen (falls noch nicht geschehen)
+
+2. **Parser für Join-Array implementieren**
+   - [ ] JSON-Parsing für join-Array in QueryRequest implementieren
+   - [ ] Validierung der Join-Definitionen (Pflichtfelder, Typen, Tiefe)
+
+3. **Globale Query-Logik anpassen**
+   - [ ] QueryHandler für globale Suche um rekursive Join-Verarbeitung erweitern
+   - [ ] Für jeden Haupteintrag: Join-Bedingung (on) auswerten und passende Einträge in Join-Tabelle suchen
+   - [ ] Optional: Filter und Felder auf Join anwenden
+   - [ ] Ergebnisse als verschachtelte Objekte im Resultat einfügen
+
+4. **Rekursive Verarbeitung und Begrenzung**
+   - [ ] Unterstützung für beliebig viele (verschachtelte) Joins, aber Begrenzung der Tiefe (z.B. 5–10)
+   - [ ] Fehlerbehandlung bei zu tiefer Verschachtelung oder zyklischen Joins
+
+5. **Performance & Sicherheit**
+   - [ ] Indexnutzung auch bei Joins sicherstellen
+   - [ ] Begrenzung der maximalen Ergebnismenge und Join-Tiefe
+
+6. **Tests & Dokumentation**
+   - [ ] Unit- und Integrationstests für verschachtelte Joins, Filter, Felder
+   - [ ] Erweiterung der API-Dokumentation und Beispiele
+
+---
+
+**Checkliste für die Implementierung:**
+- [ ] JoinDef-Struct und Query-Struct angepasst
+- [ ] Parser für join-Array implementiert
+- [ ] Globale Query-Logik für rekursive Joins erweitert
+- [ ] Tiefe und Zyklen geprüft und begrenzt
+- [ ] Indexnutzung und Performance geprüft
+- [ ] Tests für verschachtelte Joins und Filter
+- [ ] Dokumentation und Beispiele aktualisiert
+
