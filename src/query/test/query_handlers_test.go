@@ -50,6 +50,7 @@ func TestTableQueryHandler_Success(t *testing.T) {
 		return
 	}
 	t.Logf("Entry: %+v", entry)
+
 	if entry["id"] != "1" || entry["name"] != "Test User" || fmt.Sprintf("%v", entry["age"]) != "25" {
 		t.Errorf("Erwartet einen Eintrag mit id=1, name=Test User, age=25, bekommen: %+v", entry)
 	}
