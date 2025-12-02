@@ -78,8 +78,8 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Fehler bei FilterEngine (Index): %v", err)
 	}
-	if len(result) != 1 || result[0]["email"] != "foo@bar.de" {
-		t.Errorf("Index-Filter: Erwartet 1 Ergebnis mit email=foo@bar.de, bekommen: %+v", result)
+	if len(result.Entries) != 1 || result.Entries[0]["email"] != "foo@bar.de" {
+		t.Errorf("Index-Filter: Erwartet 1 Ergebnis mit email=foo@bar.de, bekommen: %+v", result.Entries)
 	}
 
 	// Test: Filter auf nicht indiziertes Feld (name)
@@ -88,8 +88,8 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Fehler bei FilterEngine (Non-Index): %v", err)
 	}
-	if len(result2) != 1 || result2[0]["name"] != "Test User" {
-		t.Errorf("Non-Index-Filter: Erwartet 1 Ergebnis mit name=Test User, bekommen: %+v", result2)
+	if len(result2.Entries) != 1 || result2.Entries[0]["name"] != "Test User" {
+		t.Errorf("Non-Index-Filter: Erwartet 1 Ergebnis mit name=Test User, bekommen: %+v", result2.Entries)
 	}
 
 	// Test: AND-Logik (beide Felder)
@@ -98,32 +98,32 @@ func TestFilterEngine_IndexAndNonIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Fehler bei FilterEngine (AND): %v", err)
 	}
-	if len(result3) != 1 || result3[0]["email"] != "foo@bar.de" || result3[0]["name"] != "Test User" {
-		t.Errorf("AND-Logik: Erwartet 1 Ergebnis mit email=foo@bar.de und name=Test User, bekommen: %+v", result3)
+	if len(result3.Entries) != 1 || result3.Entries[0]["email"] != "foo@bar.de" || result3.Entries[0]["name"] != "Test User" {
+		t.Errorf("AND-Logik: Erwartet 1 Ergebnis mit email=foo@bar.de und name=Test User, bekommen: %+v", result3.Entries)
 	}
 
 	// Test: Sortierung aufsteigend nach Alter
 	q4 := &query.Query{Filter: map[string]interface{}{}, Sort: []string{"age"}}
 	result4, err := query.FilterEngine(dataDir, dbName, tableName, q4, meta)
-	if err != nil || len(result4) < 2 || result4[0]["age"].(float64) > result4[1]["age"].(float64) {
-		t.Errorf("Sortierung aufsteigend: Ergebnis nicht korrekt sortiert: %+v, err=%v", result4, err)
+	if err != nil || len(result4.Entries) < 2 || result4.Entries[0]["age"].(float64) > result4.Entries[1]["age"].(float64) {
+		t.Errorf("Sortierung aufsteigend: Ergebnis nicht korrekt sortiert: %+v, err=%v", result4.Entries, err)
 	}
 
 	// Test: Sortierung absteigend nach Alter
 	q5 := &query.Query{Filter: map[string]interface{}{}, Sort: []string{"-age"}}
 	result5, err := query.FilterEngine(dataDir, dbName, tableName, q5, meta)
-	if err != nil || len(result5) < 2 || result5[0]["age"].(float64) < result5[1]["age"].(float64) {
-		t.Errorf("Sortierung absteigend: Ergebnis nicht korrekt sortiert: %+v, err=%v", result5, err)
+	if err != nil || len(result5.Entries) < 2 || result5.Entries[0]["age"].(float64) < result5.Entries[1]["age"].(float64) {
+		t.Errorf("Sortierung absteigend: Ergebnis nicht korrekt sortiert: %+v, err=%v", result5.Entries, err)
 	}
 
 	// Test: Paginierung (limit=1, offset=1)
 	q6 := &query.Query{Filter: map[string]interface{}{}, Limit: 1, Offset: 1, Sort: []string{"age"}}
 	result6, err := query.FilterEngine(dataDir, dbName, tableName, q6, meta)
-	if err != nil || len(result6) != 1 {
+	if err != nil || len(result6.Entries) != 1 {
 		t.Errorf("Paginierung: Erwartet 1 Ergebnis, bekommen: %+v, err=%v", result6, err)
 	}
-	if len(result6) == 1 && result6[0]["age"].(float64) != 20.0 {
-		t.Errorf("Paginierung: Erwartet age=20.0, bekommen: %+v", result6[0])
+	if len(result6.Entries) == 1 && result6.Entries[0]["age"].(float64) != 20.0 {
+		t.Errorf("Paginierung: Erwartet age=20.0, bekommen: %+v", result6.Entries[0])
 	}
 }
 

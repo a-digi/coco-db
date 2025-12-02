@@ -68,48 +68,48 @@ func TestFilterEngine_Basic(t *testing.T) {
 	t.Run("eq filter", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"email": "foo@bar.de"}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 1 || res[0]["email"] != "foo@bar.de" {
-			t.Errorf("expected 1 result, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 1 || res.Entries[0]["email"] != "foo@bar.de" {
+			t.Errorf("expected 1 result, got %+v, err=%v", res.Entries, err)
 		}
 	})
 
 	t.Run("gt filter", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"age": map[string]interface{}{"gt": 18}}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 2 {
-			t.Errorf("expected 2 results, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 2 {
+			t.Errorf("expected 2 results, got %+v, err=%v", res.Entries, err)
 		}
 	})
 
 	t.Run("and logic", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"isActive": true, "age": map[string]interface{}{"gte": 18}}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 2 {
-			t.Errorf("expected 2 results, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 2 {
+			t.Errorf("expected 2 results, got %+v, err=%v", res.Entries, err)
 		}
 	})
 
 	t.Run("like filter", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"email": map[string]interface{}{"like": "foo*@bar.de"}}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 1 || res[0]["email"] != "foo@bar.de" {
-			t.Errorf("expected 1 result for LIKE, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 1 || res.Entries[0]["email"] != "foo@bar.de" {
+			t.Errorf("expected 1 result for LIKE, got %+v, err=%v", res.Entries, err)
 		}
 	})
 
 	t.Run("partial filter", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"email": map[string]interface{}{"partial": "foo"}}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 2 {
-			t.Errorf("expected 2 results for PARTIAL, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 2 {
+			t.Errorf("expected 2 results for PARTIAL, got %+v, err=%v", res.Entries, err)
 		}
 	})
 
 	t.Run("fulltext filter", func(t *testing.T) {
 		q := &query.Query{Filter: map[string]interface{}{"email": map[string]interface{}{"fulltext": "foo bar"}}}
 		res, err := query.FilterEngine(dataDir, dbName, tableName, q, meta)
-		if err != nil || len(res) != 1 || res[0]["email"] != "foo@bar.de" {
-			t.Errorf("expected 1 result for FULLTEXT, got %+v, err=%v", res, err)
+		if err != nil || len(res.Entries) != 1 || res.Entries[0]["email"] != "foo@bar.de" {
+			t.Errorf("expected 1 result for FULLTEXT, got %+v, err=%v", res.Entries, err)
 		}
 	})
 }

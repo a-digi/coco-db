@@ -131,14 +131,39 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
-		// Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, öffne nur diese Dateien
-		for _, id := range inIDs {
-			entry, err := loadEntryCounted(entriesDir, id)
-			if err != nil {
-				continue
+		// Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, prüfe ob ein RAM-Index existiert
+		var idxKey string
+		for f, idxMeta := range indexedFields {
+			if _, ok := query.Filter[f]; ok {
+				idxKey = dbName + "." + tableName + "." + idxMeta.Name
+				break
 			}
-			if matchesAllFiltersEngine(entry, query.Filter) {
-				result = append(result, entry)
+		}
+		reg := index.GetRegistry()
+		idxObj, ok := reg.Get(idxKey)
+		if ok {
+			// Nur IDs aus dem RAM-Index öffnen
+			for _, id := range inIDs {
+				if _, found := idxObj[id]; found {
+					entry, err := loadEntryCounted(entriesDir, id)
+					if err != nil {
+						continue
+					}
+					if matchesAllFiltersEngine(entry, query.Filter) {
+						result = append(result, entry)
+					}
+				}
+			}
+		} else {
+			// Kein RAM-Index: vollständiger Scan wie bisher
+			for _, id := range inIDs {
+				entry, err := loadEntryCounted(entriesDir, id)
+				if err != nil {
+					continue
+				}
+				if matchesAllFiltersEngine(entry, query.Filter) {
+					result = append(result, entry)
+				}
 			}
 		}
 	} else {
