@@ -121,9 +121,22 @@ func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value 
 			}
 		}
 	case "update":
-		// Wert als []string setzen
+		// Wert als []string ergänzen, falls noch nicht enthalten
 		if newVals, ok := value.([]string); ok {
-			idx[key] = newVals
+			if existing, ok := idx[key].([]string); ok {
+				valMap := make(map[string]struct{}, len(existing))
+				for _, v := range existing {
+					valMap[v] = struct{}{}
+				}
+				for _, nv := range newVals {
+					if _, found := valMap[nv]; !found {
+						existing = append(existing, nv)
+					}
+				}
+				idx[key] = existing
+			} else {
+				idx[key] = newVals
+			}
 		}
 	case "delete":
 		delete(idx, key)
