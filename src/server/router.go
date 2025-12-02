@@ -14,6 +14,7 @@ import (
 	"github.com/a-digi/coco-db/src/table/fields"
 	entries "github.com/a-digi/coco-db/src/table/entries"
 	"time"
+	"fmt"
 	"github.com/a-digi/coco-db/src/query"
 )
 
@@ -280,10 +281,40 @@ func SetupRouter() http.Handler {
 	})
 
 	// Search-Endpunkt: POST /api/databases/{dbname}/search
+	// Erwartet Content-Type: text/plain und einen Query-String im Body (kein JSON)
 	pr.HandleFunc("POST", "/api/databases/{dbname}/search", func(w http.ResponseWriter, r *http.Request, params map[string]string) {
+		if r.Header.Get("Content-Type") != "text/plain" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Content-Type must be text/plain"})
+			return
+		}
+
+		fileLogger, err := logger.NewFileLogger("logs/coco-db.log/")
+
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Logger konnte nicht initialisiert werden: " + err.Error()})
+			return
+		}
+
 		dbName := params["dbname"]
 		queryHandler := &query.QueryHandler{DataDir: "./data", Logger: fileLogger}
+		defer func() {
+			if rec := recover(); rec != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "Interner Serverfehler (panic)", "details": fmt.Sprint(rec)})
+			}
+		}()
 		resp := queryHandler.QueryHandler(dbName, r)
+		if resp == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Interner Serverfehler: Leere APIResponse"})
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.HttpCode)
 		_ = json.NewEncoder(w).Encode(resp)

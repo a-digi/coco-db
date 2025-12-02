@@ -20,6 +20,11 @@ type QueryHandler struct {
 
 // TableQueryHandler verarbeitet eine Tabellen-Query und gibt eine APIResponse zurück
 func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Request) *response.APIResponse {
+	defer func() {
+		if rec := recover(); rec != nil {
+			h.Logger.Error(fmt.Sprintf("panic in TableQueryHandler: %v", rec))
+		}
+	}()
 	start := time.Now()
 	queryObj, err := ParseQuery(r, 100, 1000)
 	if err != nil {
@@ -164,6 +169,11 @@ func copyJoinPath(orig map[string]struct{}) map[string]struct{} {
 
 // QueryHandler verarbeitet eine globale Query und gibt eine APIResponse zurück
 func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.APIResponse {
+	defer func() {
+		if rec := recover(); rec != nil {
+			h.Logger.Error(fmt.Sprintf("panic in QueryHandler: %v", rec))
+		}
+	}()
 	start := time.Now()
 	// Nutze ParseSearchQuery für GraphQL-ähnliche Queries
 	queryObj, tableName, err := ParseSearchQuery(r)
