@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"github.com/a-digi/coco-db/src/table/fields/validate"
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/index"
 )
 
 type EntryEditor struct {
@@ -121,6 +122,17 @@ func (ee *EntryEditor) EditEntry(dbName, tableName, entryId string, entry map[st
 					newKey, ok := entry[idxField].(string)
 					if ok {
 						idxObj[newKey] = append(idxObj[newKey], entryId)
+						// In-Memory-Index aktualisieren
+						reg := index.GetRegistry()
+						idx, _ := reg.Get(dbName + "." + tableName + "." + idxName)
+						var ids []string
+						if idx != nil {
+							if v, ok := idx[newKey].([]string); ok {
+								ids = v
+							}
+						}
+						ids = append(ids, entryId)
+						reg.UpdateIndexInMemory(dbName, tableName, idxName, newKey, ids, "update")
 					}
 					// Index speichern
 					idxFile, _ := os.Create(idxPath)

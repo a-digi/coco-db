@@ -82,12 +82,16 @@ func buildIndexKeyFromPath(path, dataDir string) string {
 	rel, _ := filepath.Rel(dataDir, path)
 	// Annahme: dataDir/db/table/indexes/index_xxx.json
 	parts := strings.Split(filepath.ToSlash(rel), "/")
+
 	if len(parts) == 4 && parts[2] == "indexes" && strings.HasPrefix(parts[3], "index_") && strings.HasSuffix(parts[3], ".json") {
 		db := parts[0]
 		table := parts[1]
 		index := parts[3][6 : len(parts[3])-5] // index_xxx.json → xxx
-		return db + "." + table + "." + index
+		key := db + "." + table + "." + index
+		println("[buildIndexKeyFromPath] key:", key)
+		return key
 	}
+
 	return path
 }
 
@@ -105,8 +109,22 @@ func (r *IndexRegistry) UpdateIndexInMemory(db, table, index, key string, value 
 		r.cache[idxKey] = idx
 	}
 	switch action {
-	case "insert", "update":
-		idx[key] = value
+	case "insert":
+		// Wert als []string behandeln und anhängen
+		if v, ok := idx[key].([]string); ok {
+			if newVals, ok := value.([]string); ok {
+				idx[key] = append(v, newVals...)
+			}
+		} else {
+			if newVals, ok := value.([]string); ok {
+				idx[key] = newVals
+			}
+		}
+	case "update":
+		// Wert als []string setzen
+		if newVals, ok := value.([]string); ok {
+			idx[key] = newVals
+		}
 	case "delete":
 		delete(idx, key)
 	}

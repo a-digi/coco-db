@@ -13,6 +13,7 @@ import (
 	validate "github.com/a-digi/coco-db/src/table/fields/validate"
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
+	"github.com/a-digi/coco-db/src/index"
 )
 
 // Funktionsbasierte Variante für direkten Aufruf
@@ -113,6 +114,17 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 				writeIndexFileAtomic(idxPath, func(idxObj map[string][]string) {
 					idxObj[idxKey] = append(idxObj[idxKey], entryId)
 				})
+				// In-Memory-Index aktualisieren
+				reg := index.GetRegistry()
+				idx, _ := reg.Get(dbName + "." + tableName + "." + idxMeta.Name)
+				var ids []string
+				if idx != nil {
+					if v, ok := idx[idxKey].([]string); ok {
+						ids = v
+					}
+				}
+				ids = append(ids, entryId)
+				reg.UpdateIndexInMemory(dbName, tableName, idxMeta.Name, idxKey, ids, "insert")
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/a-digi/coco-db/src/logger"
+	"github.com/a-digi/coco-db/src/index"
 )
 
 type EntryDeleter struct {
@@ -73,8 +74,14 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 							}
 							if len(newIds) > 0 {
 								idxObj[oldKey] = newIds
+								// In-Memory-Index aktualisieren
+								reg := index.GetRegistry()
+								reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, newIds, "delete")
 							} else {
 								delete(idxObj, oldKey)
+								// In-Memory-Index aktualisieren
+								reg := index.GetRegistry()
+								reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, nil, "delete")
 							}
 						}
 					}

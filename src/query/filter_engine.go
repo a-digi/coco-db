@@ -50,6 +50,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
 			idxKey := dbName + "." + tableName + "." + idxMeta.Name
+			println("[filter_engine] idxKey:", idxKey)
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {

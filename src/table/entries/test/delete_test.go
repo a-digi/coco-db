@@ -11,8 +11,8 @@ import (
 	"github.com/a-digi/coco-db/src/table/entries/testmeta"
 )
 
-func TestInsertEntry_UpdatesMemoryIndex(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "entrycreator_test_memidx")
+func TestDeleteEntry_UpdatesMemoryIndex(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "deleteentry_test_memidx")
 	if err != nil {
 		t.Fatalf("TempDir error: %v", err)
 	}
@@ -20,7 +20,8 @@ func TestInsertEntry_UpdatesMemoryIndex(t *testing.T) {
 
 	dbName := "testdb"
 	tableName := "testtable"
-	entry := map[string]interface{}{"foo": "bar", "num": 42}
+	entryId := "testid"
+	origEntry := map[string]interface{}{"foo": "bar"}
 
 	// meta.json mit Index "foo" anlegen
 	tableDir := filepath.Join(tmpDir, dbName, tableName)
@@ -43,17 +44,18 @@ func TestInsertEntry_UpdatesMemoryIndex(t *testing.T) {
 	idxName := "foo"
 	reg.Set(dbName+"."+tableName+"."+idxName, index.IndexData{})
 
-	resp := entries.InsertEntry(dbName, tableName, entry, tmpDir, nil)
-	if resp == nil || !resp.Success {
-		t.Fatalf("InsertEntry fehlgeschlagen")
-	}
+	// Insert vor Delete
+	_ = entries.InsertEntry(dbName, tableName, origEntry, tmpDir, nil)
+
+	entriesDeleter := &entries.EntryDeleter{DataDir: tmpDir, Logger: nil}
+	entriesDeleter.DeleteEntry(dbName, tableName, entryId)
 	idxKey := "bar"
 	idx, ok := reg.Get(dbName + "." + tableName + "." + idxName)
 	if !ok {
 		t.Fatalf("Index nicht im Speicher gefunden")
 	}
-	ids, ok := idx[idxKey].([]string)
-	if !ok || len(ids) == 0 {
-		t.Fatalf("EntryId nicht im Speicherindex gefunden")
+	_, ok = idx[idxKey].([]string)
+	if ok {
+		t.Fatalf("Key sollte nach Delete nicht mehr im Speicherindex sein")
 	}
 }
