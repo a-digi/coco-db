@@ -96,9 +96,8 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			if err != nil {
 				continue
 			}
-			// Prüfe nicht-indexierte Filter
 			match := true
-			for f := range nonIndexedFields {
+			for f := range query.Filter {
 				cond := query.Filter[f]
 				val, ok := entry[f]
 				if !ok {
@@ -140,43 +139,16 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
-		// Optimierung: Wenn ein "in"-Filter für das Join-Feld existiert, prüfe ob ein RAM-Index existiert
-		var idxKey string
-		for f, idxMeta := range indexedFields {
-			if _, ok := query.Filter[f]; ok {
-				idxKey = dbName + "." + tableName + "." + idxMeta.Name
-				break
+		for _, id := range inIDs {
+			entry, err := loadEntryCounted(entriesDir, id)
+			if err != nil {
+				continue
 			}
-		}
-		reg := index.GetRegistry()
-		idxObj, ok := reg.Get(idxKey)
-		if ok {
-			// Nur IDs aus dem RAM-Index öffnen
-			for _, id := range inIDs {
-				if _, found := idxObj[id]; found {
-					entry, err := loadEntryCounted(entriesDir, id)
-					if err != nil {
-						continue
-					}
-					if matchesAllFiltersEngine(entry, query.Filter) {
-						result = append(result, entry)
-					}
-				}
-			}
-		} else {
-			// Kein RAM-Index: vollständiger Scan wie bisher
-			for _, id := range inIDs {
-				entry, err := loadEntryCounted(entriesDir, id)
-				if err != nil {
-					continue
-				}
-				if matchesAllFiltersEngine(entry, query.Filter) {
-					result = append(result, entry)
-				}
+			if matchesAllFiltersEngine(entry, query.Filter) {
+				result = append(result, entry)
 			}
 		}
 	} else {
-		// Kein Index nutzbar: vollständiger Scan
 		files, _ := os.ReadDir(entriesDir)
 		for _, f := range files {
 			if f.IsDir() {
