@@ -88,7 +88,7 @@ func buildIndexKeyFromPath(path, dataDir string) string {
 		table := parts[1]
 		index := parts[3][6 : len(parts[3])-5] // index_xxx.json → xxx
 		key := db + "." + table + "." + index
-		println("[buildIndexKeyFromPath] key:", key)
+
 		return key
 	}
 
