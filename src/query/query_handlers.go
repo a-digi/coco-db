@@ -8,6 +8,7 @@ import (
 	"github.com/a-digi/coco-db/src/logger"
 	"github.com/a-digi/coco-db/src/response"
 	"github.com/a-digi/coco-db/src/table/fields"
+	"github.com/a-digi/coco-db/src/index"
 )
 
 // QueryHandler kapselt DataDir und Logger für Query-Endpunkte
@@ -151,6 +152,53 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		}
 		fileOpens += joinResult.FileOpens
 		ramHits += joinResult.RAMHits
+		// Nested Loop Join mit RAM-Index
+		reg := index.GetRegistry()
+		// Bestimme das Join-Index-Feld dynamisch (statt Annahme: join.Fields[0])
+		var joinIndexField string
+		if len(join.Fields) > 0 {
+			joinIndexField = join.Fields[0]
+		} else {
+			// Fallback: erstes Feld aus On-Mapping
+			for dst := range join.On {
+				joinIndexField = dst
+				break
+			}
+		}
+		idxKey := dbName + "." + join.Table + "." + joinIndexField
+		idxObj, idxOk := reg.Get(idxKey)
+		for i := range entries {
+			var matchList []map[string]interface{}
+			for dst, src := range join.On {
+				parentVal, ok := entries[i][src]
+				if !ok {
+					continue
+				}
+				parentValStr, okStr := parentVal.(string)
+				if idxOk && okStr {
+					if ids, found := idxObj[parentValStr]; found {
+						if idList, ok := ids.([]string); ok {
+							println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index genutzt: true)")
+							for _, id := range idList {
+								for _, e := range joinResult.Entries {
+									if e[dst] == id {
+										matchList = append(matchList, e)
+									}
+								}
+							}
+						}
+					}
+				} else {
+					println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index genutzt: false)")
+					for _, e := range joinResult.Entries {
+						if entries[i][src] == e[dst] {
+							matchList = append(matchList, e)
+						}
+					}
+				}
+			}
+			entries[i][join.Table] = matchList
+		}
 	}
 	return &FilterResult{
 		Entries:   entries,
