@@ -7,6 +7,7 @@ import (
 	"github.com/a-digi/coco-db/src/index"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"time"
@@ -107,6 +108,14 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				switch c := cond.(type) {
 				case map[string]interface{}:
 					for op, opVal := range c {
+						if op == "like" {
+							valStr, ok1 := val.(string)
+							pattern, ok2 := opVal.(string)
+							if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
+								match = false
+							}
+							continue
+						}
 						fn, found := operatorFuncs[op]
 						if !found || !fn(val, opVal) {
 							match = false
@@ -205,6 +214,14 @@ func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]int
 		switch c := cond.(type) {
 		case map[string]interface{}:
 			for op, opVal := range c {
+				if op == "like" {
+					valStr, ok1 := val.(string)
+					pattern, ok2 := opVal.(string)
+					if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
+						return false
+					}
+					continue
+				}
 				fn, found := operatorFuncs[op]
 				if !found {
 					continue
@@ -221,6 +238,17 @@ func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]int
 		}
 	}
 	return true
+}
+
+// matchLikePattern prüft, ob val das LIKE-Pattern erfüllt (* und ? als Wildcards)
+func matchLikePattern(val, pattern string) bool {
+	// Ersetze * durch .* und ? durch . für regulären Ausdruck
+	regex := "^" + pattern + "$"
+	regex = regexp.MustCompile(`([\\.\\+\\[\\]\\(\\)\\^\\$\\|\\{\\}])`).ReplaceAllString(regex, `\\$1`)
+	regex = regexp.MustCompile(`\\*`).ReplaceAllString(regex, ".*")
+	regex = regexp.MustCompile(`\\?`).ReplaceAllString(regex, ".")
+	matched, err := regexp.MatchString(regex, val)
+	return err == nil && matched
 }
 
 // Hilfsfunktion: IDs aus Indexdatei laden (echtes Indexformat: map[string][]string)
