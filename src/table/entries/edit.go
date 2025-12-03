@@ -122,17 +122,16 @@ func (ee *EntryEditor) EditEntry(dbName, tableName, entryId string, entry map[st
 					newKey, ok := entry[idxField].(string)
 					if ok {
 						idxObj[newKey] = append(idxObj[newKey], entryId)
-						// In-Memory-Index aktualisieren
+						// RAM-Index vollständig aus Datei laden und ersetzen
 						reg := index.GetRegistry()
-						idx, _ := reg.Get(dbName + "." + tableName + "." + idxName)
-						var ids []string
-						if idx != nil {
-							if v, ok := idx[newKey].([]string); ok {
-								ids = v
+						idxData, err := os.ReadFile(idxPath)
+						var idxObjDisk map[string][]string
+						if err == nil {
+							_ = json.Unmarshal(idxData, &idxObjDisk)
+							if ids, ok := idxObjDisk[newKey]; ok {
+								reg.UpdateIndexInMemory(dbName, tableName, idxName, newKey, ids, "update")
 							}
 						}
-						ids = append(ids, entryId)
-						reg.UpdateIndexInMemory(dbName, tableName, idxName, newKey, ids, "update")
 					}
 					// Index speichern
 					idxFile, _ := os.Create(idxPath)

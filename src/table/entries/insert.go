@@ -114,17 +114,16 @@ func InsertEntry(dbName, tableName string, entry map[string]interface{}, dataDir
 				writeIndexFileAtomic(idxPath, func(idxObj map[string][]string) {
 					idxObj[idxKey] = append(idxObj[idxKey], entryId)
 				})
-				// In-Memory-Index aktualisieren
+				// RAM-Index vollständig aus Datei laden und ersetzen
 				reg := index.GetRegistry()
-				idx, _ := reg.Get(dbName + "." + tableName + "." + idxMeta.Name)
-				var ids []string
-				if idx != nil {
-					if v, ok := idx[idxKey].([]string); ok {
-						ids = v
+				var idxObj map[string][]string
+				idxData, err := os.ReadFile(idxPath)
+				if err == nil {
+					_ = json.Unmarshal(idxData, &idxObj)
+					if ids, ok := idxObj[idxKey]; ok {
+						reg.UpdateIndexInMemory(dbName, tableName, idxMeta.Name, idxKey, ids, "insert")
 					}
 				}
-				ids = append(ids, entryId)
-				reg.UpdateIndexInMemory(dbName, tableName, idxMeta.Name, idxKey, ids, "insert")
 			}
 		}
 	}

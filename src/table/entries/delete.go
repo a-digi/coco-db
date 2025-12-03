@@ -25,6 +25,12 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 		return fmt.Errorf("Eintrag nicht gefunden")
 	}
 
+	// Fix: Lade den alten Eintrag vor dem Hard Delete
+	var oldEntry map[string]interface{}
+	if oldData, err := os.ReadFile(entryPath); err == nil {
+		_ = json.Unmarshal(oldData, &oldEntry)
+	}
+
 	// 1. Hard Delete: Lösche das gesamte Verzeichnis des Eintrags
 	if err := versioningObj.HardDelete(); err != nil {
 		ed.Logger.Error(fmt.Sprintf("Fehler beim Löschen des Eintrags: %v", err))
@@ -47,13 +53,6 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 					if !ok || len(fieldsArr) != 1 { continue }
 					idxField, _ := fieldsArr[0].(string)
 					idxName, _ := idxMeta["name"].(string)
-					// Lade alten Eintrag (vor Delete)
-					oldEntryPath := filepath.Join(entryDir, entryId+".json")
-					oldData, err := os.ReadFile(oldEntryPath)
-					var oldEntry map[string]interface{}
-					if err == nil {
-						_ = json.Unmarshal(oldData, &oldEntry)
-					}
 					// Index laden
 					idxPath := filepath.Join(tableDir, "indexes", "index_"+idxName+".json")
 					var idxObj map[string][]string
@@ -74,14 +73,20 @@ func (ed *EntryDeleter) DeleteEntry(dbName, tableName, entryId string) error {
 							}
 							if len(newIds) > 0 {
 								idxObj[oldKey] = newIds
-								// In-Memory-Index aktualisieren
-								reg := index.GetRegistry()
-								reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, newIds, "delete")
 							} else {
 								delete(idxObj, oldKey)
-								// In-Memory-Index aktualisieren
-								reg := index.GetRegistry()
-								reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, nil, "delete")
+							}
+							// RAM-Index vollständig aus Datei laden und ersetzen
+							reg := index.GetRegistry()
+							idxData, err := os.ReadFile(idxPath)
+							var idxObjDisk map[string][]string
+							if err == nil {
+								_ = json.Unmarshal(idxData, &idxObjDisk)
+								if ids, ok := idxObjDisk[oldKey]; ok && len(ids) > 0 {
+									reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, ids, "delete")
+								} else {
+									reg.UpdateIndexInMemory(dbName, tableName, idxName, oldKey, nil, "delete")
+								}
 							}
 						}
 					}
