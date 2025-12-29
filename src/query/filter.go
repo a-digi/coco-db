@@ -93,6 +93,7 @@ func isGreater(a, b interface{}) bool {
 	fb, okB := toFloat64(b)
 	return okA && okB && fa > fb
 }
+
 func isGreaterOrEqual(a, b interface{}) bool {
 	ta, okA := parseTimeIfPossible(a)
 	tb, okB := parseTimeIfPossible(b)
@@ -103,6 +104,7 @@ func isGreaterOrEqual(a, b interface{}) bool {
 	fb, okB := toFloat64(b)
 	return okA && okB && fa >= fb
 }
+
 func isLess(a, b interface{}) bool {
 	ta, okA := parseTimeIfPossible(a)
 	tb, okB := parseTimeIfPossible(b)
@@ -113,6 +115,7 @@ func isLess(a, b interface{}) bool {
 	fb, okB := toFloat64(b)
 	return okA && okB && fa < fb
 }
+
 func isLessOrEqual(a, b interface{}) bool {
 	ta, okA := parseTimeIfPossible(a)
 	tb, okB := parseTimeIfPossible(b)
