@@ -250,13 +250,17 @@ func loadIDsFromIndex(idxPath string, cond interface{}) ([]string, error) {
 func loadEntry(entriesDir, id string) (map[string]interface{}, error) {
 	entryPath := filepath.Join(entriesDir, id, id+".json")
 	b, err := os.ReadFile(entryPath)
+
 	if err != nil {
 		return nil, err
 	}
+
 	var entry map[string]interface{}
+
 	if err := json.Unmarshal(b, &entry); err != nil {
 		return nil, err
 	}
+
 	return entry, nil
 }
 
