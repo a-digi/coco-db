@@ -11,15 +11,15 @@ import (
 	"github.com/a-digi/coco-db/src/index"
 )
 
-// QueryHandler kapselt DataDir und Logger für Query-Endpunkte
-// und ermöglicht eine objektorientierte Handler-Architektur
-// Beispiel: handler := &QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
+// QueryHandler encapsulates DataDir and Logger for query endpoints
+// and enables an object-oriented handler architecture
+// Example: handler := &QueryHandler{DataDir: "./data", Logger: &logger.NoopLogger{}}
 type QueryHandler struct {
 	DataDir string
 	Logger  logger.Logger
 }
 
-// TableQueryHandler verarbeitet eine Tabellen-Query und gibt eine APIResponse zurück
+// TableQueryHandler processes a table query and returns an APIResponse
 func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Request) *response.APIResponse {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -46,17 +46,17 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 	return response.WriteSuccess(filterResult, execTime)
 }
 
-// joinDepth gibt die aktuelle Verschachtelungstiefe an (für Begrenzung)
+// joinDepth indicates the current join nesting depth (for limitation)
 func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) (*FilterResult, error) {
 	if joinDepth > maxJoinDepth {
-		return nil, fmt.Errorf("Maximale Join-Tiefe (%d) überschritten", maxJoinDepth)
+		return nil, fmt.Errorf("Maximum join depth (%d) exceeded", maxJoinDepth)
 	}
 	if joinPath == nil {
 		joinPath = make(map[string]struct{})
 	}
 	pathKey := dbName + "." + tableName
 	if _, exists := joinPath[pathKey]; exists {
-		return nil, fmt.Errorf("Zyklischer Join erkannt: %s", pathKey)
+		return nil, fmt.Errorf("Cyclic join detected: %s", pathKey)
 	}
 	joinPath[pathKey] = struct{}{}
 	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
@@ -72,7 +72,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		if err != nil {
 			continue
 		}
-		// Sammle alle relevanten Join-IDs aus Parent-Entries
+		// Collect all relevant join IDs from parent entries
 		joinIDs := make(map[interface{}]struct{})
 		for i := range entries {
 			for _, src := range join.On {
@@ -82,7 +82,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				}
 			}
 		}
-		// Baue in-Filter für Join-Feld
+		// Build in-filter for join field
 		joinFilter := map[string]interface{}{}
 
 		for dst := range join.On {
@@ -97,7 +97,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			}
 		}
 
-		// Filter kombinieren
+		// Combine filters
 		for k, v := range join.Filter {
 			joinFilter[k] = v
 		}
@@ -109,7 +109,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			Sort:   nil,
 			Join:   join.Join,
 		}
-		// Rekursiver Join mit aktualisiertem joinPath
+		// Recursive join with updated joinPath
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
 		if err != nil {
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
@@ -118,7 +118,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}
 		if join.Fields != nil && len(join.Fields) > 0 {
-			// Nur gewünschte Felder übernehmen
+			// Only keep desired fields
 			for j := range joinResult.Entries {
 				for k := range joinResult.Entries[j] {
 					found := false
@@ -134,11 +134,11 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				}
 			}
 		}
-		// Debug: Logge Join-Filter und Ergebnis-Anzahl
+		// Debug: Log join filter and result count
 		if h.Logger != nil {
-			h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Treffer: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
+			h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Hits: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
 		}
-		// Mappe die Join-Ergebnisse auf die Parent-Entries
+		// Map join results to parent entries
 		for i := range entries {
 			var matchList []map[string]interface{}
 			for _, e := range joinResult.Entries {
@@ -152,14 +152,14 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		}
 		fileOpens += joinResult.FileOpens
 		ramHits += joinResult.RAMHits
-		// Nested Loop Join mit RAM-Index
+		// Nested loop join with RAM index
 		reg := index.GetRegistry()
-		// Bestimme das Join-Index-Feld dynamisch (statt Annahme: join.Fields[0])
+		// Dynamically determine the join index field (instead of assuming: join.Fields[0])
 		var joinIndexField string
 		if len(join.Fields) > 0 {
 			joinIndexField = join.Fields[0]
 		} else {
-			// Fallback: erstes Feld aus On-Mapping
+			// Fallback: first field from On-mapping
 			for dst := range join.On {
 				joinIndexField = dst
 				break
@@ -178,7 +178,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				if idxOk && okStr {
 					if ids, found := idxObj[parentValStr]; found {
 						if idList, ok := ids.([]string); ok {
-							//println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index genutzt: true)")
+							//println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index used: true)")
 							for _, id := range idList {
 								for _, e := range joinResult.Entries {
 									if e[dst] == id {
@@ -189,7 +189,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 						}
 					}
 				} else {
-					//println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index genutzt: false)")
+					//println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index used: false)")
 					for _, e := range joinResult.Entries {
 						if entries[i][src] == e[dst] {
 							matchList = append(matchList, e)
@@ -215,7 +215,7 @@ func copyJoinPath(orig map[string]struct{}) map[string]struct{} {
 	return newMap
 }
 
-// QueryHandler verarbeitet eine globale Query und gibt eine APIResponse zurück
+// QueryHandler processes a global query and returns an APIResponse
 func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.APIResponse {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -223,7 +223,7 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 		}
 	}()
 	start := time.Now()
-	// Nutze ParseSearchQuery für GraphQL-ähnliche Queries
+	// Use ParseSearchQuery for GraphQL-like queries
 	queryObj, tableName, err := ParseSearchQuery(r)
 	if err != nil {
 		execTime := time.Since(start).String()
@@ -244,7 +244,7 @@ func (h *QueryHandler) QueryHandler(dbName string, r *http.Request) *response.AP
 	return response.WriteSuccess(filterResult, execTime)
 }
 
-// Exportiere die Funktion, damit sie im Router verwendet werden kann
+// Export the function so it can be used in the router
 func (h *QueryHandler) QueryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) ([]map[string]interface{}, error) {
 	result, err := h.queryWithJoins(dbName, tableName, query, meta, joinDefs, joinDepth, maxJoinDepth, joinPath)
 	if err != nil {
