@@ -178,7 +178,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				if idxOk && okStr {
 					if ids, found := idxObj[parentValStr]; found {
 						if idList, ok := ids.([]string); ok {
-							println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index genutzt: true)")
+							//println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index genutzt: true)")
 							for _, id := range idList {
 								for _, e := range joinResult.Entries {
 									if e[dst] == id {
@@ -189,7 +189,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 						}
 					}
 				} else {
-					println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index genutzt: false)")
+					//println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index genutzt: false)")
 					for _, e := range joinResult.Entries {
 						if entries[i][src] == e[dst] {
 							matchList = append(matchList, e)

@@ -108,9 +108,6 @@ func ParseSearchQuery(r *http.Request) (*Query, string, error) {
 	}
 	paramsBlock := queryStr[paramsStart : paramsEnd-1]
 
-	// Logging für Debugging
-	fmt.Println("[DEBUG] paramsBlock:", paramsBlock)
-
 	// Extrahiere Felder (zwischen erstem '{' nach ')' und passender '}')
 	fieldsStart := strings.Index(queryStr[paramsEnd:], "{")
 	fieldsEnd := strings.LastIndex(queryStr, "}")
