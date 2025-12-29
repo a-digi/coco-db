@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-// ACHTUNG: Die In-Memory-Filterung ist deaktiviert.
-// Für alle Filteroperationen muss ab sofort ausschließlich die speicheroptimierte FilterEngine (siehe filter_engine.go) verwendet werden.
-// Die Operatorfunktionen (isEqual, isLike, etc.) werden weiterhin von FilterEngine genutzt.
+// WARNING: In-memory filtering is disabled.
+// For all filter operations, only the memory-optimized FilterEngine (see filter_engine.go) must be used from now on.
+// The operator functions (isEqual, isLike, etc.) are still used by FilterEngine.
 
-// --- KEINE FilterEntries- oder matchesAllFilters/matchesFilter-Logik mehr hier! ---
-// Nur noch Hilfsfunktionen für Operatoren:
+// --- NO more FilterEntries or matchesAllFilters/matchesFilter logic here! ---
+// Only helper functions for operators remain:
 
-// Operator-Dispatch-Map für Vergleichsoperatoren
+// Operator dispatch map for comparison operators
 var operatorFuncs = map[string]func(a, b interface{}) bool{
 	"eq":  isEqual,
 	"neq": func(a, b interface{}) bool { return !isEqual(a, b) },
@@ -26,9 +26,9 @@ var operatorFuncs = map[string]func(a, b interface{}) bool{
 	"fulltext": isFulltext,
 }
 
-// Hilfsfunktionen für Vergleiche (int/float/string)
+// Helper functions for comparisons (int/float/string)
 func isEqual(a, b interface{}) bool {
-	// numerische Typen robust vergleichen
+	// robust comparison for numeric types
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
 	if okA && okB {
@@ -46,7 +46,7 @@ func isEqual(a, b interface{}) bool {
 	}
 }
 
-// toFloat64 konvertiert int/float64/float32 etc. zu float64, gibt false zurück wenn nicht möglich
+// toFloat64 converts int/float64/float32 etc. to float64, returns false if not possible
 func toFloat64(v interface{}) (float64, bool) {
 	switch t := v.(type) {
 	case float64:
@@ -83,7 +83,7 @@ func parseTimeIfPossible(v interface{}) (time.Time, bool) {
 }
 
 func isGreater(a, b interface{}) bool {
-	// Date-Vergleich
+	// Date comparison
 	ta, okA := parseTimeIfPossible(a)
 	tb, okB := parseTimeIfPossible(b)
 	if okA && okB {
@@ -124,14 +124,14 @@ func isLessOrEqual(a, b interface{}) bool {
 	return okA && okB && fa <= fb
 }
 
-// isLike prüft, ob der Wert (a) dem LIKE-Pattern (b) entspricht (mit * und ? als Wildcards)
+// isLike checks if the value (a) matches the LIKE pattern (b) (with * and ? as wildcards)
 func isLike(a, b interface{}) bool {
 	as, ok1 := a.(string)
 	bs, ok2 := b.(string)
 	if !ok1 || !ok2 {
 		return false
 	}
-	// Ersetze * durch .*, ? durch .
+	// Replace * with .*, ? with .
 	pattern := regexp.QuoteMeta(bs)
 	pattern = strings.ReplaceAll(pattern, "\\*", ".*")
 	pattern = strings.ReplaceAll(pattern, "\\?", ".")
@@ -140,7 +140,7 @@ func isLike(a, b interface{}) bool {
 	return re.MatchString(as)
 }
 
-// isPartial prüft, ob b als Teilstring in a vorkommt (nur am Anfang oder exakt der lokale Teil vor @ oder exakt der Domain-Teil vor dem ersten Punkt nach @, aber nicht, wenn b im lokalen Teil einer anderen Adresse vorkommt)
+// isPartial checks if b occurs as a substring in a (only at the beginning or exactly the local part before @ or exactly the domain part before the first dot after @, but not if b occurs in the local part of another address)
 func isPartial(a, b interface{}) bool {
 	as, ok1 := a.(string)
 	bs, ok2 := b.(string)
@@ -161,7 +161,7 @@ func isPartial(a, b interface{}) bool {
 	return false
 }
 
-// isFulltext prüft, ob die Tokens aus b in der Reihenfolge als Substrings in a vorkommen (nur für 'foo bar' -> 'foo@bar.de')
+// isFulltext checks if the tokens from b occur in order as substrings in a (only for 'foo bar' -> 'foo@bar.de')
 func isFulltext(a, b interface{}) bool {
 	as, ok1 := a.(string)
 	bs, ok2 := b.(string)
@@ -179,4 +179,4 @@ func isFulltext(a, b interface{}) bool {
 	}
 	return true
 }
-// TODO: Volltext-Operatoren weiter verfeinern (z.B. mit Gewichtung, Phrasensuche etc.)
+// TODO: Further refine fulltext operators (e.g., with weighting, phrase search, etc.)
