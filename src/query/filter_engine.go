@@ -34,6 +34,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 
 	indexedFields := map[string]fields.IndexMeta{}
 	nonIndexedFields := map[string]struct{}{}
+
 	for _, idx := range meta.Indexes {
 		for _, f := range idx.Fields {
 			indexedFields[f] = idx
