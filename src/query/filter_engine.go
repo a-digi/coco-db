@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-// FilterResult enthält die Query-Ergebnisse und die Zähler für Dateiöffnungen und RAM-Zugriffe
-// Wird für API-Aggregate-Logik genutzt
+// FilterResult contains the query results and the counters for file openings and RAM accesses
+// Used for API aggregate logic
 type FilterResult struct {
 	Entries      []map[string]interface{} `json:"results"`
 	FileOpens    int                      `json:"fileOpens"`
 	RAMHits      int                      `json:"ramHits"`
 }
 
-// Speicheroptimierte Filter-Engine: Nur Indexdaten im Speicher, sonst sequentieller Dateiscan
-// Gibt die gefilterten Einträge als Array von map[string]interface{} zurück
+// Memory-optimized filter engine: Only index data in memory, otherwise sequential file scan
+// Returns the filtered entries as an array of map[string]interface{}
 func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) (*FilterResult, error) {
     var fileOpenCount int
     var ramHitCount int
@@ -46,7 +46,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		}
 	}
 
-	// 1. IDs aus allen Indexfiltern sammeln
+	// 1. Collect IDs from all index filters
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
@@ -55,7 +55,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			reg := index.GetRegistry()
 			idxObj, ok := reg.Get(idxKey)
 			if ok {
-				// Bereichsfilter erkennen
+				// Detect range filters
 				switch c := cond.(type) {
 				case map[string]interface{}:
 					ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
@@ -83,13 +83,13 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		}
 	}
 
-	// 2. Schnittmenge aller Index-IDs bilden
+	// 2. Form the intersection of all index IDs
 	ids := intersectIDSets(idSets)
 
 	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
 	var result []map[string]interface{}
 
-	// 3. Wenn Index-IDs vorhanden, prüfe nur diese, sonst vollständiger Scan
+	// 3. If index IDs are present, only check these, otherwise full scan
 	if len(ids) > 0 {
 		for _, id := range ids {
 			entry, err := loadEntryCounted(entriesDir, id)
@@ -176,7 +176,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	}, nil
 }
 
-// matchesAllFiltersEngine prüft, ob ein Eintrag alle Filterbedingungen erfüllt (AND-Logik)
+// matchesAllFiltersEngine checks if an entry meets all filter conditions (AND logic)
 func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]interface{}) bool {
 	for field, cond := range filter {
 		val, ok := entry[field]
@@ -212,9 +212,9 @@ func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]int
 	return true
 }
 
-// matchLikePattern prüft, ob val das LIKE-Pattern erfüllt (* und ? als Wildcards)
+// matchLikePattern checks if val meets the LIKE pattern (* and ? as wildcards)
 func matchLikePattern(val, pattern string) bool {
-	// Ersetze * durch .* und ? durch . für regulären Ausdruck
+	// Replace * with .* and ? with . for regular expression
 	regex := "^" + pattern + "$"
 	regex = regexp.MustCompile(`([\\.\\+\\[\\]\\(\\)\\^\\$\\|\\{\\}])`).ReplaceAllString(regex, `\\$1`)
 	regex = regexp.MustCompile(`\\*`).ReplaceAllString(regex, ".*")
@@ -223,13 +223,13 @@ func matchLikePattern(val, pattern string) bool {
 	return err == nil && matched
 }
 
-// Hilfsfunktion: IDs aus Indexdatei laden (echtes Indexformat: map[string][]string)
+// Helper function: Load IDs from index file (actual index format: map[string][]string)
 func loadIDsFromIndex(idxPath string, cond interface{}) ([]string, error) {
 	b, err := os.ReadFile(idxPath)
 	if err != nil {
 		return nil, err
 	}
-	// Versuche zuerst map[string][]string
+	// First try map[string][]string
 	var idxObj map[string][]string
 	if err := json.Unmarshal(b, &idxObj); err == nil {
 		key := fmt.Sprint(cond)
@@ -238,15 +238,15 @@ func loadIDsFromIndex(idxPath string, cond interface{}) ([]string, error) {
 		}
 		return []string{}, nil
 	}
-	// Fallback: []string (ältere Tests)
+	// Fallback: []string (older tests)
 	var idxArr []string
 	if err := json.Unmarshal(b, &idxArr); err == nil {
 		return idxArr, nil
 	}
-	return nil, fmt.Errorf("Indexdatei hat unbekanntes Format")
+	return nil, fmt.Errorf("Index file has unknown format")
 }
 
-// Hilfsfunktion: Eintrag aus Datei laden
+// Helper function: Load entry from file
 func loadEntry(entriesDir, id string) (map[string]interface{}, error) {
 	entryPath := filepath.Join(entriesDir, id, id+".json")
 	b, err := os.ReadFile(entryPath)
@@ -260,7 +260,7 @@ func loadEntry(entriesDir, id string) (map[string]interface{}, error) {
 	return entry, nil
 }
 
-// Schnittmenge von ID-Slices
+// Intersection of ID slices
 func intersectIDSets(sets [][]string) []string {
 	if len(sets) == 0 {
 		return nil
@@ -281,7 +281,7 @@ func intersectIDSets(sets [][]string) []string {
 	return result
 }
 
-// sortEntries sortiert die Einträge nach den angegebenen Feldern (auf- und absteigend)
+// sortEntries sorts the entries by the specified fields (ascending and descending)
 func sortEntries(entries []map[string]interface{}, sortFields []string) {
 	sort.SliceStable(entries, func(i, j int) bool {
 		for _, field := range sortFields {
@@ -310,7 +310,7 @@ func sortEntries(entries []map[string]interface{}, sortFields []string) {
 	})
 }
 
-// compareValues vergleicht zwei Werte (int, float, string, bool)
+// compareValues compares two values (int, float, string, bool)
 func compareValues(a, b interface{}) int {
 	fa, okA := toFloat64(a)
 	fb, okB := toFloat64(b)
@@ -346,7 +346,7 @@ func compareValues(a, b interface{}) int {
 	return 0
 }
 
-// applyPagination schneidet das Ergebnis auf limit/offset zu
+// applyPagination trims the result to limit/offset
 func applyPagination(entries []map[string]interface{}, limit, offset int) []map[string]interface{} {
 	if offset > len(entries) {
 		return []map[string]interface{}{}
@@ -358,14 +358,14 @@ func applyPagination(entries []map[string]interface{}, limit, offset int) []map[
 	return entries[offset:end]
 }
 
-// Hilfsfunktion: Bereichsfilter auf Index anwenden (mit RAM-Zähler, optimiert für sortierte Keys)
+// Helper function: Apply range filter to index (with RAM counter, optimized for sorted keys)
 func filterIDsByRangeFromIndexCounted(idxObj map[string]interface{}, cond map[string]interface{}, ramHitCount *int) []string {
 	var result []string
 	if len(idxObj) == 0 {
 		return result
 	}
 
-	// Versuche, ob die Keys als Datum oder Zahl sortierbar sind
+	// Try if the keys can be sorted as date or number
 	var keys []string
 	for k := range idxObj {
 		keys = append(keys, k)
@@ -395,7 +395,7 @@ func filterIDsByRangeFromIndexCounted(idxObj map[string]interface{}, cond map[st
 		sort.Strings(keys)
 	}
 
-	// Bereichsgrenzen bestimmen
+	// Determine range boundaries
 	var gte, lte, gt, lt interface{}
 	for op, opVal := range cond {
 		switch op {
@@ -441,9 +441,9 @@ func filterIDsByRangeFromIndexCounted(idxObj map[string]interface{}, cond map[st
 	return result
 }
 
-// Hilfsfunktion: Vergleich von Index-Keys (Datum, Zahl, String)
+// Helper function: Compare index keys (date, number, string)
 func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool {
-	// Versuche als Zahl
+	// Try as number
 	if f, err := parseFloat(key); err == nil {
 		if fv, ok := toFloat(opVal); ok {
 			switch op {
@@ -460,11 +460,11 @@ func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool
 			}
 		}
 	}
-	// Versuche als Datum
+	// Try as date
 	if t, err := time.Parse(time.RFC3339, key); err == nil {
 		if ts, ok := opVal.(string); ok {
 			if tv, err := time.Parse(time.RFC3339, ts); err == nil {
-				// Beide Werte explizit auf UTC normalisieren
+				// Explicitly normalize both values to UTC
 				t = t.UTC()
 				tv = tv.UTC()
 				switch op {
@@ -483,7 +483,7 @@ func compareIndexKey(key string, opVal interface{}, op string, isDate bool) bool
 		}
 	}
 
-	// Fallback: String-Vergleich
+	// Fallback: String comparison
 	if sv, ok := opVal.(string); ok {
 		switch op {
 		case ">=":
@@ -526,7 +526,7 @@ func toFloat(v interface{}) (float64, bool) {
 	return 0, false
 }
 
-// Hilfsfunktion: Extrahiere IDs aus einem "in"-Filter
+// Helper function: Extract IDs from an "in" filter
 func getInFilterIDs(filter map[string]interface{}) []string {
     for _, cond := range filter {
         if condMap, ok := cond.(map[string]interface{}); ok {
