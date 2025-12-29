@@ -24,30 +24,20 @@ type FilterResult struct {
 // Memory-optimized filter engine: Only index data in memory, otherwise sequential file scan
 // Returns the filtered entries as an array of map[string]interface{}
 func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.TableMeta) (*FilterResult, error) {
-    var fileOpenCount int
-    var ramHitCount int
+	var fileOpenCount int
+	var ramHitCount int
 
-	loadEntryCounted := func(entriesDir, id string) (map[string]interface{}, error) {
-		fileOpenCount++
-		return loadEntry(entriesDir, id)
-	}
+	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
+	var result []map[string]interface{}
 
+	// 1. Collect IDs from all index filters
 	indexedFields := map[string]fields.IndexMeta{}
-	nonIndexedFields := map[string]struct{}{}
-
 	for _, idx := range meta.Indexes {
 		for _, f := range idx.Fields {
 			indexedFields[f] = idx
 		}
 	}
 
-	for f := range query.Filter {
-		if _, ok := indexedFields[f]; !ok {
-			nonIndexedFields[f] = struct{}{}
-		}
-	}
-
-	// 1. Collect IDs from all index filters
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
 		if cond, ok := query.Filter[f]; ok {
@@ -64,7 +54,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 						idSets = append(idSets, ids)
 					}
 				default:
-					key := fmt.Sprint(cond)
+					key := fmt.Sprint(f) // Use the field name as string for map index
 					if idsRaw, found := idxObj[key]; found {
 						ramHitCount++
 						if ids, ok := idsRaw.([]interface{}); ok {
@@ -87,13 +77,10 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	// 2. Form the intersection of all index IDs
 	ids := intersectIDSets(idSets)
 
-	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
-	var result []map[string]interface{}
-
 	// 3. If index IDs are present, only check these, otherwise full scan
 	if len(ids) > 0 {
 		for _, id := range ids {
-			entry, err := loadEntryCounted(entriesDir, id)
+			entry, err := loadEntryCounted(entriesDir, id, &fileOpenCount)
 			if err != nil {
 				continue
 			}
@@ -141,7 +128,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		}
 	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
 		for _, id := range inIDs {
-			entry, err := loadEntryCounted(entriesDir, id)
+			entry, err := loadEntryCounted(entriesDir, id, &fileOpenCount)
 			if err != nil {
 				continue
 			}
@@ -154,7 +141,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		for _, f := range files {
 			if f.IsDir() {
 				id := f.Name()
-				entry, err := loadEntryCounted(entriesDir, id)
+				entry, err := loadEntryCounted(entriesDir, id, &fileOpenCount)
 				if err != nil {
 					continue
 				}
@@ -263,6 +250,12 @@ func loadEntry(entriesDir, id string) (map[string]interface{}, error) {
 	}
 
 	return entry, nil
+}
+
+// loadEntryCounted loads an entry and increments the file open counter
+func loadEntryCounted(entriesDir, id string, fileOpenCount *int) (map[string]interface{}, error) {
+	*fileOpenCount++
+	return loadEntry(entriesDir, id)
 }
 
 // Intersection of ID slices
