@@ -48,38 +48,38 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 
 // joinDepth indicates the current join nesting depth (for limitation)
 func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) (*FilterResult, error) {
-
 	if joinDepth > maxJoinDepth {
 		return nil, fmt.Errorf("Maximum join depth (%d) exceeded", maxJoinDepth)
 	}
-
 	if joinPath == nil {
 		joinPath = make(map[string]struct{})
 	}
-
 	pathKey := dbName + "." + tableName
-
 	if _, exists := joinPath[pathKey]; exists {
 		return nil, fmt.Errorf("Cyclic join detected: %s", pathKey)
 	}
-
 	joinPath[pathKey] = struct{}{}
-	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
 
+	startTable := time.Now()
+	fmt.Printf("[JOIN-TRACE] Processing table: %s.%s | joinDepth=%d\n", dbName, tableName, joinDepth)
+	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("[JOIN-TRACE] Table: %s.%s | Entries: %d | FileOpens: %d | RAMHits: %d | Time: %s\n", dbName, tableName, len(filterResult.Entries), filterResult.FileOpens, filterResult.RAMHits, time.Since(startTable))
 
 	entries := filterResult.Entries
 	fileOpens := filterResult.FileOpens
 	ramHits := filterResult.RAMHits
 
 	for _, join := range joinDefs {
+		joinStart := time.Now()
+		fmt.Printf("[JOIN-TRACE] → JOIN: %s ON %+v | Parent entries: %d\n", join.Table, join.On, len(entries))
 		joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
 		if err != nil {
+			fmt.Printf("[JOIN-TRACE]   [ERROR] Could not load meta for join table %s: %v\n", join.Table, err)
 			continue
 		}
-		// Collect all relevant join IDs from parent entries
 		joinIDs := make(map[interface{}]struct{})
 		for i := range entries {
 			for _, src := range join.On {
@@ -89,9 +89,8 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				}
 			}
 		}
-		// Build in-filter for join field
+		fmt.Printf("[JOIN-TRACE]   Join IDs collected: %d\n", len(joinIDs))
 		joinFilter := map[string]interface{}{}
-
 		for dst := range join.On {
 			var idList []interface{}
 			for id := range joinIDs {
@@ -103,12 +102,9 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				joinFilter[dst] = map[string]interface{}{"in": idList}
 			}
 		}
-
-		// Combine filters
 		for k, v := range join.Filter {
 			joinFilter[k] = v
 		}
-
 		joinQuery := &Query{
 			Filter: joinFilter,
 			Limit:  0,
@@ -116,20 +112,16 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			Sort:   nil,
 			Join:   join.Join,
 		}
-
-		// Recursive join with updated joinPath
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
-
 		if err != nil {
+			fmt.Printf("[JOIN-TRACE]   [ERROR] Join query failed for %s: %v\n", join.Table, err)
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}
-
 		if joinResult == nil {
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}
-
+		fmt.Printf("[JOIN-TRACE]   Join table: %s | Join results: %d | FileOpens: %d | RAMHits: %d | Time: %s\n", join.Table, len(joinResult.Entries), joinResult.FileOpens, joinResult.RAMHits, time.Since(joinStart))
 		if join.Fields != nil && len(join.Fields) > 0 {
-			// Only keep desired fields
 			for j := range joinResult.Entries {
 				for k := range joinResult.Entries[j] {
 					found := false
@@ -145,36 +137,11 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				}
 			}
 		}
-
-		// Debug: Log join filter and result count
-		if h.Logger != nil {
-			h.Logger.Info(fmt.Sprintf("Join: %s, Filter: %+v, Hits: %d", join.Table, joinQuery.Filter, len(joinResult.Entries)))
-		}
-
-		// Map join results to parent entries
-		for i := range entries {
-			var matchList []map[string]interface{}
-			for _, e := range joinResult.Entries {
-				for dst, src := range join.On {
-					if entries[i][src] == e[dst] {
-						matchList = append(matchList, e)
-					}
-				}
-			}
-			entries[i][join.Table] = matchList
-		}
-
-		fileOpens += joinResult.FileOpens
-		ramHits += joinResult.RAMHits
-		// Nested loop join with RAM index
 		reg := index.GetRegistry()
-		// Dynamically determine the join index field (instead of assuming: join.Fields[0])
 		var joinIndexField string
-
 		if len(join.Fields) > 0 {
 			joinIndexField = join.Fields[0]
 		} else {
-			// Fallback: first field from On-mapping
 			for dst := range join.On {
 				joinIndexField = dst
 				break
@@ -182,7 +149,6 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		}
 		idxKey := dbName + "." + join.Table + "." + joinIndexField
 		idxObj, idxOk := reg.Get(idxKey)
-
 		for i := range entries {
 			var matchList []map[string]interface{}
 			for dst, src := range join.On {
@@ -194,7 +160,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				if idxOk && okStr {
 					if ids, found := idxObj[parentValStr]; found {
 						if idList, ok := ids.([]string); ok {
-							//println("[NestedLoopJoin] ParentID:", parentValStr, "→ JoinIDs:", idList, "(RAM-Index used: true)")
+							fmt.Printf("[JOIN-TRACE]   [RAM-INDEX] ParentID: %s → JoinIDs: %v\n", parentValStr, idList)
 							for _, id := range idList {
 								for _, e := range joinResult.Entries {
 									if e[dst] == id {
@@ -205,7 +171,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 						}
 					}
 				} else {
-					//println("[NestedLoopJoin] ParentID:", parentVal, "(RAM-Index used: false)")
+					fmt.Printf("[JOIN-TRACE]   [NO-RAM-INDEX] ParentID: %v\n", parentVal)
 					for _, e := range joinResult.Entries {
 						if entries[i][src] == e[dst] {
 							matchList = append(matchList, e)
@@ -215,8 +181,9 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			}
 			entries[i][join.Table] = matchList
 		}
+		fileOpens += joinResult.FileOpens
+		ramHits += joinResult.RAMHits
 	}
-
 	return &FilterResult{
 		Entries:   entries,
 		FileOpens: fileOpens,
