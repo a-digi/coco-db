@@ -94,30 +94,22 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 
         // Execute the join query recursively
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
+
 		if err != nil {
 			fmt.Printf("[JOIN-TRACE]   [ERROR] Join query failed for %s: %v\n", join.Table, err)
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}
+
 		if joinResult == nil {
 			joinResult = &FilterResult{Entries: []map[string]interface{}{}}
 		}
+
 		fmt.Printf("[JOIN-TRACE]   Join table: %s | Join results: %d | FileOpens: %d | RAMHits: %d | Time: %s\n", join.Table, len(joinResult.Entries), joinResult.FileOpens, joinResult.RAMHits, time.Since(joinStart))
-		if join.Fields != nil && len(join.Fields) > 0 {
-			for j := range joinResult.Entries {
-				for k := range joinResult.Entries[j] {
-					found := false
-					for _, f := range join.Fields {
-						if k == f {
-							found = true
-							break
-						}
-					}
-					if !found {
-						delete(joinResult.Entries[j], k)
-					}
-				}
-			}
-		}
+
+        // If specific fields are requested, filter the join results
+		filterJoinResultsByFields(joinResult, join.Fields)
+
+        // Map join results back to parent entries
 		reg := index.GetRegistry()
 		var joinIndexField string
 		if len(join.Fields) > 0 {
@@ -128,8 +120,10 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 				break
 			}
 		}
+
 		idxKey := dbName + "." + join.Table + "." + joinIndexField
 		idxObj, idxOk := reg.Get(idxKey)
+
 		for i := range entries {
 			var matchList []map[string]interface{}
 			for dst, src := range join.On {
@@ -165,6 +159,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		fileOpens += joinResult.FileOpens
 		ramHits += joinResult.RAMHits
 	}
+
 	return &FilterResult{
 		Entries:   entries,
 		FileOpens: fileOpens,
@@ -270,5 +265,27 @@ func createJoinQuery(joinOn map[string]string, joinIDs map[interface{}]struct{},
 		Offset: 0,
 		Sort:   nil,
 		Join:   joinJoin,
+	}
+}
+
+// filterJoinResultsByFields filtert die Felder der Join-Resultate auf die gewünschten Felder
+func filterJoinResultsByFields(joinResult *FilterResult, fields []string) {
+	if joinResult == nil || fields == nil || len(fields) == 0 {
+		return
+	}
+
+	for j := range joinResult.Entries {
+		for k := range joinResult.Entries[j] {
+			found := false
+			for _, f := range fields {
+				if k == f {
+					found = true
+					break
+				}
+			}
+			if !found {
+				delete(joinResult.Entries[j], k)
+			}
+		}
 	}
 }
