@@ -53,44 +53,9 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			if err != nil {
 				continue
 			}
-			match := true
-			for f := range query.Filter {
-				cond := query.Filter[f]
-				val, ok := entry[f]
-				if !ok {
-					match = false
-					break
-				}
-				switch c := cond.(type) {
-				case map[string]interface{}:
-					for op, opVal := range c {
-						if op == "like" {
-							valStr, ok1 := val.(string)
-							pattern, ok2 := opVal.(string)
-							if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
-								match = false
-							}
-							continue
-						}
-						fn, found := operatorFuncs[op]
-						if !found || !fn(val, opVal) {
-							match = false
-							break
-						}
-					}
-					if !match {
-						break
-					}
-				default:
-					if !isEqual(val, c) {
-						match = false
-						break
-					}
-				}
-				if !match {
-					break
-				}
-			}
+            // Final check against all filter conditions
+			match := checkEntryMatchesFilter(entry, query.Filter)
+
 			if match {
 				result = append(result, entry)
 			}
@@ -146,6 +111,47 @@ func buildIndexedFields(meta *fields.TableMeta) map[string]fields.IndexMeta {
 	}
 
 	return indexedFields
+}
+
+// checkEntryMatchesFilter checks if an entry matches all filter conditions
+func checkEntryMatchesFilter(entry map[string]interface{}, filter map[string]interface{}) bool {
+
+	for f := range filter {
+		cond := filter[f]
+		val, ok := entry[f]
+		if !ok {
+			return false
+		}
+
+		switch c := cond.(type) {
+
+		case map[string]interface{}:
+			for op, opVal := range c {
+				if op == "like" {
+					valStr, ok1 := val.(string)
+					pattern, ok2 := opVal.(string)
+					if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
+						return false
+					}
+
+					continue
+				}
+                // Get operator function
+				fn, found := operatorFuncs[op]
+
+				if !found || !fn(val, opVal) {
+					return false
+				}
+			}
+			continue
+		default:
+			if !isEqual(val, c) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // matchesAllFiltersEngine checks if an entry meets all filter conditions (AND logic)
@@ -244,22 +250,27 @@ func loadEntryCounted(entriesDir, id string, fileOpenCount *int) (map[string]int
 
 // Intersection of ID slices
 func intersectIDSets(sets [][]string) []string {
+
 	if len(sets) == 0 {
 		return nil
 	}
+
 	m := map[string]int{}
 	for _, set := range sets {
 		for _, id := range set {
 			m[id]++
 		}
 	}
+
 	var result []string
 	n := len(sets)
+
 	for id, count := range m {
 		if count == n {
 			result = append(result, id)
 		}
 	}
+
 	return result
 }
 
@@ -535,6 +546,8 @@ func getInFilterIDs(filter map[string]interface{}) []string {
 // findInIndexRam searches IDs in the RAM index for a field and returns the ID slices
 func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.IndexMeta, query *Query, ramHitCount *int) [][]string {
 	var idSets [][]string
+
+	// For each indexed field in the filter, get IDs from RAM index
 	for f, idxMeta := range indexedFields {
 		cond, ok := query.Filter[f]
 		if !ok {
@@ -573,5 +586,6 @@ func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.In
 			}
 		}
 	}
+
 	return idSets
 }
