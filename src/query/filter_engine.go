@@ -67,7 +67,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			if err != nil {
 				continue
 			}
-			if matchesAllFiltersEngine(entry, query.Filter) {
+			if checkEntryMatchesFilter(entry, query.Filter) {
 				result = append(result, entry)
 			}
 		}
@@ -81,7 +81,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				if err != nil {
 					continue
 				}
-				if matchesAllFiltersEngine(entry, query.Filter) {
+				if checkEntryMatchesFilter(entry, query.Filter) {
 					result = append(result, entry)
 				}
 			}
@@ -115,16 +115,13 @@ func buildIndexedFields(meta *fields.TableMeta) map[string]fields.IndexMeta {
 
 // checkEntryMatchesFilter checks if an entry matches all filter conditions
 func checkEntryMatchesFilter(entry map[string]interface{}, filter map[string]interface{}) bool {
-
 	for f := range filter {
 		cond := filter[f]
 		val, ok := entry[f]
 		if !ok {
 			return false
 		}
-
 		switch c := cond.(type) {
-
 		case map[string]interface{}:
 			for op, opVal := range c {
 				if op == "like" {
@@ -133,50 +130,10 @@ func checkEntryMatchesFilter(entry map[string]interface{}, filter map[string]int
 					if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
 						return false
 					}
-
 					continue
 				}
-                // Get operator function
 				fn, found := operatorFuncs[op]
-
 				if !found || !fn(val, opVal) {
-					return false
-				}
-			}
-			continue
-		default:
-			if !isEqual(val, c) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-// matchesAllFiltersEngine checks if an entry meets all filter conditions (AND logic)
-func matchesAllFiltersEngine(entry map[string]interface{}, filter map[string]interface{}) bool {
-	for field, cond := range filter {
-		val, ok := entry[field]
-		if !ok {
-			return false
-		}
-		switch c := cond.(type) {
-		case map[string]interface{}:
-			for op, opVal := range c {
-				if op == "like" {
-					valStr, ok1 := val.(string)
-					pattern, ok2 := opVal.(string)
-					if !ok1 || !ok2 || !matchLikePattern(valStr, pattern) {
-						return false
-					}
-					continue
-				}
-				fn, found := operatorFuncs[op]
-				if !found {
-					continue
-				}
-				if !fn(val, opVal) {
 					return false
 				}
 			}
