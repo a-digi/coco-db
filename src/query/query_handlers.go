@@ -26,44 +26,58 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 			h.Logger.Error(fmt.Sprintf("panic in TableQueryHandler: %v", rec))
 		}
 	}()
+
 	start := time.Now()
 	queryObj, err := ParseQuery(r, 100, 1000)
+
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusBadRequest, "ERR_INVALID_QUERY", err.Error(), execTime)
 	}
+
 	meta, err := fields.LoadTableMeta(h.DataDir, dbName, tableName)
+
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusNotFound, "ERR_META_NOT_FOUND", err.Error(), execTime)
 	}
+
 	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, queryObj, meta)
+
 	if err != nil {
 		execTime := time.Since(start).String()
 		return response.WriteErrorInternal(http.StatusInternalServerError, "ERR_QUERY_EXEC", err.Error(), execTime)
 	}
+
 	execTime := time.Since(start).String()
+
 	return response.WriteSuccess(filterResult, execTime)
 }
 
 // joinDepth indicates the current join nesting depth (for limitation)
 func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) (*FilterResult, error) {
+
 	if joinDepth > maxJoinDepth {
 		return nil, fmt.Errorf("Maximum join depth (%d) exceeded", maxJoinDepth)
 	}
+
 	if joinPath == nil {
 		joinPath = make(map[string]struct{})
 	}
+
 	pathKey := dbName + "." + tableName
+
 	if _, exists := joinPath[pathKey]; exists {
 		return nil, fmt.Errorf("Cyclic join detected: %s", pathKey)
 	}
+
 	joinPath[pathKey] = struct{}{}
 
 	startTable := time.Now()
 	fmt.Printf("[JOIN-TRACE] Processing table: %s.%s | joinDepth=%d\n", dbName, tableName, joinDepth)
 	// Find the results from the main table first
 	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
+
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +126,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
         // Map join results back to parent entries
         idxObj, idxOk, _ := getJoinIndexInfo(dbName, join.Table, join.Fields, join.On)
         var idxMap map[string]interface{}
+
         if idxOk {
             idxMap, _ = idxObj.(map[string]interface{})
         }
