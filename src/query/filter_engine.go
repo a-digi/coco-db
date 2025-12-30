@@ -54,7 +54,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 						idSets = append(idSets, ids)
 					}
 				default:
-					key := fmt.Sprint(f) // Use the field name as string for map index
+					key := fmt.Sprint(cond)
 					if idsRaw, found := idxObj[key]; found {
 						ramHitCount++
 						if ids, ok := idsRaw.([]interface{}); ok {
@@ -77,8 +77,14 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	// 2. Form the intersection of all index IDs
 	ids := intersectIDSets(idSets)
 
+	if len(idSets) > 0 && len(ids) == 0 {
+		fmt.Printf("[FILTER-TRACE] Index IDs found, but intersection is empty. No entries will be loaded.\n")
+		return &FilterResult{Entries: []map[string]interface{}{}, FileOpens: fileOpenCount, RAMHits: ramHitCount}, nil
+	}
+
 	// 3. If index IDs are present, only check these, otherwise full scan
 	if len(ids) > 0 {
+		fmt.Printf("[FILTER-TRACE] Using index IDs (%d) for loading entries.\n", len(ids))
 		for _, id := range ids {
 			entry, err := loadEntryCounted(entriesDir, id, &fileOpenCount)
 			if err != nil {
@@ -127,6 +133,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else if inIDs := getInFilterIDs(query.Filter); len(inIDs) > 0 {
+		fmt.Printf("[FILTER-TRACE] Using IN-filter IDs (%d) for loading entries.\n", len(inIDs))
 		for _, id := range inIDs {
 			entry, err := loadEntryCounted(entriesDir, id, &fileOpenCount)
 			if err != nil {
@@ -137,6 +144,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			}
 		}
 	} else {
+		fmt.Printf("[FILTER-TRACE] No index or IN-filter found. Performing full scan of all entries!\n")
 		files, _ := os.ReadDir(entriesDir)
 		for _, f := range files {
 			if f.IsDir() {
