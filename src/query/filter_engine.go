@@ -135,7 +135,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	}, nil
 }
 
-// buildIndexedFields extrahiert alle indexierten Felder aus dem TableMeta
+// buildIndexedFields extracts all indexed fields from the TableMeta
 func buildIndexedFields(meta *fields.TableMeta) map[string]fields.IndexMeta {
 	indexedFields := map[string]fields.IndexMeta{}
 
@@ -532,7 +532,7 @@ func getInFilterIDs(filter map[string]interface{}) []string {
     return nil
 }
 
-// findInIndexRam sucht IDs im RAM-Index für ein Feld und gibt die ID-Slices zurück
+// findInIndexRam searches IDs in the RAM index for a field and returns the ID slices
 func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.IndexMeta, query *Query, ramHitCount *int) [][]string {
 	var idSets [][]string
 	for f, idxMeta := range indexedFields {
