@@ -105,7 +105,6 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		}
 
 		fmt.Printf("[JOIN-TRACE]   Join table: %s | Join results: %d | FileOpens: %d | RAMHits: %d | Time: %s\n", join.Table, len(joinResult.Entries), joinResult.FileOpens, joinResult.RAMHits, time.Since(joinStart))
-
         // If specific fields are requested, filter the join results
 		filterJoinResultsByFields(joinResult, join.Fields)
 
