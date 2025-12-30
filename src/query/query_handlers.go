@@ -85,6 +85,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			fmt.Printf("[JOIN-TRACE]   [ERROR] Could not load meta for join table %s: %v\n", join.Table, err)
 			continue
 		}
+
         // Collect join IDs from the parent entries
 		joinIDs := filterJoinIDs(entries, join.On)
 
