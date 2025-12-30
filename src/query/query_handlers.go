@@ -109,52 +109,44 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		filterJoinResultsByFields(joinResult, join.Fields)
 
         // Map join results back to parent entries
-		reg := index.GetRegistry()
-		var joinIndexField string
-		if len(join.Fields) > 0 {
-			joinIndexField = join.Fields[0]
-		} else {
-			for dst := range join.On {
-				joinIndexField = dst
-				break
-			}
-		}
+        idxObj, idxOk, _ := getJoinIndexInfo(dbName, join.Table, join.Fields, join.On)
+        var idxMap map[string]interface{}
+        if idxOk {
+            idxMap, _ = idxObj.(map[string]interface{})
+        }
 
-		idxKey := dbName + "." + join.Table + "." + joinIndexField
-		idxObj, idxOk := reg.Get(idxKey)
-
-		for i := range entries {
-			var matchList []map[string]interface{}
-			for dst, src := range join.On {
-				parentVal, ok := entries[i][src]
-				if !ok {
-					continue
-				}
-				parentValStr, okStr := parentVal.(string)
-				if idxOk && okStr {
-					if ids, found := idxObj[parentValStr]; found {
-						if idList, ok := ids.([]string); ok {
-							fmt.Printf("[JOIN-TRACE]   [RAM-INDEX] ParentID: %s → JoinIDs: %v\n", parentValStr, idList)
-							for _, id := range idList {
-								for _, e := range joinResult.Entries {
-									if e[dst] == id {
-										matchList = append(matchList, e)
-									}
-								}
-							}
-						}
-					}
-				} else {
-					fmt.Printf("[JOIN-TRACE]   [NO-RAM-INDEX] ParentID: %v\n", parentVal)
-					for _, e := range joinResult.Entries {
-						if entries[i][src] == e[dst] {
-							matchList = append(matchList, e)
-						}
-					}
-				}
-			}
-			entries[i][join.Table] = matchList
-		}
+        for i := range entries {
+            var matchList []map[string]interface{}
+            for dst, src := range join.On {
+                parentVal, ok := entries[i][src]
+                if !ok {
+                    continue
+                }
+                parentValStr, okStr := parentVal.(string)
+                if idxOk && okStr && idxMap != nil {
+                    if ids, found := idxMap[parentValStr]; found {
+                        if idList, ok := ids.([]string); ok {
+                            fmt.Printf("[JOIN-TRACE]   [RAM-INDEX] ParentID: %s → JoinIDs: %v\n", parentValStr, idList)
+                            for _, id := range idList {
+                                for _, e := range joinResult.Entries {
+                                    if e[dst] == id {
+                                        matchList = append(matchList, e)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    fmt.Printf("[JOIN-TRACE]   [NO-RAM-INDEX] ParentID: %v\n", parentVal)
+                    for _, e := range joinResult.Entries {
+                        if entries[i][src] == e[dst] {
+                            matchList = append(matchList, e)
+                        }
+                    }
+                }
+            }
+            entries[i][join.Table] = matchList
+        }
 		fileOpens += joinResult.FileOpens
 		ramHits += joinResult.RAMHits
 	}
@@ -287,4 +279,21 @@ func filterJoinResultsByFields(joinResult *FilterResult, fields []string) {
 			}
 		}
 	}
+}
+
+// getJoinIndexInfo ermittelt das Index-Objekt und das Index-Feld für einen Join
+func getJoinIndexInfo(dbName, joinTable string, joinFields []string, joinOn map[string]string) (interface{}, bool, string) {
+	reg := index.GetRegistry()
+	var joinIndexField string
+	if len(joinFields) > 0 {
+		joinIndexField = joinFields[0]
+	} else {
+		for dst := range joinOn {
+			joinIndexField = dst
+			break
+		}
+	}
+	idxKey := dbName + "." + joinTable + "." + joinIndexField
+	idxObj, idxOk := reg.Get(idxKey)
+	return idxObj, idxOk, joinIndexField
 }
