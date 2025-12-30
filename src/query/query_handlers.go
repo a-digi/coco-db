@@ -89,21 +89,9 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 		joinIDs := filterJoinIDs(entries, join.On)
 
 		fmt.Printf("[JOIN-TRACE]   Join IDs collected: %d\n", len(joinIDs))
-		joinFilter := map[string]interface{}{}
-		for dst := range join.On {
-			var idList []interface{}
-			for id := range joinIDs {
-				idList = append(idList, id)
-			}
-			if len(idList) == 1 {
-				joinFilter[dst] = idList[0]
-			} else if len(idList) > 1 {
-				joinFilter[dst] = map[string]interface{}{"in": idList}
-			}
-		}
-		for k, v := range join.Filter {
-			joinFilter[k] = v
-		}
+		// Build join query
+		joinFilter := buildJoinFilter(join.On, joinIDs, join.Filter)
+
 		joinQuery := &Query{
 			Filter: joinFilter,
 			Limit:  0,
@@ -111,6 +99,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 			Sort:   nil,
 			Join:   join.Join,
 		}
+
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
 		if err != nil {
 			fmt.Printf("[JOIN-TRACE]   [ERROR] Join query failed for %s: %v\n", join.Table, err)
@@ -257,5 +246,30 @@ func filterJoinIDs(entries []map[string]interface{}, joinOn map[string]string) m
 			}
 		}
 	}
+
 	return joinIDs
+}
+
+// buildJoinFilter erstellt den Filter für den Join anhand der Join-IDs und mergen mit bestehenden Filtern
+func buildJoinFilter(joinOn map[string]string, joinIDs map[interface{}]struct{}, joinFilters map[string]interface{}) map[string]interface{} {
+	joinFilter := make(map[string]interface{})
+
+	for dst := range joinOn {
+		var idList []interface{}
+		for id := range joinIDs {
+			idList = append(idList, id)
+		}
+		if len(idList) == 1 {
+			joinFilter[dst] = idList[0]
+		} else if len(idList) > 1 {
+			joinFilter[dst] = map[string]interface{}{"in": idList}
+		}
+	}
+
+	// Merge mit bestehenden Filtern
+	for k, v := range joinFilters {
+		joinFilter[k] = v
+	}
+
+	return joinFilter
 }
