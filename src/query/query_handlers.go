@@ -61,7 +61,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 	fmt.Printf("  dbName: %s\n", dbName)
 	fmt.Printf("  tableName: %s\n", tableName)
 	fmt.Printf("  joinDepth: %d, maxJoinDepth: %d\n", joinDepth, maxJoinDepth)
-	fmt.Printf("  joinDefs: %d\n", len(joinDefs))
+	// fmt.Printf("  joinDefs: %d\n", len(joinDefs))
 	for i, jd := range joinDefs {
 		fmt.Printf("    joinDef[%d]: Table=%s, On=%v, Fields=%v\n", i, jd.Table, jd.On, jd.Fields)
 	}
@@ -76,8 +76,8 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 	}
 	if query != nil {
 		fmt.Printf("  query.Filter: %v\n", query.Filter)
-		fmt.Printf("  query.Limit: %d, query.Offset: %d\n", query.Limit, query.Offset)
-		fmt.Printf("  query.Sort: %v\n", query.Sort)
+		// fmt.Printf("  query.Limit: %d, query.Offset: %d\n", query.Limit, query.Offset)
+		// fmt.Printf("  query.Sort: %v\n", query.Sort)
 		fmt.Printf("  query.Join: %v\n", query.Join)
 	} else {
 		fmt.Printf("  query: <nil>\n")
@@ -114,7 +114,16 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 	fileOpens := filterResult.FileOpens
 	ramHits := filterResult.RAMHits
 
-    // Process each join definition
+	// Wenn keine Einträge vorhanden sind, sofort abbrechen
+	if len(entries) == 0 {
+		return &FilterResult{
+			Entries:   entries,
+			FileOpens: fileOpens,
+			RAMHits:   ramHits,
+		}, nil
+	}
+
+	// Process each join definition
 	for _, join := range joinDefs {
 		joinStart := time.Now()
 		fmt.Printf("[JOIN-TRACE] → JOIN: %s ON %+v | Parent entries: %d\n", join.Table, join.On, len(entries))
