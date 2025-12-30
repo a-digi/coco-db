@@ -62,33 +62,32 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 
 	startTable := time.Now()
 	fmt.Printf("[JOIN-TRACE] Processing table: %s.%s | joinDepth=%d\n", dbName, tableName, joinDepth)
+	// Find the results from the main table first
 	filterResult, err := FilterEngine(h.DataDir, dbName, tableName, query, meta)
 	if err != nil {
 		return nil, err
 	}
+
 	fmt.Printf("[JOIN-TRACE] Table: %s.%s | Entries: %d | FileOpens: %d | RAMHits: %d | Time: %s\n", dbName, tableName, len(filterResult.Entries), filterResult.FileOpens, filterResult.RAMHits, time.Since(startTable))
 
 	entries := filterResult.Entries
 	fileOpens := filterResult.FileOpens
 	ramHits := filterResult.RAMHits
 
+    // Process each join definition
 	for _, join := range joinDefs {
 		joinStart := time.Now()
 		fmt.Printf("[JOIN-TRACE] → JOIN: %s ON %+v | Parent entries: %d\n", join.Table, join.On, len(entries))
+		// Load metadata for the join table
 		joinMeta, err := fields.LoadTableMeta(h.DataDir, dbName, join.Table)
+
 		if err != nil {
 			fmt.Printf("[JOIN-TRACE]   [ERROR] Could not load meta for join table %s: %v\n", join.Table, err)
 			continue
 		}
-		joinIDs := make(map[interface{}]struct{})
-		for i := range entries {
-			for _, src := range join.On {
-				val, ok := entries[i][src]
-				if ok {
-					joinIDs[val] = struct{}{}
-				}
-			}
-		}
+        // Collect join IDs from the parent entries
+		joinIDs := filterJoinIDs(entries, join.On)
+
 		fmt.Printf("[JOIN-TRACE]   Join IDs collected: %d\n", len(joinIDs))
 		joinFilter := map[string]interface{}{}
 		for dst := range join.On {
@@ -245,4 +244,18 @@ func (h *QueryHandler) QueryWithJoins(dbName, tableName string, query *Query, me
 	}
 
 	return result.Entries, nil
+}
+
+// filterJoinIDs extrahiert die Join-IDs aus den Parent-Entries anhand der Join-On Felder
+func filterJoinIDs(entries []map[string]interface{}, joinOn map[string]string) map[interface{}]struct{} {
+	joinIDs := make(map[interface{}]struct{})
+	for i := range entries {
+		for _, src := range joinOn {
+			val, ok := entries[i][src]
+			if ok {
+				joinIDs[val] = struct{}{}
+			}
+		}
+	}
+	return joinIDs
 }
