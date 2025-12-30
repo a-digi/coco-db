@@ -30,13 +30,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	entriesDir := filepath.Join(dataDir, dbName, tableName, "entries")
 	var result []map[string]interface{}
 
-	// 1. Collect IDs from all index filters
-	indexedFields := map[string]fields.IndexMeta{}
-	for _, idx := range meta.Indexes {
-		for _, f := range idx.Fields {
-			indexedFields[f] = idx
-		}
-	}
+	indexedFields := buildIndexedFields(meta)
 
     // Store ID sets from each index filter
 	var idSets [][]string
@@ -178,6 +172,19 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 		FileOpens: fileOpenCount,
 		RAMHits:   ramHitCount,
 	}, nil
+}
+
+// buildIndexedFields extrahiert alle indexierten Felder aus dem TableMeta
+func buildIndexedFields(meta *fields.TableMeta) map[string]fields.IndexMeta {
+	indexedFields := map[string]fields.IndexMeta{}
+
+	for _, idx := range meta.Indexes {
+		for _, f := range idx.Fields {
+			indexedFields[f] = idx
+		}
+	}
+
+	return indexedFields
 }
 
 // matchesAllFiltersEngine checks if an entry meets all filter conditions (AND logic)
