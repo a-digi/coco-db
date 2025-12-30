@@ -34,47 +34,8 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 
     // Store ID sets from each index filter
 	var idSets [][]string
-
-	// Process each indexed field in the filter
-	for f, idxMeta := range indexedFields {
-		cond, ok := query.Filter[f]
-		if !ok {
-			continue
-		}
-		idxKey := dbName + "." + tableName + "." + idxMeta.Name
-		reg := index.GetRegistry()
-		idxObj, ok := reg.Get(idxKey)
-		if !ok {
-			continue
-		}
-
-		// Detect range filters
-		switch c := cond.(type) {
-		case map[string]interface{}:
-			ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
-			if len(ids) > 0 {
-				idSets = append(idSets, ids)
-			}
-		default:
-			key := fmt.Sprint(cond)
-			idsRaw, found := idxObj[key]
-			if !found {
-				continue
-			}
-			ramHitCount++
-			if ids, ok := idsRaw.([]interface{}); ok {
-				strIDs := make([]string, 0, len(ids))
-				for _, id := range ids {
-					if s, ok := id.(string); ok {
-						strIDs = append(strIDs, s)
-					}
-				}
-				idSets = append(idSets, strIDs)
-			} else if ids, ok := idsRaw.([]string); ok {
-				idSets = append(idSets, ids)
-			}
-		}
-	}
+    // 1. Find IDs from RAM index for each indexed field in the filter
+	idSets = findInIndexRam(dbName, tableName, indexedFields, query, &ramHitCount)
 
 	// 2. Form the intersection of all index IDs
 	ids := intersectIDSets(idSets)
@@ -569,4 +530,48 @@ func getInFilterIDs(filter map[string]interface{}) []string {
         }
     }
     return nil
+}
+
+// findInIndexRam sucht IDs im RAM-Index für ein Feld und gibt die ID-Slices zurück
+func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.IndexMeta, query *Query, ramHitCount *int) [][]string {
+	var idSets [][]string
+	for f, idxMeta := range indexedFields {
+		cond, ok := query.Filter[f]
+		if !ok {
+			continue
+		}
+		idxKey := dbName + "." + tableName + "." + idxMeta.Name
+		reg := index.GetRegistry()
+		idxObj, ok := reg.Get(idxKey)
+		if !ok {
+			continue
+		}
+		// Detect range filters
+		switch c := cond.(type) {
+		case map[string]interface{}:
+			ids := filterIDsByRangeFromIndexCounted(idxObj, c, ramHitCount)
+			if len(ids) > 0 {
+				idSets = append(idSets, ids)
+			}
+		default:
+			key := fmt.Sprint(cond)
+			idsRaw, found := idxObj[key]
+			if !found {
+				continue
+			}
+			(*ramHitCount)++
+			if ids, ok := idsRaw.([]interface{}); ok {
+				strIDs := make([]string, 0, len(ids))
+				for _, id := range ids {
+					if s, ok := id.(string); ok {
+						strIDs = append(strIDs, s)
+					}
+				}
+				idSets = append(idSets, strIDs)
+			} else if ids, ok := idsRaw.([]string); ok {
+				idSets = append(idSets, ids)
+			}
+		}
+	}
+	return idSets
 }
