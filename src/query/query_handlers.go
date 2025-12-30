@@ -90,7 +90,7 @@ func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, me
 
 		fmt.Printf("[JOIN-TRACE]   Join IDs collected: %d\n", len(joinIDs))
 		// Build join query
-		joinQuery := buildJoinFilter(join.On, joinIDs, join.Filter, join.Join)
+		joinQuery := createJoinQuery(join.On, joinIDs, join.Filter, join.Join)
 
         // Execute the join query recursively
 		joinResult, err := h.queryWithJoins(dbName, join.Table, joinQuery, joinMeta, join.Join, joinDepth+1, maxJoinDepth, copyJoinPath(joinPath))
@@ -243,9 +243,9 @@ func filterJoinIDs(entries []map[string]interface{}, joinOn map[string]string) m
 	return joinIDs
 }
 
-// buildJoinFilter erstellt den Filter für den Join anhand der Join-IDs und mergen mit bestehenden Filtern
+// createJoinQuery erstellt den Filter für den Join anhand der Join-IDs und mergen mit bestehenden Filtern
 // und gibt direkt ein Query-Objekt zurück
-func buildJoinFilter(joinOn map[string]string, joinIDs map[interface{}]struct{}, joinFilters map[string]interface{}, joinJoin []JoinDef) *Query {
+func createJoinQuery(joinOn map[string]string, joinIDs map[interface{}]struct{}, joinFilters map[string]interface{}, joinJoin []JoinDef) *Query {
 	joinFilter := make(map[string]interface{})
 	for dst := range joinOn {
 		var idList []interface{}
@@ -258,10 +258,12 @@ func buildJoinFilter(joinOn map[string]string, joinIDs map[interface{}]struct{},
 			joinFilter[dst] = map[string]interface{}{"in": idList}
 		}
 	}
+
 	// Merge mit bestehenden Filtern
 	for k, v := range joinFilters {
 		joinFilter[k] = v
 	}
+
 	return &Query{
 		Filter: joinFilter,
 		Limit:  0,
