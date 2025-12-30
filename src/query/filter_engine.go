@@ -54,7 +54,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				continue
 			}
             // Final check against all filter conditions
-			match := checkEntryMatchesFilter(entry, query.Filter)
+			match := matcheFilters(entry, query.Filter)
 
 			if match {
 				result = append(result, entry)
@@ -67,7 +67,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 			if err != nil {
 				continue
 			}
-			if checkEntryMatchesFilter(entry, query.Filter) {
+			if matcheFilters(entry, query.Filter) {
 				result = append(result, entry)
 			}
 		}
@@ -81,7 +81,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 				if err != nil {
 					continue
 				}
-				if checkEntryMatchesFilter(entry, query.Filter) {
+				if matcheFilters(entry, query.Filter) {
 					result = append(result, entry)
 				}
 			}
@@ -113,8 +113,8 @@ func buildIndexedFields(meta *fields.TableMeta) map[string]fields.IndexMeta {
 	return indexedFields
 }
 
-// checkEntryMatchesFilter checks if an entry matches all filter conditions
-func checkEntryMatchesFilter(entry map[string]interface{}, filter map[string]interface{}) bool {
+// matcheFilters checks if an entry matches all filter conditions
+func matcheFilters(entry map[string]interface{}, filter map[string]interface{}) bool {
 	for f := range filter {
 		cond := filter[f]
 		val, ok := entry[f]
