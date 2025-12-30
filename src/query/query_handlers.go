@@ -56,6 +56,32 @@ func (h *QueryHandler) TableQueryHandler(dbName, tableName string, r *http.Reque
 
 // joinDepth indicates the current join nesting depth (for limitation)
 func (h *QueryHandler) queryWithJoins(dbName, tableName string, query *Query, meta *fields.TableMeta, joinDefs []JoinDef, joinDepth, maxJoinDepth int, joinPath map[string]struct{}) (*FilterResult, error) {
+	// Debug-Ausgaben zu den übergebenen Argumenten
+	fmt.Printf("[DEBUG] queryWithJoins called with:\n")
+	fmt.Printf("  dbName: %s\n", dbName)
+	fmt.Printf("  tableName: %s\n", tableName)
+	fmt.Printf("  joinDepth: %d, maxJoinDepth: %d\n", joinDepth, maxJoinDepth)
+	fmt.Printf("  joinDefs: %d\n", len(joinDefs))
+	for i, jd := range joinDefs {
+		fmt.Printf("    joinDef[%d]: Table=%s, On=%v, Fields=%v\n", i, jd.Table, jd.On, jd.Fields)
+	}
+	if joinPath != nil {
+		var keys []string
+		for k := range joinPath {
+			keys = append(keys, k)
+		}
+		fmt.Printf("  joinPath: %v\n", keys)
+	} else {
+		fmt.Printf("  joinPath: <nil>\n")
+	}
+	if query != nil {
+		fmt.Printf("  query.Filter: %v\n", query.Filter)
+		fmt.Printf("  query.Limit: %d, query.Offset: %d\n", query.Limit, query.Offset)
+		fmt.Printf("  query.Sort: %v\n", query.Sort)
+		fmt.Printf("  query.Join: %v\n", query.Join)
+	} else {
+		fmt.Printf("  query: <nil>\n")
+	}
 
 	if joinDepth > maxJoinDepth {
 		return nil, fmt.Errorf("Maximum join depth (%d) exceeded", maxJoinDepth)
@@ -308,7 +334,7 @@ func mapJoinResultsToParentEntries(entries []map[string]interface{}, join JoinDe
 					}
 				}
 			} else {
-				fmt.Printf("[JOIN-TRACE]   [NO-RAM-INDEX] ParentID: %v\n", parentVal)
+				// fmt.Printf("[JOIN-TRACE]   [NO-RAM-INDEX] ParentID: %v\n", parentVal)
 				for _, e := range joinResult.Entries {
 					if entries[i][src] == e[dst] {
 						matchList = append(matchList, e)
