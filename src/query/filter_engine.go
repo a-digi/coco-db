@@ -91,6 +91,7 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 	if len(query.Sort) > 0 {
 		sortEntries(result, query.Sort)
 	}
+
 	result = applyPagination(result, query.Limit, query.Offset)
 
 	return &FilterResult{
@@ -507,15 +508,19 @@ func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.In
 	// For each indexed field in the filter, get IDs from RAM index
 	for f, idxMeta := range indexedFields {
 		cond, ok := query.Filter[f]
+
 		if !ok {
 			continue
 		}
+
 		idxKey := dbName + "." + tableName + "." + idxMeta.Name
 		reg := index.GetRegistry()
 		idxObj, ok := reg.Get(idxKey)
+
 		if !ok {
 			continue
 		}
+
 		// Detect range filters
 		switch c := cond.(type) {
 		case map[string]interface{}:
@@ -530,6 +535,7 @@ func findInIndexRam(dbName, tableName string, indexedFields map[string]fields.In
 				continue
 			}
 			(*ramHitCount)++
+
 			if ids, ok := idsRaw.([]interface{}); ok {
 				strIDs := make([]string, 0, len(ids))
 				for _, id := range ids {
