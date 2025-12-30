@@ -43,40 +43,42 @@ func FilterEngine(dataDir, dbName, tableName string, query *Query, meta *fields.
 
 	// Process each indexed field in the filter
 	for f, idxMeta := range indexedFields {
-		if cond, ok := query.Filter[f]; ok {
-			idxKey := dbName + "." + tableName + "." + idxMeta.Name
+		cond, ok := query.Filter[f]
+		if !ok {
+			continue
+		}
+		idxKey := dbName + "." + tableName + "." + idxMeta.Name
+		reg := index.GetRegistry()
+		idxObj, ok := reg.Get(idxKey)
+		if !ok {
+			continue
+		}
 
-			reg := index.GetRegistry()
-			idxObj, ok := reg.Get(idxKey)
-
-			if !ok {
+		// Detect range filters
+		switch c := cond.(type) {
+		case map[string]interface{}:
+			ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
+			if len(ids) > 0 {
+				idSets = append(idSets, ids)
+			}
+		default:
+			key := fmt.Sprint(cond)
+			idsRaw, found := idxObj[key]
+			if !found {
 				continue
 			}
-
-            // Detect range filters
-            switch c := cond.(type) {
-            case map[string]interface{}:
-                ids := filterIDsByRangeFromIndexCounted(idxObj, c, &ramHitCount)
-                if len(ids) > 0 {
-                    idSets = append(idSets, ids)
-                }
-            default:
-                key := fmt.Sprint(cond)
-                if idsRaw, found := idxObj[key]; found {
-                    ramHitCount++
-                    if ids, ok := idsRaw.([]interface{}); ok {
-                        strIDs := make([]string, 0, len(ids))
-                        for _, id := range ids {
-                            if s, ok := id.(string); ok {
-                                strIDs = append(strIDs, s)
-                            }
-                        }
-                        idSets = append(idSets, strIDs)
-                    } else if ids, ok := idsRaw.([]string); ok {
-                        idSets = append(idSets, ids)
-                    }
-                }
-            }
+			ramHitCount++
+			if ids, ok := idsRaw.([]interface{}); ok {
+				strIDs := make([]string, 0, len(ids))
+				for _, id := range ids {
+					if s, ok := id.(string); ok {
+						strIDs = append(strIDs, s)
+					}
+				}
+				idSets = append(idSets, strIDs)
+			} else if ids, ok := idsRaw.([]string); ok {
+				idSets = append(idSets, ids)
+			}
 		}
 	}
 
